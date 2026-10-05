@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Garbage-Guard</title>
+<style>
+:root{
+  --base:#DED4C8; --base2:#E9E1D6; --raised:#EFE8DE; --sunk:#D0C4B5;
+  --shade:#B3A592; --lite:#FFFFFF;
+  --text:#16130F; --muted:#6A6054; --edge:#16130F;
+  --teal:#128C84; --teal-lt:#2FB3A8;
+  --ok:#2F9E44; --warn:#E8A317; --bad:#D92D20;
+  --ok-tint:#CDE9D4; --warn-tint:#F7E3B8; --bad-tint:#F4C8C3;
+  --hard:4px 4px 0 var(--edge); --hard-sm:3px 3px 0 var(--edge);
+  --soft:8px 8px 14px var(--shade), -5px -5px 11px var(--lite);
+  --soft-sm:3px 3px 6px var(--shade), -2px -2px 5px var(--lite);
+  --press:inset 5px 5px 10px var(--shade), inset -4px -4px 8px var(--lite);
+  --well:inset 5px 5px 9px var(--shade), inset -3px -3px 7px var(--lite);
+  --gap:7px;
+  /* The GUARD chip is filled with --text, so a --edge shadow under it is the
+     same colour as the chip and vanishes in light mode. Teal separates it.
+     Dark mode keeps the black shadow, which already reads against the pale
+     chip and beats teal there on contrast. */
+  --chip-sh:var(--teal);
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  --base:#1F1C19; --base2:#2A2622; --raised:#332E29; --sunk:#1A1714;
+  --shade:#0D0B09; --lite:#504840;
+  --text:#F2EBE1; --muted:#A79B8C; --edge:#090807;
+  --teal:#16A79C; --teal-lt:#3ED0C4;
+  --ok:#4ECB71; --warn:#F0B429; --bad:#FF6B5E;
+  --ok-tint:#1E3B27; --warn-tint:#453213; --bad-tint:#4A211C;
+  --chip-sh:var(--edge);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* Kiosk touches: a long press should not pop a text selection handle, and a
+   swipe past the end should not bounce the whole page. */
+body{-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+input,.tablewrap,.vm,#cfmText{-webkit-user-select:text;user-select:text}
+html,body{height:100%;margin:0;overflow:hidden}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif;
+  color:var(--text);font-size:13px;line-height:1.25;
+  background:
+    radial-gradient(120% 90% at 8% 0%, var(--base2) 0%, transparent 60%),
+    radial-gradient(110% 80% at 100% 100%, var(--base2) 0%, transparent 55%),
+    var(--base);
+  display:flex;flex-direction:column;padding:7px;gap:var(--gap);
+}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.ico{width:17px;height:17px;flex:none;display:block;overflow:visible}
+
+/* ---------------- buttons ---------------- */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  gap:6px;border:2px solid var(--edge);border-radius:10px;
+  background:linear-gradient(162deg, var(--lite) 0%, var(--raised) 58%);
+  padding:5px 10px;min-height:36px;font-weight:800;font-size:13px;cursor:pointer;
+  box-shadow:var(--hard-sm), var(--soft-sm);
+  transition:transform .09s ease, box-shadow .09s ease, background .12s ease}
+.btn:hover{background:linear-gradient(162deg, var(--lite) 0%, var(--base2) 70%)}
+.btn:active{transform:translate(3px,3px);box-shadow:var(--press);background:var(--sunk)}
+.btn.teal{background:linear-gradient(162deg, var(--teal-lt) 0%, var(--teal) 62%);color:#fff;
+  border-color:var(--edge)}
+.btn.ink{background:linear-gradient(162deg, #45413B 0%, var(--text) 62%);color:var(--base)}
+[data-theme="dark"] .btn.ink{background:linear-gradient(162deg,#FFF 0%, var(--text) 62%)}
+.btn.teal:active,.btn.ink:active{filter:brightness(.9)}
+.btn.sm{min-height:30px;padding:5px 9px;font-size:12px;border-radius:9px;gap:5px;
+  box-shadow:2px 2px 0 var(--edge), var(--soft-sm)}
+.btn.sm .ico{width:14px;height:14px}
+.btn.danger{background:linear-gradient(162deg,#FF8A7E 0%, var(--bad) 62%);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:var(--hard-sm)}
+/* the .btn display rule beats the hidden attribute, so restore it */
+.btn[hidden]{display:none}
+.btn:disabled .ico{animation:none!important}
+
+.ico{transition:transform .12s ease;transform-origin:center}
+.btn:hover .a-spin   {animation:spin 1.1s linear infinite}
+.btn:hover .a-right  {animation:nudgeR .7s ease-in-out infinite}
+.btn:hover .a-left   {animation:nudgeL .7s ease-in-out infinite}
+.btn:hover .a-ring   {animation:ring .55s ease-in-out infinite}
+.btn:hover .a-pop    {animation:pop .7s ease-in-out infinite}
+.btn:hover .a-shake  {animation:shake .6s ease-in-out infinite}
+.btn:hover .a-shutter{animation:shutter .9s ease-in-out infinite}
+.btn:hover .a-tilt   {animation:tilt .8s ease-in-out infinite}
+.btn:active .ico{transform:scale(.86)}
+@keyframes tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-14deg)}}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes nudgeR{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@keyframes nudgeL{0%,100%{transform:translateX(0)}50%{transform:translateX(-3px)}}
+@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(13deg)}75%{transform:rotate(-13deg)}}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes march{to{stroke-dashoffset:-14}}
+@keyframes shutter{0%,100%{transform:scale(1)}50%{transform:scale(.72)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.84)}}
+@keyframes breathe{0%,100%{opacity:.85}50%{opacity:.35}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-2px)}
+  40%{transform:translateX(2px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+@keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@keyframes blink{0%,45%{opacity:1}50%,95%{opacity:.25}100%{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------------- status strip ---------------- */
+.strip{flex:none;display:grid;gap:var(--gap);align-items:stretch;
+  grid-template-columns:auto minmax(188px,1.05fr) repeat(3,minmax(72px,.6fr)) minmax(100px,.78fr) auto}
+.brand{display:flex;align-items:center;gap:6px;border:2px solid var(--edge);
+  border-radius:12px;padding:3px 9px;background:linear-gradient(162deg,var(--lite),var(--raised));
+  box-shadow:var(--hard-sm), var(--soft-sm);cursor:default;user-select:none;
+  transition:transform .1s ease, box-shadow .1s ease}
+.brand:hover{transform:translate(-1px,-1px)}
+.brand:active{transform:translate(3px,3px);box-shadow:var(--press)}
+.brand .ico{width:19px;height:19px;color:var(--teal)}
+.brand:hover .wave{animation:nudgeR .9s ease-in-out infinite}
+.brand .t{font-size:14px;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;
+  white-space:nowrap}
+.brand .t b{background:var(--text);color:var(--base2);padding:1px 6px;border-radius:7px;
+  margin-left:2px;box-shadow:2px 2px 0 var(--chip-sh)}
+
+.box{position:relative;overflow:hidden;background:var(--raised);
+  border:2px solid var(--edge);border-radius:12px;
+  box-shadow:var(--hard-sm), var(--soft-sm);padding:3px 8px;display:flex;
+  flex-direction:column;justify-content:center;min-width:0}
+.box::after{content:"";position:absolute;inset:2px 2px auto 2px;height:46%;
+  border-radius:11px 11px 50%/14px;background:linear-gradient(var(--lite),transparent);
+  opacity:.55;pointer-events:none}
+.box .k{position:relative;z-index:1;font-size:10px;font-weight:700;color:var(--muted);
+  display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+.box .v{position:relative;z-index:1;font-size:17px;font-weight:900;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.05}
+.box .v small{font-size:10px;font-weight:700;color:var(--muted)}
+.box .ico{width:13px;height:13px}
+.c-bottle{color:#0F7BD4} .c-bag{color:#A32BC9} .c-cont{color:#1E9E4A}
+.box.bump .v{animation:pop .4s ease}
+
+.level::after{display:none}
+.level{padding:0}
+.level .bar{position:absolute;inset:0 auto 0 0;width:0;opacity:.45;
+  background:var(--ok);transition:width .55s cubic-bezier(.4,0,.2,1), background .3s}
+.level .inner{position:relative;z-index:1;padding:3px 9px;display:flex;
+  flex-direction:column;justify-content:center;height:100%}
+.level .big{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;
+  line-height:1.05;letter-spacing:-.03em;display:flex;align-items:center;gap:6px}
+.level .big span{font-size:11px;font-weight:700;color:var(--muted)}
+.level .state{font-size:10px;font-weight:800;display:flex;align-items:center;gap:5px}
+.level .ico{width:14px;height:14px}
+.lv-warn .bar{background:var(--warn)}
+.lv-bad .bar{background:var(--bad)}
+.lv-warn .state{color:#8A6100}
+[data-theme="dark"] .lv-warn .state{color:var(--warn)}
+.lv-bad{border-color:var(--bad);animation:alarm 1.5s ease-in-out infinite}
+.lv-bad .state{color:var(--bad)}
+.lv-bad .state .ico{animation:ring .9s ease-in-out infinite;transform-origin:center}
+@keyframes alarm{0%,100%{box-shadow:var(--hard-sm), var(--soft-sm)}
+  50%{box-shadow:var(--hard-sm), 0 0 0 4px var(--bad-tint)}}
+
+.pill{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--edge);
+  border-radius:999px;background:linear-gradient(162deg,var(--lite),var(--raised));
+  box-shadow:var(--hard-sm), var(--soft-sm);padding:3px 10px;font-weight:800;
+  font-size:12px;white-space:nowrap;cursor:default;transition:transform .1s}
+.pill:hover{transform:translate(-1px,-1px)}
+.pill .ico{width:14px;height:14px}
+.pill.online{color:#15703A} .pill.online .ico{color:var(--ok)}
+[data-theme="dark"] .pill.online{color:var(--ok)}
+.pill.online .ico{animation:pulse 1.8s ease-in-out infinite}
+.pill.offline{color:var(--bad);animation:shake 2.6s ease-in-out infinite}
+.pill.offline .ico{color:var(--bad)}
+.ctl{display:flex;flex-direction:column;gap:6px;justify-content:center}
+
+#theme .ico{width:16px;height:16px}
+#theme .sun{transition:opacity .3s, transform .4s}
+#theme .moon{transition:opacity .3s, transform .4s}
+[data-theme="light"] #theme .moon{opacity:.28;transform:translateX(2px) scale(.8)}
+[data-theme="light"] #theme .sun{opacity:1}
+[data-theme="dark"] #theme .sun{opacity:.28;transform:translateX(-2px) scale(.8)}
+[data-theme="dark"] #theme .moon{opacity:1}
+#theme:hover .ico{animation:spin 5s linear infinite}
+
+/* ---------------- tabs ---------------- */
+.tabs{flex:none;display:flex;gap:8px}
+.tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:2px solid var(--edge);border-radius:12px 12px 0 0;background:var(--sunk);
+  color:var(--muted);padding:4px;font-weight:900;font-size:13px;cursor:pointer;
+  box-shadow:var(--press);min-height:32px;transition:box-shadow .15s, color .15s, background .15s}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{background:linear-gradient(162deg,var(--lite),var(--raised));
+  color:var(--text);box-shadow:var(--hard-sm), var(--soft-sm)}
+.tab .ico{width:15px;height:15px}
+.tab[aria-selected="true"] .ico{color:var(--teal)}
+.tab .count{font-weight:800;color:var(--muted);font-size:11px}
+
+main{flex:1;min-height:0;display:flex}
+.page{display:none;flex:1;min-height:0;animation:rise .22s ease}
+.page.on{display:flex}
+
+/* ---------------- cards ---------------- */
+.card{position:relative;background:var(--raised);border:2px solid var(--edge);
+  border-radius:16px;box-shadow:var(--hard), var(--soft);padding:8px;min-height:0;
+  display:flex;flex-direction:column}
+.card::before{content:"";position:absolute;inset:2px 2px auto 2px;height:34px;
+  border-radius:15px 15px 40%/12px;background:linear-gradient(var(--lite),transparent);
+  opacity:.5;pointer-events:none}
+.hd{position:relative;z-index:1;display:flex;align-items:center;gap:6px;flex:none;
+  margin-bottom:6px}
+.hd h2{font-size:14px;font-weight:900;margin:0;flex:1;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.hd .ico{width:18px;height:18px}
+.card-feed .hd .ico{color:#0F7BD4}
+.card-set  .hd .ico{color:var(--teal)}
+.card-area .hd .ico{color:#B7791F}
+.card-log  .hd .ico{color:#7B3FB5}
+.card-feed .hd .ico{animation:pulse 2.8s ease-in-out infinite}
+.card-set:hover .hd .ico{animation:spin 4.5s linear infinite}
+.card-area .hd .ico{animation:floaty 3s ease-in-out infinite}
+.card-log:hover .hd .ico{animation:tick 2s steps(8) infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+@keyframes tick{to{transform:rotate(360deg)}}
+
+/* ---------------- live feed, TV styling ---------------- */
+.card-feed{flex:1;min-width:0;gap:7px}
+.tv{position:relative;flex:1;min-height:0;border:2px solid var(--edge);border-radius:14px;
+  padding:9px 9px 15px;background:linear-gradient(170deg,#4A443D,#241F1B 60%);
+  box-shadow:var(--hard-sm), inset 0 2px 0 rgba(255,255,255,.18)}
+[data-theme="dark"] .tv{background:linear-gradient(170deg,#3A342E,#17130F 60%)}
+.screen{position:absolute;inset:9px 9px 15px;border-radius:7px;overflow:hidden;
+  background:#0B0A09;box-shadow:inset 0 0 0 2px #000, inset 0 0 22px rgba(0,0,0,.85)}
+.drawing .screen{cursor:crosshair}
+/* When the Pi is offline the img has no frame to show, and the browser paints
+   the alt text in --text over the black screen. Zero font size drops the
+   stray caption and leaves the "No camera signal" panel to say it instead. */
+#feed{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;
+  font-size:0;color:transparent}
+#overlay{position:absolute;inset:0;width:100%;height:100%}
+.scan{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(rgba(255,255,255,.045) 0 1px, transparent 1px 3px)}
+.glare{position:absolute;top:0;bottom:0;width:26%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.1),transparent);
+  animation:sweep 7s ease-in-out infinite}
+.bezel{position:absolute;left:0;right:0;bottom:1px;height:14px;display:flex;
+  align-items:center;gap:6px;padding:0 11px;pointer-events:none}
+.led{width:7px;height:7px;border-radius:50%;background:var(--ok);
+  box-shadow:0 0 6px var(--ok);animation:blink 2.6s ease-in-out infinite}
+.led.dead{background:var(--bad);box-shadow:0 0 6px var(--bad);animation:none}
+.bezel .lbl{font-size:9px;font-weight:800;color:#C9BFB2;letter-spacing:.09em}
+.flag,.off{position:absolute;font-weight:900;border:2px solid var(--edge);
+  border-radius:9px;display:none;line-height:1.2;z-index:3}
+.flag{top:8px;right:8px;background:var(--bad);color:#fff;padding:5px 10px;font-size:13px;
+  align-items:center;gap:6px;box-shadow:var(--hard-sm)}
+.flag.show{display:flex;animation:alarm 1.2s ease-in-out infinite}
+.flag .ico{width:15px;height:15px;animation:ring .8s ease-in-out infinite;transform-origin:center}
+.off{top:50%;left:50%;transform:translate(-50%,-50%);background:var(--raised);
+  padding:9px 14px;font-size:13px;align-items:center;gap:7px}
+.off.show{display:flex}
+.off .ico{width:17px;height:17px;color:var(--bad);animation:shake 2s ease-in-out infinite}
+.mute{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  border:2px solid var(--edge);border-radius:12px;padding:4px 9px;
+  background:var(--warn-tint);box-shadow:var(--hard-sm), var(--soft-sm)}
+.mute[hidden]{display:none}
+.mute .ico{width:15px;height:15px;color:var(--bad)}
+.mute-txt{font-weight:800;font-size:12px;flex:1;min-width:110px}
+.mute-pick{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
+  color:var(--muted)}
+.mute-pick select{border:2px solid var(--edge);border-radius:9px;background:var(--sunk);
+  box-shadow:var(--well);padding:3px 6px;font-size:12px;font-weight:800;
+  color:var(--text);min-height:28px}
+.mute.is-muted{background:var(--sunk)}
+.mute.is-muted .ico{color:var(--muted);animation:none}
+.mute.is-idle{background:var(--base2)}
+.mute.is-idle .ico{color:var(--muted);animation:none}
+.mute.is-idle .mute-txt{color:var(--muted);font-weight:700}
+.mute .left{font-variant-numeric:tabular-nums;font-weight:900}
+/* fullscreen toggle, sits on the TV bezel so it does not move with the screen */
+.fsbtn{position:absolute;right:10px;bottom:10px;z-index:4;width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;
+  border:2px solid var(--edge);border-radius:11px;opacity:.7;
+  background:rgba(245,240,232,.78);color:var(--text);
+  box-shadow:var(--hard-sm), var(--soft-sm);
+  transition:opacity .18s ease, transform .18s ease, box-shadow .18s ease}
+[data-theme="dark"] .fsbtn{background:rgba(26,23,20,.72);color:var(--text)}
+.fsbtn:hover{opacity:1;transform:scale(1.08);
+  box-shadow:var(--hard-sm), 0 0 0 4px var(--teal-tint)}
+.fsbtn:active{opacity:1;transform:scale(.94);box-shadow:var(--press)}
+.fsbtn:disabled{opacity:.25;cursor:not-allowed;transform:none;
+  box-shadow:var(--hard-sm)}
+.fsbtn .ico{width:20px;height:20px}
+.fsbtn .c{transition:transform .2s ease}
+.fsbtn:hover .tl{transform:translate(-2px,-2px)}
+.fsbtn:hover .tr{transform:translate(2px,-2px)}
+.fsbtn:hover .br{transform:translate(2px,2px)}
+.fsbtn:hover .bl{transform:translate(-2px,2px)}
+.fsbtn.out:hover .tl{transform:translate(2px,2px)}
+.fsbtn.out:hover .tr{transform:translate(-2px,2px)}
+.fsbtn.out:hover .br{transform:translate(-2px,-2px)}
+.fsbtn.out:hover .bl{transform:translate(2px,-2px)}
+
+/* fullscreen overlay */
+.fs{position:fixed;inset:0;z-index:100;background:var(--base);
+  display:flex;flex-direction:column;gap:7px;padding:8px;
+  opacity:0;transform:scale(.97);transition:opacity .2s ease, transform .2s ease}
+.fs[hidden]{display:none}
+.fs.on{opacity:1;transform:none}
+.fs-top,.fs-bot{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border:2px solid var(--edge);border-radius:13px;padding:6px 10px;
+  background:var(--raised);box-shadow:var(--hard-sm), var(--soft-sm)}
+.fs-top{font-size:14px;font-weight:800}
+.fs-brand{font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em}
+.fs-brand b{background:var(--text);color:var(--base2);padding:1px 6px;border-radius:7px;
+  box-shadow:2px 2px 0 var(--chip-sh)}
+.fs-cam{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;
+  color:var(--muted)}
+.fs-top .sp{flex:1}
+.fs-num{font-variant-numeric:tabular-nums;font-weight:900}
+.fs-sub{font-size:12px;color:var(--muted);font-weight:700}
+.fs-stage{flex:1;min-height:0;position:relative;border:2px solid var(--edge);
+  border-radius:13px;overflow:hidden;background:#0B0A09;box-shadow:var(--press)}
+.fs-stage > .screen{position:absolute;inset:0;border-radius:11px}
+.fs-bot{gap:14px}
+.fs-chip{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800}
+.fs-chip .ico{width:15px;height:15px}
+.fs-chip b{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
+.fs-state{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;
+  border:2px solid var(--edge);border-radius:11px;padding:4px 10px;background:var(--base2)}
+.fs-state.lv-warn{background:var(--warn-tint)}
+.fs-state.lv-bad{background:var(--bad-tint);color:var(--bad)}
+.fs-state .ico{width:16px;height:16px}
+.fs .mute{flex:none}
+.fs .mute .mute-txt{flex:1}
+.fs .btn{min-height:44px}
+/* the shared .fsbtn rule is absolute for the bezel button; the exit button
+   lives in the top bar instead */
+.fs-exit{position:static;width:44px;height:44px;flex:none;opacity:1}
+.fs-exit .ico{width:22px;height:22px}
+
+.note{flex:none;font-size:11px;color:var(--muted);margin:0;display:flex;
+  align-items:center;gap:5px}
+.note .ico{width:13px;height:13px}
+
+/* ---------------- side column ---------------- */
+/* The column keeps its 312px footprint so the live feed card is not resized.
+   The two cards are inset inside it instead, which is what stops their
+   shadows landing on the feed.
+   Why 18px: a card carries --soft, whose light arm is -5px -5px 11px, so it
+   reaches 16px past its own left edge. #monitor is a flex row with no gap, so
+   at 0px of separation that halo fell 16px onto the live feed card.
+   The 16px column gap is the same sum applied vertically, between the two
+   cards. */
+.side{width:312px;flex:none;display:flex;flex-direction:column;gap:16px;
+  min-height:0;padding-left:18px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--shade) transparent}
+.side::-webkit-scrollbar{width:9px}
+.side::-webkit-scrollbar-track{background:transparent}
+.side::-webkit-scrollbar-thumb{background:var(--shade);border-radius:999px}
+.card-set,.card-area{flex:none}
+/* Tapping Draw reveals #undo, 36px the column does not have, which pushed the
+   hint under it off the bottom of a 600px screen. #undo sits immediately
+   before that hint, so the hint stands down while a region is being drawn.
+   Nothing is lost: the live "Drawing: N points placed" note under the video
+   is saying the same thing, larger and updating. Plain sibling selector, so
+   it works on older Chromium builds too. */
+#undo[style*="flex"] + .hint{display:none}
+.field{margin-bottom:5px}
+.field label{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;
+  margin-bottom:3px}
+.field label .ico{width:13px;height:13px;color:var(--muted)}
+.well{display:flex;align-items:center;gap:6px;background:var(--sunk);
+  border:2px solid var(--edge);border-radius:12px;box-shadow:var(--well);
+  padding:2px 4px 2px 10px}
+.well input{border:0;background:transparent;font-size:17px;font-weight:900;width:100%;
+  outline:none;font-variant-numeric:tabular-nums;min-width:0}
+.well .u{font-weight:800;color:var(--muted);font-size:11px;white-space:nowrap}
+.step{width:30px;height:30px;border:2px solid var(--edge);border-radius:9px;
+  background:linear-gradient(162deg,var(--lite),var(--raised));font-weight:900;
+  font-size:18px;cursor:pointer;flex:none;line-height:1;box-shadow:var(--soft-sm);
+  transition:box-shadow .09s, transform .09s}
+.step:hover{transform:translateY(-1px)}
+.step:active{box-shadow:var(--press);transform:translateY(1px)}
+/* The button stays 30px so the well does not grow, but the tap area is padded
+   out to 44x46 , which is the usual finger minimum on a touchscreen. */
+.step{position:relative}
+.step::after{content:"";position:absolute;inset:-7px -8px}
+.hint{font-size:10px;color:var(--muted);margin:2px 0 0;line-height:1.25;
+  display:flex;align-items:flex-start;gap:4px}
+.hint .ico{width:12px;height:12px;margin-top:1px;flex:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+
+/* ---------------- history ---------------- */
+#history{flex-direction:column}
+.card-log{flex:1;min-height:0;min-width:0;gap:7px}
+.tools{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding-bottom:7px;border-bottom:2px dashed var(--shade)}
+.tools .dt{display:flex;align-items:center;gap:4px;background:var(--sunk);
+  border:2px solid var(--edge);border-radius:9px;box-shadow:var(--well);padding:2px 7px}
+.tools .dt label{font-size:10px;font-weight:800;color:var(--muted)}
+.tools input[type=date]{border:0;background:transparent;outline:none;font-size:11px;
+  font-weight:800;width:104px}
+.tools .sp{flex:1}
+.tablewrap{flex:1;min-height:0;min-width:0;overflow:auto;border:2px solid var(--edge);
+  border-radius:13px;background:var(--base2);box-shadow:var(--press);
+  scrollbar-width:thin;scrollbar-color:var(--shade) transparent}
+.tablewrap::-webkit-scrollbar{width:11px;height:11px}
+.tablewrap::-webkit-scrollbar-track{background:transparent}
+.tablewrap::-webkit-scrollbar-thumb{background:var(--shade);border-radius:999px;
+  border:2px solid var(--base2);background-clip:content-box}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;z-index:2;text-align:left;padding:7px 9px;font-size:11px;
+  font-weight:800;color:var(--muted);background:var(--sunk);
+  border-bottom:2px solid var(--edge);white-space:nowrap}
+td{padding:6px 9px;border-top:1px solid var(--shade);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--base)}
+tr.accumulation td{background:var(--bad-tint)}
+tr.accumulation:hover td{filter:brightness(.97)}
+td.n{font-weight:900;font-size:15px}
+td.rd{width:24px;padding-left:9px;padding-right:0}
+.dot{width:13px;height:13px;border-radius:50%;padding:0;cursor:pointer;
+  border:2px solid var(--edge);background:var(--bad);position:relative;
+  box-shadow:0 0 0 3px var(--bad-tint);transition:background .15s, box-shadow .15s}
+.dot::after{content:"";position:absolute;inset:-9px -7px}
+tr.read .dot{background:transparent;box-shadow:none;opacity:.45}
+tr.read td{opacity:.6}
+tr.read td.n{font-weight:800}
+.ev{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:12px;
+  padding:3px 9px;border:2px solid var(--edge);border-radius:999px;
+  background:var(--raised);box-shadow:2px 2px 0 var(--edge)}
+.ev .ico{width:12px;height:12px}
+.ev.accumulation{background:var(--bad);color:#fff}
+.ev.accumulation .ico{animation:ring 1.1s ease-in-out infinite}
+.ev.suppressed{background:var(--sunk);color:var(--muted)}
+.ev.test{background:var(--warn);color:#16130F}
+.ev.manual{background:var(--teal);color:#fff}
+.rowbtns{display:flex;gap:5px}
+.noimg{color:var(--muted);font-size:12px}
+.pager{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pager .where{font-weight:800;font-size:12px}
+.pager .sp{flex:1}
+.empty{padding:22px;text-align:center;color:var(--muted);display:flex;
+  flex-direction:column;align-items:center;gap:7px}
+.empty .ico{width:26px;height:26px;opacity:.5}
+
+/* ---------------- dialogs ---------------- */
+dialog{border:2px solid var(--edge);border-radius:19px;padding:0;background:var(--raised);
+  color:var(--text);box-shadow:6px 6px 0 var(--edge), var(--soft);
+  width:min(860px,95vw);max-height:94vh}
+dialog::backdrop{background:rgba(10,8,6,.62)}
+.vh{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:2px solid var(--edge)}
+.vh h3{margin:0;font-size:15px;font-weight:900;flex:1;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+#vImg{display:block;width:100%;max-height:56vh;object-fit:contain;background:#0B0A09}
+.vm{display:flex;gap:15px;flex-wrap:wrap;padding:9px 11px;border-top:2px solid var(--edge);
+  font-size:13px}
+.vm b{font-size:17px;font-weight:900;display:block}
+.vm span{color:var(--muted);font-weight:700;font-size:11px}
+#confirm{width:min(430px,94vw)}
+.cfm{padding:13px;display:flex;flex-direction:column;gap:11px}
+.cfm p{margin:0;font-size:13px}
+.cfm .ico{width:34px;height:34px;color:var(--bad)}
+.cfm .row{display:flex;align-items:center;gap:10px}
+.cfm .acts{display:flex;gap:8px;justify-content:flex-end}
+a.btn{text-decoration:none}
+
+.toast{position:fixed;left:50%;bottom:14px;transform:translate(-50%,16px);opacity:0;
+  background:var(--text);color:var(--base2);border:2px solid var(--edge);padding:8px 14px;
+  border-radius:12px;font-weight:800;font-size:13px;pointer-events:none;z-index:40;
+  box-shadow:4px 4px 0 var(--edge);transition:opacity .18s, transform .18s;
+  display:flex;align-items:center;gap:7px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast .ico{width:15px;height:15px}
+
+@media (max-width:820px){
+  html,body{overflow:auto}
+  body{height:auto}
+  .strip{grid-template-columns:1fr 1fr 1fr}
+  .brand{grid-column:1/-1}
+  .ctl{grid-column:1/-1;flex-direction:row}
+  .ctl .pill,.ctl .btn{flex:1;justify-content:center}
+  #monitor{flex-direction:column;gap:16px}
+  .side{width:auto;padding-left:0}
+  .tv{min-height:250px}
+  .page{flex:1 1 auto}
+  #history{min-height:430px}
+}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-shield" viewBox="0 0 24 24">
+    <path d="M12 2.6 20 6v6c0 4.6-3.3 8.4-8 9.4C7.3 20.4 4 16.6 4 12V6z"/>
+    <path class="wave" d="M7.6 12.6c1.3-1 2.2-1 3.4 0s2.1 1 3.4 0 2.2-1 3.4 0"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-cam" viewBox="0 0 24 24">
+    <rect x="2.5" y="6" width="19" height="13" rx="3"/>
+    <path d="M8.5 6l1.4-2.3h4.2L15.5 6"/>
+    <circle class="lens" cx="12" cy="12.6" r="3.4"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-gear" viewBox="0 0 24 24">
+    <g class="gear"><circle cx="12" cy="12" r="3.1"/>
+    <path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4"/></g>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-poly" viewBox="0 0 24 24">
+    <polygon class="poly" points="4,8 13,4 20,10 17,19 7,18"/>
+    <circle fill="currentColor" stroke="none" cx="4" cy="8" r="1.9"/><circle fill="currentColor" stroke="none" cx="13" cy="4" r="1.9"/>
+    <circle fill="currentColor" stroke="none" cx="20" cy="10" r="1.9"/><circle fill="currentColor" stroke="none" cx="7" cy="18" r="1.9"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-clock" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.6"/><path class="hand" d="M12 7.2V12l3.4 2.1"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-sunmoon" viewBox="0 0 24 24">
+    <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
+      <path d="M8.4 5.2v1.4M8.4 17.4v1.4M1.6 12H3M13.8 12h1.4M3.6 7.2l1 1M12.2 15.8l1 1M12.6 8.2l1-1M3.6 16.8l1-1"/></g>
+    <g class="moon"><path d="M22 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-signal" viewBox="0 0 24 24">
+    <path d="M4.4 15.2a10.6 10.6 0 0 1 15.2 0"/><path d="M7.8 18.3a6 6 0 0 1 8.4 0"/>
+    <circle fill="currentColor" stroke="none" cx="12" cy="20.6" r="1.8"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-nolink" viewBox="0 0 24 24">
+    <path d="M9.6 14.4 7.4 16.6a3.6 3.6 0 0 1-5.1-5.1l2.4-2.4"/>
+    <path d="M14.4 9.6l2.2-2.2a3.6 3.6 0 0 1 5.1 5.1l-2.4 2.4"/>
+    <path d="M3.2 3.2l17.6 17.6"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-bell" viewBox="0 0 24 24">
+    <path d="M18 9.4a6 6 0 1 0-12 0c0 6.1-2.3 7.4-2.3 7.4h16.6S18 15.5 18 9.4"/>
+    <path d="M13.7 20.4a2 2 0 0 1-3.4 0"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-check" viewBox="0 0 24 24"><path d="M4.4 12.6 9.6 18 19.8 6.6"/></symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-save" viewBox="0 0 24 24">
+    <path d="M4.5 4.5h12L19.5 7.5v12h-15z"/><path d="M8 4.5v5h7v-5"/><rect x="8" y="13" width="7" height="6.5"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-shutter" viewBox="0 0 24 24">
+    <rect x="2.5" y="6.5" width="19" height="13.5" rx="3"/>
+    <path d="M8.6 6.5 10 3.9h4l1.4 2.6"/>
+    <circle class="shutter" cx="12" cy="13.2" r="3.6"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-pen" viewBox="0 0 24 24">
+    <path class="draw" d="M3.5 20.5l1-4.4L15.6 5a2.3 2.3 0 0 1 3.3 3.3L7.9 19.5z"/>
+    <path d="M14 6.6l3.4 3.4"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-edit" viewBox="0 0 24 24">
+    <path d="M12.6 4.6H4.4v15h15v-8.2"/><path d="M17.4 3.2 20.8 6.6 12 15.4l-4 .6.6-4z"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-eraser" viewBox="0 0 24 24">
+    <path d="M8.2 20.4H20"/><path d="M15.4 3.8 20.2 8.6a1.8 1.8 0 0 1 0 2.6l-8 8H6.6l-3-3a1.8 1.8 0 0 1 0-2.6l9.2-9.8a1.8 1.8 0 0 1 2.6 0z"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-undo" viewBox="0 0 24 24">
+    <path class="nudge-l" d="M9.6 6.4 4 12l5.6 5.6"/><path d="M4 12h10.4a5.6 5.6 0 0 1 0 11.2"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-refresh" viewBox="0 0 24 24">
+    <g class="spin" style="transform-origin:12px 12px">
+    <path d="M20.4 12a8.4 8.4 0 1 1-2.5-6"/><path d="M20.6 4.4v5.2h-5.2"/></g>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-trash" viewBox="0 0 24 24">
+    <g class="lid"><path d="M3.6 6.4h16.8"/><path d="M9.2 6.4V4.2h5.6v2.2"/></g>
+    <path d="M5.6 6.4h12.8l-1 14H6.6z"/><path d="M10.2 10.4v6M13.8 10.4v6"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-prev" viewBox="0 0 24 24"><path class="nudge-l" d="M14.6 5.4 8 12l6.6 6.6"/></symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-next" viewBox="0 0 24 24"><path class="nudge-r" d="M9.4 5.4 16 12l-6.6 6.6"/></symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-warn" viewBox="0 0 24 24">
+    <path d="M12 3.6 22 20.4H2z"/><path d="M12 9.6v4.6"/><circle fill="currentColor" stroke="none" cx="12" cy="17.4" r="1.2"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4 11 15.2l5-5.6"/></symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-up" viewBox="0 0 24 24"><path d="M12 19V6"/><path class="pop" d="M6.4 11.6 12 6l5.6 5.6"/></symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-eye" viewBox="0 0 24 24">
+    <path d="M1.8 12S5.6 5.4 12 5.4 22.2 12 22.2 12 18.4 18.6 12 18.6 1.8 12 1.8 12"/>
+    <circle class="lens" cx="12" cy="12" r="3.1"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-eyeoff" viewBox="0 0 24 24">
+    <path d="M3 3l18 18"/><path d="M10.6 6a9.6 9.6 0 0 1 11.6 6 12 12 0 0 1-2.6 3.5"/>
+    <path d="M6.4 7.6A12.2 12.2 0 0 0 1.8 12S5.6 18.6 12 18.6a9.4 9.4 0 0 0 3.2-.55"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-box" viewBox="0 0 24 24">
+    <path d="M3.6 7.4 12 3.4l8.4 4v9.2L12 20.6l-8.4-4z"/><path d="M3.6 7.4 12 11.5l8.4-4.1M12 11.5v9.1"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-wrench" viewBox="0 0 24 24">
+    <path d="M15.6 3.4a5.4 5.4 0 0 0-5.1 7.1L3.4 17.6l3 3 7.1-7.1a5.4 5.4 0 0 0 6.9-6.6l-3.1 3.1-2.9-.6-.6-2.9z"/>
+  </symbol>
+</svg>
+
+<header class="strip">
+  <div class="brand" id="brand" title="Garbage-Guard">
+    <svg class="ico"><use href="#i-shield"/></svg>
+    <span class="t">Garbage-<b>Guard</b></span>
+  </div>
+
+  <div class="box level lv-ok" id="level">
+    <div class="bar" id="bar"></div>
+    <div class="inner">
+      <p class="k" id="pctTag">0% of limit</p>
+      <p class="big"><span id="total">0</span> <span>of <b id="limit">20</b> items</span></p>
+      <p class="state"><svg class="ico" id="stateIco"><use href="#i-ok"/></svg>
+        <span id="state">Normal</span></p>
+    </div>
+  </div>
+
+  <div class="box" id="boxBottle"><p class="k"><svg class="ico c-bottle"><use href="#i-box"/></svg>Bottle</p>
+    <p class="v" id="nBottle">0</p></div>
+  <div class="box" id="boxBag"><p class="k"><svg class="ico c-bag"><use href="#i-box"/></svg>Bag</p>
+    <p class="v" id="nBag">0</p></div>
+  <div class="box" id="boxCont"><p class="k"><svg class="ico c-cont"><use href="#i-box"/></svg>Container</p>
+    <p class="v" id="nCont">0</p></div>
+  <div class="box"><p class="k"><svg class="ico"><use href="#i-clock"/></svg>Latency</p>
+    <p class="v"><span id="lat">–</span><small> ms</small></p>
+    <p class="k">Avg <span id="latAvg">–</span> ms</p></div>
+
+  <div class="ctl">
+    <span class="pill online" id="connPill"><svg class="ico" id="connIco"><use href="#i-signal"/></svg>
+      <span id="conn">Connecting</span></span>
+    <button class="btn sm" id="theme" type="button">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
+          <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
+        <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
+      </svg><span id="themeLbl">Dark mode</span></button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab" id="tabMonitor" role="tab" aria-selected="true" aria-controls="monitor" type="button">
+    <svg class="ico"><use href="#i-eye"/></svg>Monitor</button>
+  <button class="tab" id="tabHistory" role="tab" aria-selected="false" aria-controls="history" type="button">
+    <svg class="ico"><use href="#i-clock"/></svg>History <span class="count" id="logCount"></span></button>
+</nav>
+
+<main>
+  <section class="page on" id="monitor" role="tabpanel" aria-labelledby="tabMonitor">
+    <div class="card card-feed">
+      <div class="hd">
+        <svg class="ico"><use href="#i-cam"/></svg>
+        <h2>Live feed</h2>
+        <button class="btn teal sm" id="capture" type="button">
+          <svg class="ico a-shutter"><use href="#i-shutter"/></svg>Capture</button>
+      </div>
+      <div class="tv" id="tv">
+        <div class="screen" id="screen">
+          <img id="feed" alt="Live camera view with detections">
+          <svg id="overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+          <div class="scan"></div><div class="glare"></div>
+          <div class="flag" id="flag"><svg class="ico"><use href="#i-bell"/></svg>Accumulation alert</div>
+          <div class="off" id="offline"><svg class="ico"><use href="#i-nolink"/></svg>No camera signal</div>
+        </div>
+        <div class="bezel"><span class="led" id="led"></span><span class="lbl">CAM 01 · LIVE</span></div>
+        <button class="fsbtn" id="fsOpen" type="button" aria-label="Enter fullscreen"
+                title="Fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M9.5 3.5H3.5v6"/><path class="c tr" d="M14.5 3.5h6v6"/><path class="c br" d="M20.5 14.5v6h-6"/><path class="c bl" d="M3.5 14.5v6h6"/></svg></button>
+      </div>
+      <div class="mute" id="muteBar" hidden>
+        <svg class="ico a-ring"><use href="#i-bell"/></svg>
+        <span class="mute-txt" id="muteTxt">Accumulation alert is active</span>
+        <label class="mute-pick" for="muteFor"><span>Mute for</span>
+          <select id="muteFor">
+            <option value="300">5 minutes</option>
+            <option value="900" selected>15 minutes</option>
+            <option value="1800">30 minutes</option>
+            <option value="3600">1 hour</option>
+            <option value="0">Until I unmute</option>
+          </select></label>
+        <button class="btn sm" id="muteBtn" type="button">
+          <svg class="ico a-shake"><use href="#i-eyeoff"/></svg>Mute</button>
+        <button class="btn sm teal" id="unmuteBtn" type="button" hidden>
+          <svg class="ico a-pop"><use href="#i-bell"/></svg>Unmute now</button>
+      </div>
+      <p class="note" id="roihelp"><svg class="ico"><use href="#i-eyeoff"/></svg>
+        Grey boxes fall outside the monitored area and are not counted.</p>
+    </div>
+
+    <div class="side">
+      <section class="card card-set">
+        <div class="hd"><svg class="ico"><use href="#i-gear"/></svg><h2>Detection settings</h2></div>
+        <div class="field">
+          <label for="conf"><svg class="ico"><use href="#i-eye"/></svg>Detection confidence</label>
+          <div class="well">
+            <button class="step" type="button" data-for="conf" data-d="-5" aria-label="Lower confidence">−</button>
+            <input id="conf" type="number" min="5" max="95" step="5" inputmode="numeric">
+            <span class="u">%</span>
+            <button class="step" type="button" data-for="conf" data-d="5" aria-label="Raise confidence">+</button>
+          </div>
+          <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>40% is the tested default.</p>
+        </div>
+        <div class="field">
+          <label for="thresh"><svg class="ico"><use href="#i-bell"/></svg>Accumulation limit</label>
+          <div class="well">
+            <button class="step" type="button" data-for="thresh" data-d="-1" aria-label="Lower limit">−</button>
+            <input id="thresh" type="number" min="1" max="200" step="1" inputmode="numeric">
+            <span class="u">items</span>
+            <button class="step" type="button" data-for="thresh" data-d="1" aria-label="Raise limit">+</button>
+          </div>
+          <p class="hint"><svg class="ico"><use href="#i-warn"/></svg>
+            Alert fires here, resets below <b id="rearm">–</b>.</p>
+        </div>
+        <div class="pair">
+          <button class="btn ink" id="save" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
+          <button class="btn" id="test" type="button"><svg class="ico a-ring"><use href="#i-bell"/></svg>Test alert</button>
+        </div>
+      </section>
+
+      <section class="card card-area">
+        <div class="hd"><svg class="ico"><use href="#i-poly"/></svg><h2>Monitored area</h2></div>
+        <div class="pair" style="margin-bottom:7px">
+          <button class="btn teal" id="new" type="button"><svg class="ico a-tilt"><use href="#i-pen"/></svg>Draw</button>
+          <button class="btn" id="edit" type="button"><svg class="ico a-tilt"><use href="#i-edit"/></svg>Edit</button>
+          <button class="btn" id="clear" type="button"><svg class="ico a-shake"><use href="#i-eraser"/></svg>Clear</button>
+          <button class="btn ink" id="apply" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Apply</button>
+        </div>
+        <button class="btn" id="undo" type="button" style="width:100%;display:none">
+          <svg class="ico a-left"><use href="#i-undo"/></svg>Undo last point</button>
+        <p class="hint"><svg class="ico"><use href="#i-poly"/></svg>
+          Tap the video to outline the water, 3 points or more. Anything outside is ignored.</p>
+      </section>
+    </div>
+  </section>
+
+  <section class="page" id="history" role="tabpanel" aria-labelledby="tabHistory">
+    <div class="card card-log">
+      <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>History</h2>
+        <button class="btn sm" id="refreshLogs" type="button">
+          <svg class="ico a-spin"><use href="#i-refresh"/></svg>Refresh</button>
+      </div>
+      <div class="tools">
+        <span class="dt"><label for="dFrom">From</label><input id="dFrom" type="date"></span>
+        <span class="dt"><label for="dTo">To</label><input id="dTo" type="date"></span>
+        <button class="btn sm" id="markAll" type="button">
+          <svg class="ico a-pop"><use href="#i-check"/></svg>Mark all read</button>
+        <button class="btn sm" id="delRange" type="button">
+          <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete range</button>
+        <span class="sp"></span>
+        <button class="btn sm danger" id="delAll" type="button">
+          <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete all</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th></th><th>Time</th><th>Event</th><th>Items</th><th>Snapshot</th><th></th></tr></thead>
+          <tbody id="logs"></tbody>
+        </table>
+        <div class="empty" id="noLogs"><svg class="ico"><use href="#i-clock"/></svg>
+          <span>No events yet. Alerts, captures and tests appear here.</span></div>
+      </div>
+      <div class="pager">
+        <button class="btn sm" id="newer" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Newer</button>
+        <button class="btn sm" id="older" type="button">Older<svg class="ico a-right"><use href="#i-next"/></svg></button>
+        <span class="where" id="where"></span>
+        <span class="sp"></span>
+        <span class="hint" style="margin:0"><svg class="ico"><use href="#i-eye"/></svg>
+          Tap View to open a snapshot.</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<section class="fs" id="fsRoot" hidden aria-label="Fullscreen live feed">
+  <div class="fs-top">
+    <span class="fs-brand">Garbage-<b>Guard</b></span>
+    <span class="fs-cam"><i class="led" id="fsLed"></i>CAM 01 · LIVE</span>
+    <span class="pill online" id="fsConnPill">
+      <svg class="ico"><use href="#i-signal"/></svg><span id="fsConn">Camera online</span></span>
+    <span><svg class="ico" style="width:15px;height:15px;vertical-align:-2px"><use href="#i-clock"/></svg>
+      <span class="fs-num" id="fsLat">–</span> ms
+      <span class="fs-sub">avg <span id="fsLatAvg">–</span> ms</span></span>
+    <span class="fs-sub" id="fsTime"></span>
+    <span class="sp"></span>
+    <button class="fsbtn out fs-exit" id="fsClose" type="button"
+            aria-label="Exit fullscreen" title="Exit fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M3.5 9.5h6v-6"/><path class="c tr" d="M20.5 9.5h-6v-6"/><path class="c br" d="M14.5 20.5v-6h6"/><path class="c bl" d="M9.5 20.5v-6h-6"/></svg></button>
+  </div>
+
+  <div class="fs-stage" id="fsStage"></div>
+
+  <div class="fs-bot">
+    <span class="fs-state" id="fsState">
+      <svg class="ico"><use href="#i-ok"/></svg><span id="fsStateTxt">Normal</span></span>
+    <span class="fs-sub" id="fsPct">0% of limit · 0 of 20 items</span>
+    <span class="fs-chip"><svg class="ico c-bottle"><use href="#i-box"/></svg>
+      Bottle <b id="fsBottle">0</b></span>
+    <span class="fs-chip"><svg class="ico c-bag"><use href="#i-box"/></svg>
+      Bag <b id="fsBag">0</b></span>
+    <span class="fs-chip"><svg class="ico c-cont"><use href="#i-box"/></svg>
+      Container <b id="fsCont">0</b></span>
+    <span class="sp" style="flex:1"></span>
+    <button class="btn teal" id="fsCapture" type="button">
+      <svg class="ico a-shutter"><use href="#i-shutter"/></svg>Capture</button>
+  </div>
+
+  <div class="mute" id="fsMuteBar">
+    <svg class="ico a-ring"><use href="#i-bell"/></svg>
+    <span class="mute-txt" id="fsMuteTxt">No alert to mute</span>
+    <label class="mute-pick" for="fsMuteFor"><span>Mute for</span>
+      <select id="fsMuteFor">
+        <option value="300">5 minutes</option>
+        <option value="900" selected>15 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="3600">1 hour</option>
+        <option value="0">Until I unmute</option>
+      </select></label>
+    <button class="btn sm" id="fsMuteBtn" type="button">
+      <svg class="ico a-shake"><use href="#i-eyeoff"/></svg>Mute</button>
+    <button class="btn sm teal" id="fsUnmuteBtn" type="button" hidden>
+      <svg class="ico a-pop"><use href="#i-bell"/></svg>Unmute now</button>
+  </div>
+</section>
+
+<dialog id="viewer">
+  <div class="vh">
+    <svg class="ico" style="width:18px;height:18px"><use href="#i-shutter"/></svg>
+    <h3 id="vTitle">Snapshot</h3>
+    <a class="btn sm" id="vOpen" target="_blank" rel="noopener">
+      <svg class="ico"><use href="#i-eye"/></svg>Full size</a>
+    <button class="btn sm ink" id="vClose" type="button">Close</button>
+  </div>
+  <img id="vImg" alt="Saved snapshot">
+  <div class="vm" id="vMeta"></div>
+</dialog>
+
+<dialog id="confirm">
+  <div class="cfm">
+    <div class="row"><svg class="ico"><use href="#i-warn"/></svg>
+      <p id="cfmText">Delete?</p></div>
+    <div class="acts">
+      <button class="btn sm" id="cfmNo" type="button">Cancel</button>
+      <button class="btn sm danger" id="cfmYes" type="button">
+        <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"><svg class="ico"><use href="#i-ok"/></svg><span id="toastMsg"></span></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed","i-eyeoff"],
+                test:["Test alert","i-wrench"], manual:["Manual capture","i-shutter"],
+                muted:["Alert muted","i-eyeoff"], unmuted:["Alert unmuted","i-bell"]};
+let PAGE = 5, draft=null, editing=false, last=null, rows=[], page=0, prevCounts={};
+
+function toast(m, icon){
+  $("toastMsg").textContent = m;
+  $("toast").querySelector("use").setAttribute("href", "#" + (icon || "i-ok"));
+  const t = $("toast"); t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2100);
+}
+
+function applyTheme(mode){
+  document.documentElement.dataset.theme = mode;
+  $("themeLbl").textContent = mode==="dark" ? "Light mode" : "Dark mode";
+  try{ localStorage.setItem("gg-theme", mode); }catch(e){}
+}
+$("theme").onclick = () =>
+  applyTheme(document.documentElement.dataset.theme==="dark" ? "light" : "dark");
+try{ applyTheme(localStorage.getItem("gg-theme")||"light"); }catch(e){ applyTheme("light"); }
+
+function showTab(name){
+  const mon = name==="monitor";
+  $("monitor").classList.toggle("on", mon);
+  $("history").classList.toggle("on", !mon);
+  $("tabMonitor").setAttribute("aria-selected", mon);
+  $("tabHistory").setAttribute("aria-selected", !mon);
+  if(!mon) loadLogs();
+}
+$("tabMonitor").onclick = () => showTab("monitor");
+$("tabHistory").onclick = () => showTab("history");
+
+function drawOverlay(){
+  const pts = editing ? draft : [];
+  const svg = $("overlay");
+  if(!pts || !pts.length){ svg.innerHTML=""; return; }
+  const c = "#F0B429";
+  const xy = pts.map(p => (p[0]*1000).toFixed(1)+","+(p[1]*1000).toFixed(1)).join(" ");
+  const shape = pts.length>=3
+    ? `<polygon points="${xy}" fill="${c}" fill-opacity=".2" stroke="${c}" stroke-width="3" vector-effect="non-scaling-stroke"/>`
+    : `<polyline points="${xy}" fill="none" stroke="${c}" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+  const dots = pts.map(p =>
+    `<circle cx="${(p[0]*1000).toFixed(1)}" cy="${(p[1]*1000).toFixed(1)}" r="9" fill="${c}" stroke="#16130F" stroke-width="3" vector-effect="non-scaling-stroke"/>`).join("");
+  svg.innerHTML = shape + dots;
+}
+
+function setEditing(on, seed){
+  editing = on; draft = on ? (seed||[]) : null;
+  $("fsOpen").disabled = on;
+  $("fsOpen").title = on ? "Finish the area first" : "Fullscreen";
+  $("tv").classList.toggle("drawing", on);
+  $("undo").style.display = on ? "flex" : "none";
+  $("roihelp").innerHTML = on
+    ? `<svg class="ico"><use href="#i-pen"/></svg>Drawing: ${draft.length} point${draft.length===1?"":"s"} placed. Tap Apply when closed.`
+    : `<svg class="ico"><use href="#i-eyeoff"/></svg>Grey boxes fall outside the monitored area and are not counted.`;
+  drawOverlay();
+}
+
+$("overlay").addEventListener("pointerdown", e => {
+  if(!editing) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  draft.push([(e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height]);
+  setEditing(true, draft);
+});
+
+async function post(path, body){
+  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
+                               body: JSON.stringify(body||{})});
+  return r.json();
+}
+
+$("new").onclick = () => { showTab("monitor"); setEditing(true, []); toast("Tap the video to outline the water","i-pen"); };
+$("edit").onclick = () => {
+  const cur = last && last.roi ? last.roi.map(p=>[p[0],p[1]]) : [];
+  if(!cur.length) return toast("No area saved yet. Use Draw.","i-warn");
+  setEditing(true, cur);
+};
+$("undo").onclick = () => { if(draft && draft.length){ draft.pop(); setEditing(true, draft); } };
+$("clear").onclick = async () => {
+  await post("/api/roi", {points:[]});
+  setEditing(false); toast("Area cleared. Whole frame monitored.","i-eraser"); refresh();
+};
+$("apply").onclick = async () => {
+  if(!editing) return toast("Use Draw first.","i-warn");
+  if(draft.length < 3) return toast("Place at least 3 points.","i-warn");
+  await post("/api/roi", {points:draft});
+  setEditing(false); toast("Area applied","i-check"); refresh();
+};
+
+document.querySelectorAll(".step").forEach(b => b.onclick = () => {
+  const i = $(b.dataset.for);
+  i.value = Math.max(Number(i.min), Math.min(Number(i.max),
+            (Number(i.value)||0) + Number(b.dataset.d)));
+  i.dataset.dirty = "1";
+});
+["conf","thresh"].forEach(id => $(id).addEventListener("input", () => $(id).dataset.dirty="1"));
+
+$("save").onclick = async () => {
+  const j = await post("/api/settings", {conf:Number($("conf").value),
+                                          threshold:Number($("thresh").value)});
+  if(j.ok){ delete $("conf").dataset.dirty; delete $("thresh").dataset.dirty;
+            toast("Settings saved","i-save"); refresh(); }
+};
+$("test").onclick = async () => { await post("/api/test_alert"); toast("Test alert logged","i-bell"); page=0; loadLogs(); };
+$("capture").onclick = async () => {
+  const j = await post("/api/capture");
+  toast(j.ok ? "Snapshot saved" : "No camera frame yet", j.ok ? "i-shutter" : "i-warn");
+  page = 0; loadLogs();
+};
+
+const pct = v => v==null ? "–" : Math.round(v*100)+"%";
+
+let pendingDelete = null;
+function askDelete(text, body){
+  pendingDelete = body;
+  $("cfmText").textContent = text;
+  $("confirm").showModal();
+}
+$("cfmNo").onclick = () => { pendingDelete = null; $("confirm").close(); };
+$("cfmYes").onclick = async () => {
+  if(!pendingDelete) return;
+  const j = await post("/api/alerts/delete", pendingDelete);
+  pendingDelete = null; $("confirm").close();
+  toast(`Deleted ${j.deleted} record${j.deleted===1?"":"s"}, ${j.files_removed} image${j.files_removed===1?"":"s"}`,"i-trash");
+  loadLogs();
+};
+$("delAll").onclick = () => {
+  if(!rows.length) return toast("Nothing to delete","i-warn");
+  askDelete(`Delete all ${rows.length} records and their snapshot images? This cannot be undone.`, {all:true});
+};
+$("delRange").onclick = () => {
+  const f = $("dFrom").value, t = $("dTo").value;
+  if(!f && !t) return toast("Pick a From or To date first","i-warn");
+  askDelete(`Delete records ${f?("from "+f):"up to"} ${t?("to "+t):"onward"}, including their images?`,
+            {from:f||null, to:t||null});
+};
+async function doMute(secs, sel){
+  await post("/api/mute", {seconds: secs});
+  toast(secs ? `Muted for ${sel.selectedOptions[0].text.toLowerCase()}`
+             : "Muted until you unmute", "i-eyeoff");
+  refresh(); loadLogs();
+}
+async function doUnmute(){
+  await post("/api/mute", {cancel: true});
+  toast("Alert unmuted", "i-bell"); refresh(); loadLogs();
+}
+$("muteBtn").onclick = () => doMute(Number($("muteFor").value), $("muteFor"));
+$("unmuteBtn").onclick = () => doUnmute();
+
+function fmtLeft(sec){
+  if(sec == null) return "no expiry";
+  const m = Math.floor(sec/60), ss = sec % 60;
+  return `${m}:${String(ss).padStart(2,"0")} left`;
+}
+
+function paintMuteBar(bar, txt, mbtn, ubtn, sel, s){
+  const idle = !s.alert_active && !s.muted;
+  bar.hidden = false;
+  bar.classList.toggle("is-muted", !!s.muted);
+  bar.classList.toggle("is-idle", idle);
+  mbtn.hidden = !!s.muted;
+  ubtn.hidden = !s.muted;
+  mbtn.disabled = idle;
+  sel.disabled = !!s.muted;
+  txt.innerHTML = s.muted
+    ? `Alert muted, <span class="left">${fmtLeft(s.mute_left)}</span>`
+    : idle ? "No alert to mute" : "Accumulation alert is active";
+}
+
+function setMuteBar(s){
+  paintMuteBar($("muteBar"), $("muteTxt"), $("muteBtn"),
+               $("unmuteBtn"), $("muteFor"), s);
+}
+
+/* ---------------- fullscreen ---------------- */
+let fsOn = false;
+
+function fsMoveScreen(toFs){
+  const screen = $("screen");
+  if(toFs) $("fsStage").appendChild(screen);
+  else $("tv").insertBefore(screen, $("tv").firstChild);
+}
+
+async function openFs(){
+  if(fsOn || editing) return;
+  fsOn = true;
+  const root = $("fsRoot");
+  root.hidden = false;
+  fsMoveScreen(true);
+  requestAnimationFrame(() => root.classList.add("on"));
+  try{ if(root.requestFullscreen) await root.requestFullscreen(); }catch(e){}
+  refresh();
+}
+
+function closeFs(){
+  if(!fsOn) return;
+  fsOn = false;
+  const root = $("fsRoot");
+  root.classList.remove("on");
+  if(document.fullscreenElement){
+    try{ document.exitFullscreen(); }catch(e){}
+  }
+  setTimeout(() => {
+    fsMoveScreen(false);
+    root.hidden = true;
+    refresh();
+  }, 200);
+}
+
+$("fsOpen").onclick = openFs;
+$("fsClose").onclick = closeFs;
+document.addEventListener("keydown", e => { if(e.key === "Escape" && fsOn) closeFs(); });
+document.addEventListener("fullscreenchange", () => {
+  if(!document.fullscreenElement && fsOn) closeFs();
+});
+
+function setFsPanel(s){
+  $("fsLed").classList.toggle("dead", !s.connected);
+  $("fsConnPill").className = "pill " + (s.connected ? "online" : "offline");
+  $("fsConnPill").querySelector("use")
+    .setAttribute("href", s.connected ? "#i-signal" : "#i-nolink");
+  $("fsConn").textContent = s.connected ? "Camera online" : "No link to Pi";
+  $("fsLat").textContent = s.latency_ms;
+  $("fsLatAvg").textContent = s.avg_latency_ms;
+  $("fsTime").textContent = new Date().toLocaleString(undefined,
+    {year:"numeric", month:"2-digit", day:"2-digit",
+     hour:"2-digit", minute:"2-digit", second:"2-digit"});
+  const c = s.counts || {};
+  $("fsBottle").textContent = c.bottle || 0;
+  $("fsBag").textContent = c.bag || 0;
+  $("fsCont").textContent = c.food_container || 0;
+  const p = s.threshold > 0 ? Math.round(s.smoothed / s.threshold * 100) : 0;
+  $("fsPct").textContent = `${p}% of limit · ${s.smoothed} of ${s.threshold} items`;
+  let lv = "", label = "Normal", ico = "i-ok";
+  if(s.alert_active && s.muted){ lv="lv-warn"; label="Alert muted"; ico="i-eyeoff"; }
+  else if(s.alert_active){ lv="lv-bad"; label="Alert raised"; ico="i-bell"; }
+  else if(p >= 80){ lv="lv-bad"; label="Near the limit"; ico="i-warn"; }
+  else if(p >= 50){ lv="lv-warn"; label="Building up"; ico="i-up"; }
+  $("fsState").className = "fs-state " + lv;
+  $("fsStateTxt").textContent = label;
+  $("fsState").querySelector("use").setAttribute("href", "#" + ico);
+  paintMuteBar($("fsMuteBar"), $("fsMuteTxt"), $("fsMuteBtn"),
+               $("fsUnmuteBtn"), $("fsMuteFor"), s);
+}
+
+$("fsCapture").onclick = () => $("capture").click();
+$("fsMuteBtn").onclick = () => doMute(Number($("fsMuteFor").value), $("fsMuteFor"));
+$("fsUnmuteBtn").onclick = () => doUnmute();
+
+async function setRead(ids, read){
+  await post("/api/alerts/read", {ids, read});
+  loadLogs();
+}
+$("markAll").onclick = async () => {
+  if(!unreadCount()) return toast("Nothing unread", "i-check");
+  await post("/api/alerts/read", {all: true});
+  toast("All marked read", "i-check"); loadLogs();
+};
+
+$("logs").addEventListener("click", e => {
+  const d2 = e.target.closest("[data-read]");
+  if(d2){
+    const a = rows[Number(d2.dataset.read)];
+    return setRead([a.id], !a.read);
+  }
+  const v = e.target.closest("[data-view]");
+  if(v) return openViewer(Number(v.dataset.view));
+  const d = e.target.closest("[data-del]");
+  if(d){
+    const a = rows[Number(d.dataset.del)];
+    askDelete(`Delete this ${((EVENTS[a.event]||["record"])[0]).toLowerCase()} from ${(a.timestamp||"").replace("T"," ")}?`,
+              {ids:[a.id]});
+  }
+});
+
+function openViewer(i){
+  const a = rows[i];
+  if(!a || !a.snapshot) return;
+  const src = "/snapshots/" + encodeURIComponent(a.snapshot);
+  $("vImg").src = src; $("vOpen").href = src;
+  $("vTitle").textContent = `${(EVENTS[a.event]||[a.event])[0]}, ${(a.timestamp||"").replace("T"," ")}`;
+  $("vMeta").innerHTML = `
+    <div><b>${a.smoothed_count}</b><span>Items</span></div>
+    <div><b>${a.n_bottle}</b><span>Bottle</span></div>
+    <div><b>${a.n_bag}</b><span>Bag</span></div>
+    <div><b>${a.n_food_container}</b><span>Container</span></div>
+    <div><b>${pct(a.peak_confidence)}</b><span>Peak confidence</span></div>
+    <div><b>${a.threshold_used}</b><span>Limit then</span></div>`;
+  $("viewer").showModal();
+}
+$("vClose").onclick = () => $("viewer").close();
+$("viewer").addEventListener("click", e => { if(e.target===$("viewer")) $("viewer").close(); });
+
+function renderPage(){
+  const start = page*PAGE, slice = rows.slice(start, start+PAGE);
+  $("noLogs").style.display = rows.length ? "none" : "flex";
+  $("logs").innerHTML = slice.map((a,k) => {
+    const i = start+k, ev = EVENTS[a.event] || [a.event||"Unknown","i-box"];
+    return `<tr class="${a.event||""} ${a.read ? "read" : ""}">
+      <td class="rd"><button class="dot" type="button" data-read="${i}"
+          aria-label="${a.read ? "Mark as unread" : "Mark as read"}"></button></td>
+      <td>${(a.timestamp||"").replace("T"," ")}</td>
+      <td><span class="ev ${a.event||""}"><svg class="ico"><use href="#${ev[1]}"/></svg>${ev[0]}</span></td>
+      <td class="n">${a.smoothed_count}</td>
+      <td>${a.snapshot
+            ? `<button class="btn sm" type="button" data-view="${i}"><svg class="ico"><use href="#i-eye"/></svg>View</button>`
+            : `<span class="noimg">No image</span>`}</td>
+      <td><div class="rowbtns"><button class="btn sm danger" type="button" data-del="${i}"
+            aria-label="Delete this record"><svg class="ico a-tilt"><use href="#i-trash"/></svg></button></div></td></tr>`;
+  }).join("");
+  const pages = Math.max(1, Math.ceil(rows.length/PAGE));
+  $("where").textContent = rows.length ? `${start+1}–${Math.min(start+PAGE, rows.length)} of ${rows.length}` : "";
+  $("newer").disabled = page <= 0;
+  $("older").disabled = page >= pages-1;
+  const un = unreadCount();
+  $("logCount").textContent = un ? `(${un})` : "";
+  $("markAll").disabled = !un;
+  requestAnimationFrame(fitRows);
+}
+
+function unreadCount(){ return rows.reduce((n,r) => n + (r.read ? 0 : 1), 0); }
+
+function fitRows(){
+  const wrap = document.querySelector(".tablewrap");
+  const head = wrap.querySelector("thead");
+  const row = wrap.querySelector("tbody tr");
+  if(!row || !wrap.clientHeight) return;
+  const n = Math.max(3, Math.floor((wrap.clientHeight - head.offsetHeight) / row.offsetHeight));
+  if(n !== PAGE){ PAGE = n; renderPage(); }
+}
+window.addEventListener("resize", () => requestAnimationFrame(fitRows));
+
+$("newer").onclick = () => { if(page>0){ page--; renderPage(); } };
+$("older").onclick = () => { if((page+1)*PAGE < rows.length){ page++; renderPage(); } };
+$("refreshLogs").onclick = () => { page=0; loadLogs(); toast("History refreshed","i-refresh"); };
+
+async function loadLogs(){
+  try{
+    rows = (await (await fetch("/api/alerts?limit=300")).json()).alerts || [];
+    const pages = Math.max(1, Math.ceil(rows.length/PAGE));
+    if(page > pages-1) page = pages-1;
+    if(page < 0) page = 0;
+    renderPage();
+  }catch(e){}
+}
+
+function setLevel(s){
+  const p = s.threshold>0 ? Math.round(s.smoothed/s.threshold*100) : 0;
+  let lv="ok", label="Normal", ico="i-ok";
+  if(s.alert_active && s.muted){ lv="warn"; label="Alert muted"; ico="i-eyeoff"; }
+  else if(s.alert_active){ lv="bad"; label="Alert raised"; ico="i-bell"; }
+  else if(p>=80){ lv="bad"; label="Near the limit"; ico="i-warn"; }
+  else if(p>=50){ lv="warn"; label="Building up"; ico="i-up"; }
+  $("level").className = "box level lv-"+lv;
+  $("bar").style.width = Math.min(p,100)+"%";
+  $("pctTag").textContent = p+"% of limit";
+  $("total").textContent = s.smoothed;
+  $("limit").textContent = s.threshold;
+  $("state").textContent = label;
+  $("stateIco").querySelector("use").setAttribute("href", "#"+ico);
+}
+
+function bump(id, val){
+  const el = $(id);
+  if(prevCounts[id] !== undefined && prevCounts[id] !== val){
+    const box = el.closest(".box");
+    box.classList.remove("bump"); void box.offsetWidth; box.classList.add("bump");
+  }
+  prevCounts[id] = val;
+  el.textContent = val;
+}
+
+async function refresh(){
+  try{
+    const s = await (await fetch("/api/state")).json();
+    last = s;
+    const pill = $("connPill");
+    pill.className = "pill " + (s.connected ? "online" : "offline");
+    $("connIco").querySelector("use").setAttribute("href", s.connected ? "#i-signal" : "#i-nolink");
+    $("conn").textContent = s.connected ? "Camera online" : "No link to Pi";
+    $("offline").classList.toggle("show", !s.connected);
+    $("led").classList.toggle("dead", !s.connected);
+    $("flag").classList.toggle("show", !!s.alert_active && !s.muted);
+    setMuteBar(s);
+    if(fsOn) setFsPanel(s);
+    setLevel(s);
+    const c = s.counts||{};
+    bump("nBottle", c.bottle||0); bump("nBag", c.bag||0); bump("nCont", c.food_container||0);
+    $("lat").textContent = s.latency_ms;
+    $("latAvg").textContent = s.avg_latency_ms;
+    $("rearm").textContent = s.rearm;
+    if(!$("conf").dataset.dirty && document.activeElement !== $("conf"))
+      $("conf").value = Math.round(s.conf*100);
+    if(!$("thresh").dataset.dirty && document.activeElement !== $("thresh"))
+      $("thresh").value = s.threshold;
+  }catch(e){
+    setMuteBar({alert_active:false, muted:false, mute_left:0});
+    $("connPill").className = "pill offline";
+    $("connIco").querySelector("use").setAttribute("href", "#i-nolink");
+    $("conn").textContent = "No link to Pi";
+    $("led").classList.add("dead");
+    $("offline").classList.add("show");
+  }
+}
+
+const feed = $("feed");
+let pending = false;
+function pullFrame(){
+  if(pending || (!fsOn && !$("monitor").classList.contains("on"))) return;
+  pending = true;
+  const img = new Image();
+  img.onload = () => { feed.src = img.src; pending = false; };
+  img.onerror = () => { pending = false; };
+  img.src = "/frame.jpg?t=" + Date.now();
+}
+
+pullFrame(); refresh(); loadLogs();
+setInterval(pullFrame, 120);
+setInterval(refresh, 1000);
+setInterval(() => { if($("history").classList.contains("on")) loadLogs(); }, 5000);
+</script>
+</body>
+</html>

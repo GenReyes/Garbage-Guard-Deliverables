@@ -2,35 +2,52 @@
 
 Capstone project: computer-vision detection of floating solid waste in
 creeks, running on a Raspberry Pi 5 with a Hikvision camera over RTSP.
+A project made by 5 people in TUP-Manila.
 
-## Running it
+## Two sides, two folders
 
-```
-source ~/gg-env/bin/activate
-cd ~/gg
-./start.sh
-```
+The project splits cleanly into two halves that almost never need to change
+together, so they live in separate folders:
 
-Opens the dashboard fullscreen at `http://127.0.0.1:8080`. `Ctrl+C` stops
-everything and closes the browser.
+### [`pi/`](pi/) — the Raspberry Pi side
 
-## Files
+The actual system. Camera, model, detection, counting, alerts, and the
+touchscreen dashboard. This is the half that's been under constant change —
+new UI styling, mute, fullscreen, history deletion, display scaling. If
+you're working on detection or the dashboard, start in
+[`pi/README.md`](pi/README.md).
 
-| File | Purpose |
+### [`mobile-app/`](mobile-app/) — for the mobile app
+
+Everything King Perth needs to build the app, with no Pi, camera, or model
+required. A mock server that speaks the exact same API as the real system,
+plus the full API reference. Start in
+[`mobile-app/README.md`](mobile-app/README.md).
+
+## Why split this way
+
+The app only ever talks to the Pi over HTTP — it has no code dependency on
+anything in `pi/`. Keeping them in separate folders means Perth can build
+and test the entire app against the mock server before the hardware even
+exists in the same room as him, and changes to the dashboard's styling
+never touch anything he's working on.
+
+`dashboard.html` lives once, in `pi/`, even though it's also useful to
+Perth as a reference implementation — `mobile-app/README.md` points to it
+rather than duplicating it, so there's only ever one copy to go stale.
+
+## Quick links
+
+| I want to... | Go to |
 |---|---|
-| `garbageguard_live.py` | Detection engine: camera, model, counting, alerts |
-| `gg_counter.py` | Accumulation counting and ROI logic, unit tested |
-| `gg_web.py` | Local web server backing the dashboard |
-| `dashboard.html` | Touchscreen dashboard UI |
-| `gg_mock_server.py` | Fake API server for app development without the Pi |
-| `test_counter.py` | Unit tests for the counting logic — `python3 test_counter.py` |
-| `start.sh` | Launcher: checks the camera, opens the dashboard fullscreen |
+| Run the system on the Pi | [`pi/README.md`](pi/README.md) → Running it |
+| Run the counting tests | [`pi/README.md`](pi/README.md) → Running the tests |
+| Build the mobile app | [`mobile-app/README.md`](mobile-app/README.md) |
+| Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
+| Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
 
-## Not in this repo
+## Not in this repo, on purpose
 
-`camera.txt` (RTSP credentials) and `gg_settings.json` (per-device settings)
-are excluded on purpose — see `.gitignore`. Create `camera.txt` on each
-device with the camera's RTSP URL as its only line.
-
-See `GarbageGuard_API.md` and `GarbageGuard_Field_Reference.md` for the full
-API reference and field operating instructions.
+`camera.txt` and `gg_settings.json` hold the camera's RTSP credentials and
+per-device settings. They're excluded by `.gitignore` and documented in
+`pi/README.md`. Never commit a filled-in copy of either.
