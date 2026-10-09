@@ -1,53 +1,95 @@
-# Garbage-Guard — Deliverables
+# pi/ — the Raspberry Pi side
 
-Capstone project: computer-vision detection of floating solid waste in
-creeks, running on a Raspberry Pi 5 with a Hikvision camera over RTSP.
-A project made by 5 people in TUP-Manila.
+This is the actual system: the part that talks to the camera, runs the
+model, counts garbage, and serves the touchscreen dashboard. It's the half
+of the project that's been changing constantly — new UI styling, mute,
+fullscreen, deletion, scaling fixes. If you're Brian or Gen working on the
+detection or dashboard, this folder is yours.
 
-## Two sides, two folders
+If you're King Perth working on the mobile app, you don't need anything in
+here except `dashboard.html`, and only as a reference — see
+[`../mobile-app/README.md`](../mobile-app/README.md) instead. You don't have
+a camera, a Pi, or the model, so none of the Python here will run for you.
 
-The project splits cleanly into two halves that almost never need to change
-together, so they live in separate folders:
+## Files
 
-### [`pi/`](pi/) — the Raspberry Pi side
-
-The actual system. Camera, model, detection, counting, alerts, and the
-touchscreen dashboard. This is the half that's been under constant change —
-new UI styling, mute, fullscreen, history deletion, display scaling. If
-you're working on detection or the dashboard, start in
-[`pi/README.md`](pi/README.md).
-
-### [`mobile-app/`](mobile-app/) — for the mobile app
-
-Everything King Perth needs to build the app, with no Pi, camera, or model
-required. A mock server that speaks the exact same API as the real system,
-plus the full API reference. Start in
-[`mobile-app/README.md`](mobile-app/README.md).
-
-## Why split this way
-
-The app only ever talks to the Pi over HTTP — it has no code dependency on
-anything in `pi/`. Keeping them in separate folders means Perth can build
-and test the entire app against the mock server before the hardware even
-exists in the same room as him, and changes to the dashboard's styling
-never touch anything he's working on.
-
-`dashboard.html` lives once, in `pi/`, even though it's also useful to
-Perth as a reference implementation — `mobile-app/README.md` points to it
-rather than duplicating it, so there's only ever one copy to go stale.
-
-## Quick links
-
-| I want to... | Go to |
+| File | What it does |
 |---|---|
-| Run the system on the Pi | [`pi/README.md`](pi/README.md) → Running it |
-| Run the counting tests | [`pi/README.md`](pi/README.md) → Running the tests |
-| Build the mobile app | [`mobile-app/README.md`](mobile-app/README.md) |
-| Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
-| Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
+| `garbageguard_live.py` | The detection engine. Loads the NCNN model, reads the camera over RTSP, runs ByteTrack, applies the ROI, and serves the web API. This is what you run. |
+| `gg_counter.py` | The accumulation counting and ROI-filtering logic, pulled out on its own so it can be unit tested without a camera or a model. |
+| `gg_web.py` | The HTTP server behind the dashboard: serves `dashboard.html`, the live frame, and the `/api/*` endpoints. |
+| `dashboard.html` | The touchscreen UI. Single file, no build step, no dependencies — open it in any browser once the server is running. |
+| `test_counter.py` | Unit tests for `gg_counter.py`. Run these any time the counting logic changes, with no camera needed. |
+| `start.sh` | The launcher. Checks the camera's reachable, activates the Python environment, opens the dashboard fullscreen, and starts detection. |
+| `GarbageGuard_Field_Reference.md` | Everything needed to run this at the actual creek site: wiring, startup, ROI setup, calibration, troubleshooting. |
 
 ## Not in this repo, on purpose
 
-`camera.txt` and `gg_settings.json` hold the camera's RTSP credentials and
-per-device settings. They're excluded by `.gitignore` and documented in
-`pi/README.md`. Never commit a filled-in copy of either.
+Two files have to exist on the Pi but are never committed, because they
+hold secrets or change per device:
+
+- **`camera.txt`** — one line, the camera's RTSP URL including its
+  password. Create it yourself on each Pi.
+- **`gg_settings.json`** — detection confidence, accumulation threshold,
+  and the ROI polygon. Generated automatically the first time the script
+  runs, then it persists across restarts.
+
+Both are listed in the repo's `.gitignore`. If you clone this fresh, the
+script creates `gg_settings.json` on its own; you create `camera.txt`
+yourself, one line, the RTSP URL.
+
+## Running it
+
+```bash
+source ~/gg-env/bin/activate
+cd ~/gg
+./start.sh
+```
+
+This checks the camera is reachable, brings up the network link if it
+isn't, and opens the dashboard fullscreen at `http://127.0.0.1:8080`.
+`Ctrl+C` stops detection and closes the browser.
+
+If `start.sh` isn't executable yet:
+
+```bash
+chmod +x start.sh
+```
+
+## Running the tests
+
+No camera, no model, no Pi required — this runs anywhere Python 3 is
+installed:
+
+```bash
+python3 test_counter.py
+```
+
+Expect `Ran 24 tests` and `OK`. If you change anything in `gg_counter.py`,
+run this before anything else.
+
+## What depends on what
+
+```
+start.sh
+  └─ garbageguard_live.py
+       ├─ gg_counter.py      (counting, ROI math — imported directly)
+       └─ gg_web.py          (HTTP server — imported directly)
+                └─ dashboard.html  (served as a static file, not imported)
+```
+
+`dashboard.html` only talks to the other three over HTTP, the same way a
+phone would. That's deliberate — it's what makes the API in
+`../mobile-app/GarbageGuard_API.md` an accurate description of this system
+rather than a guess.
+
+## Requirements on the Pi
+
+- Python 3 with a virtual environment at `~/gg-env` containing `ultralytics`,
+  OpenCV, and `lap`
+- The NCNN model folder, `garbageguard_v5_best_ncnn_model/` (not in this
+  repo — it's a 9.3 MB binary; copy it onto the Pi directly rather than
+  committing it)
+- A reachable camera and a `camera.txt` pointing at it
+
+Nothing here needs internet access to run, only to install.

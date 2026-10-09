@@ -26,7 +26,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-from gg_counter import AccumulationCounter, scale_polygon, tally
+from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
 import gg_web
 
 CAMERA_FILE = Path(__file__).resolve().parent / "camera.txt"
@@ -48,7 +48,8 @@ DB_PATH = BASE_DIR / "garbageguard.db"
 SNAPSHOT_DIR = BASE_DIR / "snapshots"
 SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
-DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": []}
+DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
+                    "auto_mute": False, "auto_mute_s": 900}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -237,6 +238,8 @@ class Engine:
         self.latency_ms = 0.0
         self.alert_active = False
         self.mute_until = 0.0
+        self.mute_total = 0
+        self.auto_muted = False
         self.frames = 0
         self.reader = None
         self.proc_stamps = collections.deque(maxlen=90)
@@ -249,6 +252,7 @@ class Engine:
             cooldown=ALERT_COOLDOWN_SEC,
         )
         self.names = {}
+        self.display_ids = DisplayIds()
 
     def snapshot_state(self):
         with self.lock:
@@ -276,6 +280,10 @@ class Engine:
                 "alert_active": self.alert_active,
                 "muted": self._muted_locked(),
                 "mute_left": self._mute_left_locked(),
+                "mute_total": self.mute_total,
+                "auto_muted": self.auto_muted and self._muted_locked(),
+                "auto_mute": bool(self.settings.get("auto_mute")),
+                "auto_mute_s": int(self.settings.get("auto_mute_s", 0)),
                 "frames": self.frames,
                 "uptime_s": int(time.time() - self.started_at),
             }
@@ -293,25 +301,44 @@ class Engine:
         with self.lock:
             return self._muted_locked()
 
-    def set_mute(self, seconds=None, cancel=False):
+    def set_mute(self, seconds=None, cancel=False, auto=False):
         with self.lock:
             was = self._muted_locked()
             if cancel:
                 self.mute_until = 0.0
+                self.mute_total = 0
             elif seconds in (0, None):
                 self.mute_until = float("inf")
+                self.mute_total = 0
             else:
-                self.mute_until = time.time() + max(1, int(seconds))
+                self.mute_total = max(1, int(seconds))
+                self.mute_until = time.time() + self.mute_total
+            self.auto_muted = auto and not cancel
             now_muted = self._muted_locked()
             left = self._mute_left_locked()
         if now_muted != was:
-            self._log_simple("muted" if now_muted else "unmuted")
+            if now_muted:
+                self._log_simple("auto_muted" if auto else "muted")
+            else:
+                self._log_simple("unmuted")
         return {"muted": now_muted, "mute_left": left}
+
+    def set_auto_mute(self, on=None, seconds=None):
+        with self.lock:
+            if on is not None:
+                self.settings["auto_mute"] = bool(on)
+            if seconds is not None:
+                self.settings["auto_mute_s"] = max(0, int(seconds))
+            save_settings(self.settings)
+            return {"auto_mute": self.settings["auto_mute"],
+                    "auto_mute_s": self.settings["auto_mute_s"]}
 
     def clear_mute(self, log=True):
         with self.lock:
             was = self._muted_locked()
             self.mute_until = 0.0
+            self.mute_total = 0
+            self.auto_muted = False
         if was and log:
             self._log_simple("unmuted")
         return was
@@ -535,11 +562,12 @@ class Engine:
                                  "conf": float(v), "id": int(i)})
 
             flags, counts, raw_count, peak = tally(dets, roi_poly)
+            numbers = self.display_ids.assign([d["id"] for d in dets])
 
             annotated = frame.copy()
             draw_roi(annotated, roi_px)
-            for d, inside in zip(dets, flags):
-                tag = f"#{d['id']} " if d["id"] >= 0 else ""
+            for d, inside, n in zip(dets, flags, numbers):
+                tag = f"#{n} " if n > 0 else ""
                 draw_detection(annotated, d["box"],
                                f"{tag}{d['name']} {d['conf']:.2f}",
                                CLASS_COLORS.get(d["name"], DEFAULT_COLOR), inside)
@@ -578,6 +606,12 @@ class Engine:
                       f"bottle={counts.get('bottle',0)} "
                       f"bag={counts.get('bag',0)} "
                       f"food_container={counts.get('food_container',0)}")
+                with self.lock:
+                    auto = bool(self.settings.get("auto_mute"))
+                    auto_s = int(self.settings.get("auto_mute_s", 0))
+                if auto:
+                    self.set_mute(seconds=auto_s, auto=True)
+                    print("[AUTO-MUTE] " + (f"{auto_s}s" if auto_s else "until unmuted"))
 
             if step.suppressed:
                 snap = self._save_snapshot("suppressed", state)

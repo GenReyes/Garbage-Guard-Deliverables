@@ -237,13 +237,33 @@ main{flex:1;min-height:0;display:flex}
 @keyframes tick{to{transform:rotate(360deg)}}
 
 /* ---------------- live feed, TV styling ---------------- */
-.card-feed{flex:1;min-width:0;gap:7px}
-.tv{position:relative;flex:1;min-height:0;border:2px solid var(--edge);border-radius:14px;
-  padding:9px 9px 15px;background:linear-gradient(170deg,#4A443D,#241F1B 60%);
-  box-shadow:var(--hard-sm), inset 0 2px 0 rgba(255,255,255,.18)}
-[data-theme="dark"] .tv{background:linear-gradient(170deg,#3A342E,#17130F 60%)}
-.screen{position:absolute;inset:9px 9px 15px;border-radius:7px;overflow:hidden;
-  background:#0B0A09;box-shadow:inset 0 0 0 2px #000, inset 0 0 22px rgba(0,0,0,.85)}
+/* The whole card is the monitor: housing, bezel labels and hardware buttons.
+   Only the screen is black glass, so the feed gets the space the old header,
+   inner TV frame and footer note used to take. */
+.card-feed{flex:1;min-width:0}
+.monitor{gap:0;padding:0;border-radius:18px;color:#EDE6DC;
+  background:linear-gradient(172deg,#4E4740 0%,#2C2621 46%,#1F1A16 100%);
+  box-shadow:var(--hard), var(--soft), inset 0 2px 0 rgba(255,255,255,.16),
+             inset 0 -3px 0 rgba(0,0,0,.35)}
+[data-theme="dark"] .monitor{background:linear-gradient(172deg,#3E3832 0%,#211C18 46%,#15110E 100%)}
+.monitor::before{border-radius:16px 16px 50%/14px;opacity:.12}
+.mon-top,.mon-bot{position:relative;z-index:1;flex:none;display:flex;align-items:center;
+  gap:8px;padding:0 10px}
+.mon-top{height:42px}
+.mon-bot{min-height:46px;padding-bottom:2px}
+.led{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;
+  box-shadow:0 0 7px var(--ok);animation:blink 2.6s ease-in-out infinite}
+.led.dead{background:var(--bad);box-shadow:0 0 7px var(--bad);animation:none}
+.engr{font-size:10px;font-weight:900;letter-spacing:.11em;color:#C9BFB2;white-space:nowrap;
+  text-shadow:0 -1px 0 rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.07)}
+.fpsb{color:#8FE0CF;font-variant-numeric:tabular-nums;min-width:52px}
+.hint{flex:1;min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;
+  text-overflow:ellipsis;letter-spacing:.02em;font-weight:700;color:#BDB3A7}
+.hint .ico{width:12px;height:12px;flex:none}
+.drawing .hint{color:#F0B429}
+.screen{position:relative;flex:1;min-height:0;margin:0 10px;border-radius:9px;overflow:hidden;
+  background:#0B0A09;border:2px solid #0E0C0A;
+  box-shadow:inset 0 0 0 1px #000, inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.12)}
 .drawing .screen{cursor:crosshair}
 /* When the Pi is offline the img has no frame to show, and the browser paints
    the alt text in --text over the black screen. Zero font size drops the
@@ -256,14 +276,77 @@ main{flex:1;min-height:0;display:flex}
 .glare{position:absolute;top:0;bottom:0;width:26%;pointer-events:none;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.1),transparent);
   animation:sweep 7s ease-in-out infinite}
-.bezel{position:absolute;left:0;right:0;bottom:1px;height:14px;display:flex;
-  align-items:center;gap:6px;padding:0 11px;pointer-events:none}
-.led{width:7px;height:7px;border-radius:50%;background:var(--ok);
-  box-shadow:0 0 6px var(--ok);animation:blink 2.6s ease-in-out infinite}
-.led.dead{background:var(--bad);box-shadow:0 0 6px var(--bad);animation:none}
-.bezel .lbl{font-size:9px;font-weight:800;color:#C9BFB2;letter-spacing:.09em}
-.bezel .fpsb{font-size:9px;font-weight:800;color:#8FE0CF;letter-spacing:.08em;
-  font-variant-numeric:tabular-nums;margin-left:10px;min-width:48px}
+
+/* hardware buttons on the housing */
+.hw{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;
+  min-height:32px;padding:0 12px;border-radius:9px;cursor:pointer;
+  font:inherit;font-size:12px;font-weight:900;letter-spacing:.03em;color:#EDE6DC;
+  border:2px solid #0E0C0A;background:linear-gradient(180deg,#5C554D,#36302A);
+  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .08s ease, box-shadow .08s ease, filter .15s ease}
+.hw:hover{filter:brightness(1.12)}
+.hw:active{transform:translateY(3px);box-shadow:0 0 0 #0E0C0A, inset 0 2px 4px rgba(0,0,0,.45)}
+.hw .ico{width:15px;height:15px}
+.hw.teal{background:linear-gradient(180deg,var(--teal-lt),var(--teal));color:#fff}
+.hw[hidden]{display:none}
+.hw:disabled{opacity:.38;cursor:not-allowed;transform:none;filter:none;
+  box-shadow:0 3px 0 #0E0C0A}
+.hw:disabled .ico{animation:none!important}
+.hw:hover .a-shutter{animation:shutter .9s ease-in-out infinite}
+.hw:hover .a-shake{animation:shake .6s ease-in-out infinite}
+.hw:hover .a-pop{animation:pop .7s ease-in-out infinite}
+.hw.sq{width:34px;padding:0}
+.hw.sq .ico{width:18px;height:18px}
+
+/* LCD readout for the alert and mute state */
+.lcd{position:relative;flex:1;min-width:150px;height:32px;display:flex;align-items:center;
+  gap:7px;padding:0 10px;border-radius:7px;overflow:hidden;
+  background:#14201A;border:2px solid #0E0C0A;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.1);
+  font-family:"DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+  font-size:12px;font-weight:700;letter-spacing:.04em;color:#7FD99A;
+  text-shadow:0 0 6px rgba(127,217,154,.45)}
+.lcd .ico{width:14px;height:14px;color:currentColor}
+.lcd .mute-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-weight:700;font-size:12px}
+.mon-bot.is-idle .lcd{color:#5E9C72;text-shadow:none}
+.mon-bot.is-idle .lcd .ico{animation:none}
+.mon-bot.is-alert .lcd{color:#FF8A7E;text-shadow:0 0 7px rgba(255,138,126,.55);
+  animation:lcdAlarm 1.1s steps(2) infinite}
+.mon-bot.is-muted .lcd{color:#F0B429;text-shadow:0 0 7px rgba(240,180,41,.5)}
+.mon-bot.is-muted .lcd .ico{animation:none}
+@keyframes lcdAlarm{50%{color:#FFD2CC}}
+.monitor .mon-bot.mute,.monitor .mon-bot.mute.is-muted,.monitor .mon-bot.mute.is-idle{
+  border:0;border-radius:0;background:none;box-shadow:none;padding:0 10px 2px;flex-wrap:nowrap}
+.monitor .mon-bot .hw .ico,.monitor .mon-bot.is-idle .hw .ico{color:inherit}
+.prog{display:none}
+.is-muted .prog.on{display:block}
+.lcd .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(240,180,41,.18)}
+.prog > i{display:block;height:100%;width:100%;background:#F0B429;transition:width .9s linear}
+.mon-bot .mute-pick{color:#C9BFB2;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.mon-bot .mute-pick select{background:#1E1A16;color:#EDE6DC;border:2px solid #0E0C0A;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.5);text-transform:none;letter-spacing:0;
+  min-height:32px}
+
+/* auto-mute switch */
+.sw{display:inline-flex;align-items:center;gap:7px;flex:none;min-height:32px;padding:0 4px;
+  border:0;background:none;cursor:pointer;font:inherit;font-size:10px;font-weight:900;
+  letter-spacing:.08em;text-transform:uppercase;color:#C9BFB2}
+.sw > i{position:relative;width:38px;height:22px;border-radius:999px;flex:none;
+  background:#1E1A16;border:2px solid #0E0C0A;box-shadow:inset 0 2px 4px rgba(0,0,0,.55);
+  transition:background .18s ease}
+.sw > i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
+  border-radius:50%;background:linear-gradient(180deg,#F5F0E8,#B9AFA3);
+  box-shadow:0 1px 2px rgba(0,0,0,.6);transition:transform .18s ease}
+.sw[aria-checked="true"] > i{background:var(--teal);box-shadow:inset 0 2px 4px rgba(0,0,0,.35),
+  0 0 8px rgba(23,166,143,.55)}
+.sw[aria-checked="true"] > i::after{transform:translateX(16px)}
+.sw[aria-checked="true"]{color:#8FE0CF}
+.fs .sw{color:var(--muted);font-size:11px}
+.fs .sw[aria-checked="true"]{color:var(--teal)}
+.fs .mute .prog{position:relative;flex:none;width:90px;height:6px;border-radius:999px;
+  background:var(--sunk);border:2px solid var(--edge);overflow:hidden}
+.fs .mute .prog > i{background:#C98A12}
 .flag,.off{position:absolute;font-weight:900;border:2px solid var(--edge);
   border-radius:9px;display:none;line-height:1.2;z-index:3}
 .flag{top:8px;right:8px;background:var(--bad);color:#fff;padding:5px 10px;font-size:13px;
@@ -330,6 +413,8 @@ main{flex:1;min-height:0;display:flex}
 .fs-cam{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;
   color:var(--muted)}
 .fs-top .sp{flex:1}
+.fs-stat{display:flex;align-items:baseline;gap:5px}
+.fs-stat .ico{align-self:center;width:15px;height:15px}
 .fs-num{font-variant-numeric:tabular-nums;font-weight:900}
 .fs-sub{font-size:12px;color:var(--muted);font-weight:700}
 .fs-stage{flex:1;min-height:0;position:relative;border:2px solid var(--edge);
@@ -349,6 +434,15 @@ main{flex:1;min-height:0;display:flex}
 .fs .btn{min-height:44px}
 /* the shared .fsbtn rule is absolute for the bezel button; the exit button
    lives in the top bar instead */
+.mon-top .fsbtn{position:static;opacity:1;width:34px;height:auto;min-height:32px;
+  border-radius:9px;border:2px solid #0E0C0A;color:#EDE6DC;
+  background:linear-gradient(180deg,#5C554D,#36302A);
+  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22)}
+[data-theme="dark"] .mon-top .fsbtn{background:linear-gradient(180deg,#5C554D,#36302A);color:#EDE6DC}
+.mon-top .fsbtn:hover{transform:none;filter:brightness(1.12);
+  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22)}
+.mon-top .fsbtn:active{transform:translateY(3px);box-shadow:0 0 0 #0E0C0A}
+.mon-top .fsbtn:disabled{opacity:.38}
 .fs-exit{position:static;width:44px;height:44px;flex:none;opacity:1}
 .fs-exit .ico{width:22px;height:22px}
 
@@ -472,6 +566,13 @@ dialog::backdrop{background:rgba(10,8,6,.62)}
   font-size:13px}
 .vm b{font-size:17px;font-weight:900;display:block}
 .vm span{color:var(--muted);font-weight:700;font-size:11px}
+#zoom{width:100vw;height:100vh;max-width:none;max-height:none;margin:0;border:0;
+  border-radius:0;background:#0B0A09;box-shadow:none;overflow:hidden}
+#zoom::backdrop{background:#0B0A09}
+#zImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#zClose{position:absolute;top:12px;right:12px;z-index:2;min-height:48px;padding:0 18px;font-size:15px}
+#zoom .zhint{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:#C9BFB2;
+  font-size:12px;font-weight:700;pointer-events:none}
 #confirm{width:min(430px,94vw)}
 .cfm{padding:13px;display:flex;flex-direction:column;gap:11px}
 .cfm p{margin:0;font-size:13px}
@@ -497,7 +598,7 @@ a.btn{text-decoration:none}
   .ctl .pill,.ctl .btn{flex:1;justify-content:center}
   #monitor{flex-direction:column;gap:16px}
   .side{width:auto;padding-left:0}
-  .tv{min-height:250px}
+  .monitor .screen{min-height:250px}
   .page{flex:1 1 auto}
   #history{min-height:430px}
 }
@@ -648,28 +749,30 @@ a.btn{text-decoration:none}
 
 <main>
   <section class="page on" id="monitor" role="tabpanel" aria-labelledby="tabMonitor">
-    <div class="card card-feed">
-      <div class="hd">
-        <svg class="ico"><use href="#i-cam"/></svg>
-        <h2>Live feed</h2>
-        <button class="btn teal sm" id="capture" type="button">
+    <div class="card card-feed monitor" id="tv">
+      <div class="mon-top">
+        <span class="led" id="led"></span>
+        <span class="engr">CAM 01 · LIVE</span>
+        <span class="engr fpsb" id="fps">– FPS</span>
+        <span class="engr hint" id="roihelp"><svg class="ico"><use href="#i-eyeoff"/></svg>Grey boxes are outside the monitored area and not counted</span>
+        <button class="hw teal" id="capture" type="button">
           <svg class="ico a-shutter"><use href="#i-shutter"/></svg>Capture</button>
-      </div>
-      <div class="tv" id="tv">
-        <div class="screen" id="screen">
-          <img id="feed" alt="Live camera view with detections">
-          <svg id="overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-          <div class="scan"></div><div class="glare"></div>
-          <div class="flag" id="flag"><svg class="ico"><use href="#i-bell"/></svg>Accumulation alert</div>
-          <div class="off" id="offline"><svg class="ico"><use href="#i-nolink"/></svg>No camera signal</div>
-        </div>
-        <div class="bezel"><span class="led" id="led"></span><span class="lbl">CAM 01 · LIVE</span><span class="fpsb" id="fps">– FPS</span></div>
-        <button class="fsbtn" id="fsOpen" type="button" aria-label="Enter fullscreen"
+        <button class="hw sq fsbtn" id="fsOpen" type="button" aria-label="Enter fullscreen"
                 title="Fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M9.5 3.5H3.5v6"/><path class="c tr" d="M14.5 3.5h6v6"/><path class="c br" d="M20.5 14.5v6h-6"/><path class="c bl" d="M3.5 14.5v6h6"/></svg></button>
       </div>
-      <div class="mute" id="muteBar" hidden>
-        <svg class="ico a-ring"><use href="#i-bell"/></svg>
-        <span class="mute-txt" id="muteTxt">Accumulation alert is active</span>
+      <div class="screen" id="screen">
+        <img id="feed" alt="Live camera view with detections">
+        <svg id="overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+        <div class="scan"></div><div class="glare"></div>
+        <div class="flag" id="flag"><svg class="ico"><use href="#i-bell"/></svg>Accumulation alert</div>
+        <div class="off" id="offline"><svg class="ico"><use href="#i-nolink"/></svg>No camera signal</div>
+      </div>
+      <div class="mon-bot mute" id="muteBar">
+        <span class="lcd"><svg class="ico a-ring"><use href="#i-bell"/></svg>
+          <span class="mute-txt" id="muteTxt">No alert</span>
+          <i class="prog"><i></i></i></span>
+        <button class="sw" id="autoBtn" type="button" role="switch" aria-checked="false"
+                title="Mute every new alert automatically"><i></i><span>Auto-mute</span></button>
         <label class="mute-pick" for="muteFor"><span>Mute for</span>
           <select id="muteFor">
             <option value="300">5 minutes</option>
@@ -678,13 +781,11 @@ a.btn{text-decoration:none}
             <option value="3600">1 hour</option>
             <option value="0">Until I unmute</option>
           </select></label>
-        <button class="btn sm" id="muteBtn" type="button">
+        <button class="hw" id="muteBtn" type="button">
           <svg class="ico a-shake"><use href="#i-eyeoff"/></svg>Mute</button>
-        <button class="btn sm teal" id="unmuteBtn" type="button" hidden>
-          <svg class="ico a-pop"><use href="#i-bell"/></svg>Unmute now</button>
+        <button class="hw teal" id="unmuteBtn" type="button" hidden>
+          <svg class="ico a-pop"><use href="#i-bell"/></svg>Unmute</button>
       </div>
-      <p class="note" id="roihelp"><svg class="ico"><use href="#i-eyeoff"/></svg>
-        Grey boxes fall outside the monitored area and are not counted.</p>
     </div>
 
     <div class="side">
@@ -779,10 +880,10 @@ a.btn{text-decoration:none}
     <span class="fs-cam"><i class="led" id="fsLed"></i>CAM 01 · LIVE</span>
     <span class="pill online" id="fsConnPill">
       <svg class="ico"><use href="#i-signal"/></svg><span id="fsConn">Camera online</span></span>
-    <span><svg class="ico" style="width:15px;height:15px;vertical-align:-2px"><use href="#i-clock"/></svg>
-      <span class="fs-num" id="fsLat">–</span> ms
+    <span class="fs-stat"><svg class="ico"><use href="#i-clock"/></svg>
+      <span class="fs-num" id="fsLat">–</span><span>ms</span>
       <span class="fs-sub">avg <span id="fsLatAvg">–</span> ms</span></span>
-    <span><span class="fs-num" id="fsFps">–</span> <span class="fs-sub">FPS</span></span>
+    <span class="fs-stat"><span class="fs-num" id="fsFps">–</span><span class="fs-sub">FPS</span></span>
     <span class="fs-sub" id="fsTime"></span>
     <span class="sp"></span>
     <button class="fsbtn out fs-exit" id="fsClose" type="button"
@@ -809,6 +910,9 @@ a.btn{text-decoration:none}
   <div class="mute" id="fsMuteBar">
     <svg class="ico a-ring"><use href="#i-bell"/></svg>
     <span class="mute-txt" id="fsMuteTxt">No alert to mute</span>
+    <i class="prog"><i></i></i>
+    <button class="sw" id="fsAutoBtn" type="button" role="switch" aria-checked="false"
+            title="Mute every new alert automatically"><i></i><span>Auto-mute</span></button>
     <label class="mute-pick" for="fsMuteFor"><span>Mute for</span>
       <select id="fsMuteFor">
         <option value="300">5 minutes</option>
@@ -828,12 +932,18 @@ a.btn{text-decoration:none}
   <div class="vh">
     <svg class="ico" style="width:18px;height:18px"><use href="#i-shutter"/></svg>
     <h3 id="vTitle">Snapshot</h3>
-    <a class="btn sm" id="vOpen" target="_blank" rel="noopener">
-      <svg class="ico"><use href="#i-eye"/></svg>Full size</a>
+    <button class="btn sm" id="vOpen" type="button">
+      <svg class="ico"><use href="#i-eye"/></svg>Full size</button>
     <button class="btn sm ink" id="vClose" type="button">Close</button>
   </div>
   <img id="vImg" alt="Saved snapshot">
   <div class="vm" id="vMeta"></div>
+</dialog>
+
+<dialog id="zoom" aria-label="Snapshot, full size">
+  <img id="zImg" alt="Saved snapshot, full size">
+  <button class="btn ink" id="zClose" type="button">Close</button>
+  <p class="zhint">Tap anywhere to go back</p>
 </dialog>
 
 <dialog id="confirm">
@@ -854,7 +964,7 @@ a.btn{text-decoration:none}
 const $ = id => document.getElementById(id);
 const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed","i-eyeoff"],
                 test:["Test alert","i-wrench"], manual:["Manual capture","i-shutter"],
-                muted:["Alert muted","i-eyeoff"], unmuted:["Alert unmuted","i-bell"]};
+                muted:["Alert muted","i-eyeoff"], auto_muted:["Auto-muted","i-eyeoff"], unmuted:["Alert unmuted","i-bell"]};
 let PAGE = 5, draft=null, editing=false, last=null, rows=[], page=0, prevCounts={};
 
 function toast(m, icon){
@@ -905,8 +1015,8 @@ function setEditing(on, seed){
   $("tv").classList.toggle("drawing", on);
   $("undo").style.display = on ? "flex" : "none";
   $("roihelp").innerHTML = on
-    ? `<svg class="ico"><use href="#i-pen"/></svg>Drawing: ${draft.length} point${draft.length===1?"":"s"} placed. Tap Apply when closed.`
-    : `<svg class="ico"><use href="#i-eyeoff"/></svg>Grey boxes fall outside the monitored area and are not counted.`;
+    ? `<svg class="ico"><use href="#i-pen"/></svg>${draft.length} point${draft.length===1?"":"s"} placed, tap Apply when closed`
+    : `<svg class="ico"><use href="#i-eyeoff"/></svg>Grey boxes are outside the monitored area and not counted`;
   drawOverlay();
 }
 
@@ -1001,30 +1111,71 @@ async function doUnmute(){
 $("muteBtn").onclick = () => doMute(Number($("muteFor").value), $("muteFor"));
 $("unmuteBtn").onclick = () => doUnmute();
 
-function fmtLeft(sec){
-  if(sec == null) return "no expiry";
+function fmtClock(sec){
   const m = Math.floor(sec/60), ss = sec % 60;
-  return `${m}:${String(ss).padStart(2,"0")} left`;
+  return `${m}:${String(ss).padStart(2,"0")}`;
+}
+function durText(sec){
+  if(!sec) return "until unmuted";
+  return sec >= 3600 ? `${sec/3600} h` : `${sec/60} min`;
 }
 
-function paintMuteBar(bar, txt, mbtn, ubtn, sel, s){
+function paintMuteBar(bar, txt, mbtn, ubtn, sel, sw, s){
   const idle = !s.alert_active && !s.muted;
   bar.hidden = false;
   bar.classList.toggle("is-muted", !!s.muted);
   bar.classList.toggle("is-idle", idle);
+  bar.classList.toggle("is-alert", !!s.alert_active && !s.muted);
   mbtn.hidden = !!s.muted;
   ubtn.hidden = !s.muted;
   mbtn.disabled = idle;
   sel.disabled = !!s.muted;
-  txt.innerHTML = s.muted
-    ? `Alert muted, <span class="left">${fmtLeft(s.mute_left)}</span>`
-    : idle ? "No alert to mute" : "Accumulation alert is active";
+  sw.setAttribute("aria-checked", s.auto_mute ? "true" : "false");
+  const who = s.auto_muted ? "Auto-muted" : "Muted";
+  if(s.muted){
+    txt.innerHTML = s.mute_left == null
+      ? `${who}, until you unmute`
+      : `${who}, <span class="left">${fmtClock(s.mute_left)}</span> left`;
+  }else if(s.alert_active){
+    txt.textContent = "Accumulation alert is active";
+  }else{
+    txt.textContent = s.auto_mute
+      ? `Auto-mute armed, ${durText(s.auto_mute_s)}`
+      : "No alert to mute";
+  }
+  const prog = bar.querySelector(".prog");
+  const timed = s.muted && s.mute_left != null && s.mute_total > 0;
+  prog.classList.toggle("on", timed);
+  if(timed) prog.firstElementChild.style.width =
+    Math.max(0, Math.min(100, s.mute_left / s.mute_total * 100)) + "%";
+  if(s.auto_mute && !sel.matches(":focus") && !sel.dataset.dirty)
+    sel.value = String(s.auto_mute_s);
 }
 
 function setMuteBar(s){
   paintMuteBar($("muteBar"), $("muteTxt"), $("muteBtn"),
-               $("unmuteBtn"), $("muteFor"), s);
+               $("unmuteBtn"), $("muteFor"), $("autoBtn"), s);
 }
+
+async function setAuto(on, sel){
+  const secs = Number(sel.value);
+  await post("/api/auto_mute", {on, seconds: secs});
+  toast(on ? `Auto-mute on: new alerts mute ${durText(secs)}` : "Auto-mute off",
+        on ? "i-eyeoff" : "i-bell");
+  refresh();
+}
+function onPick(sel){
+  sel.dataset.dirty = "1";
+  $("muteFor").value = $("fsMuteFor").value = sel.value;
+  if(last && last.auto_mute)
+    post("/api/auto_mute", {seconds: Number(sel.value)}).then(() => {
+      delete $("muteFor").dataset.dirty; delete $("fsMuteFor").dataset.dirty; refresh();
+    });
+}
+$("autoBtn").onclick = () => setAuto(!(last && last.auto_mute), $("muteFor"));
+$("fsAutoBtn").onclick = () => setAuto(!(last && last.auto_mute), $("fsMuteFor"));
+$("muteFor").onchange = () => onPick($("muteFor"));
+$("fsMuteFor").onchange = () => onPick($("fsMuteFor"));
 
 /* ---------------- fullscreen ---------------- */
 let fsOn = false;
@@ -1032,7 +1183,7 @@ let fsOn = false;
 function fsMoveScreen(toFs){
   const screen = $("screen");
   if(toFs) $("fsStage").appendChild(screen);
-  else $("tv").insertBefore(screen, $("tv").firstChild);
+  else $("tv").insertBefore(screen, $("muteBar"));
 }
 
 async function openFs(){
@@ -1095,7 +1246,7 @@ function setFsPanel(s){
   $("fsStateTxt").textContent = label;
   $("fsState").querySelector("use").setAttribute("href", "#" + ico);
   paintMuteBar($("fsMuteBar"), $("fsMuteTxt"), $("fsMuteBtn"),
-               $("fsUnmuteBtn"), $("fsMuteFor"), s);
+               $("fsUnmuteBtn"), $("fsMuteFor"), $("fsAutoBtn"), s);
 }
 
 $("fsCapture").onclick = () => $("capture").click();
@@ -1132,7 +1283,7 @@ function openViewer(i){
   const a = rows[i];
   if(!a || !a.snapshot) return;
   const src = "/snapshots/" + encodeURIComponent(a.snapshot);
-  $("vImg").src = src; $("vOpen").href = src;
+  $("vImg").src = src; $("zImg").src = src;
   $("vTitle").textContent = `${(EVENTS[a.event]||[a.event])[0]}, ${(a.timestamp||"").replace("T"," ")}`;
   $("vMeta").innerHTML = `
     <div><b>${a.smoothed_count}</b><span>Items</span></div>
@@ -1144,6 +1295,8 @@ function openViewer(i){
   $("viewer").showModal();
 }
 $("vClose").onclick = () => $("viewer").close();
+$("vOpen").onclick = () => $("zoom").showModal();
+$("zoom").addEventListener("click", () => $("zoom").close());
 $("viewer").addEventListener("click", e => { if(e.target===$("viewer")) $("viewer").close(); });
 
 function renderPage(){
@@ -1250,7 +1403,7 @@ async function refresh(){
     if(!$("thresh").dataset.dirty && document.activeElement !== $("thresh"))
       $("thresh").value = s.threshold;
   }catch(e){
-    setMuteBar({alert_active:false, muted:false, mute_left:0});
+    setMuteBar({...(last||{}), alert_active:false, muted:false, mute_left:0});
     $("connPill").className = "pill offline";
     $("connIco").querySelector("use").setAttribute("href", "#i-nolink");
     $("conn").textContent = "No link to Pi";

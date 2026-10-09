@@ -105,3 +105,37 @@ class AccumulationCounter:
         self._run_peak = 0
         self._run_passed = False
         return result
+
+
+class DisplayIds:
+    """Turns ever-growing tracker IDs into small numbers that start at 1.
+
+    A new object takes the lowest free number. Its number is released once it
+    has been missing for `grace` frames, so brief flicker keeps the same label.
+    """
+
+    def __init__(self, grace=30):
+        self.grace = grace
+        self.frame = 0
+        self.number = {}
+        self.last_seen = {}
+
+    def assign(self, track_ids):
+        self.frame += 1
+        for t in sorted({t for t in track_ids if t >= 0} - self.number.keys()):
+            used = set(self.number.values())
+            n = 1
+            while n in used:
+                n += 1
+            self.number[t] = n
+        for t in track_ids:
+            if t >= 0:
+                self.last_seen[t] = self.frame
+        for t in [t for t, f in self.last_seen.items() if self.frame - f > self.grace]:
+            del self.last_seen[t]
+            del self.number[t]
+        return [self.number[t] if t >= 0 else -1 for t in track_ids]
+
+    def reset(self):
+        self.number.clear()
+        self.last_seen.clear()

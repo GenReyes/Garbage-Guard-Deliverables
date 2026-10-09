@@ -81,6 +81,11 @@ STATE = {
     "roi": [],
     "started": time.time(),
     "mute_until": 0.0,
+    "mute_total": 0,
+    "auto_mute": False,
+    "auto_mute_s": 900,
+    "auto_muted": False,
+    "in_alert": False,
 }
 
 
@@ -146,6 +151,14 @@ def build_state():
     counts = fake_counts()
     total = sum(counts.values())
     latency = round(random.uniform(62, 78), 1)
+    active = total >= STATE["threshold"]
+    if active and not STATE["in_alert"] and STATE["auto_mute"] and not muted():
+        secs = STATE["auto_mute_s"]
+        STATE["mute_total"] = secs
+        STATE["mute_until"] = time.time() + secs if secs else float("inf")
+        STATE["auto_muted"] = True
+        add_row("auto_muted", total, 0, 0, 0, None, datetime.now(), False)
+    STATE["in_alert"] = active
     return {
         "connected": True,
         "counts": counts,
@@ -162,6 +175,10 @@ def build_state():
         "alert_active": total >= STATE["threshold"],
         "muted": muted(),
         "mute_left": mute_left(),
+        "mute_total": STATE["mute_total"],
+        "auto_muted": STATE["auto_muted"] and muted(),
+        "auto_mute": STATE["auto_mute"],
+        "auto_mute_s": STATE["auto_mute_s"],
         "frames": int((time.time() - STATE["started"]) * 14),
         "uptime_s": int(time.time() - STATE["started"]),
     }
@@ -248,17 +265,29 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/mute":
             was = muted()
+            STATE["auto_muted"] = False
             if data.get("cancel"):
                 STATE["mute_until"] = 0.0
+                STATE["mute_total"] = 0
             elif data.get("seconds") in (0, None):
                 STATE["mute_until"] = float("inf")
+                STATE["mute_total"] = 0
             else:
+                STATE["mute_total"] = int(data["seconds"])
                 STATE["mute_until"] = time.time() + int(data["seconds"])
             now = muted()
             if now != was:
                 add_row("muted" if now else "unmuted", 0, 0, 0, 0, None,
                         datetime.now(), False)
             return self._json({"ok": True, "muted": now, "mute_left": mute_left()})
+
+        if path == "/api/auto_mute":
+            if data.get("on") is not None:
+                STATE["auto_mute"] = bool(data["on"])
+            if data.get("seconds") is not None:
+                STATE["auto_mute_s"] = max(0, int(data["seconds"]))
+            return self._json({"ok": True, "auto_mute": STATE["auto_mute"],
+                               "auto_mute_s": STATE["auto_mute_s"]})
 
         if path == "/api/alerts/read":
             ids = data.get("ids")

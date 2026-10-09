@@ -106,6 +106,13 @@ def make_handler(engine):
                                       cancel=bool(data.get("cancel")))
                 return self._json({"ok": True, **res})
 
+            if path == "/api/auto_mute":
+                on = data.get("on")
+                secs = data.get("seconds")
+                res = engine.set_auto_mute(on=None if on is None else bool(on),
+                                           seconds=None if secs is None else int(secs))
+                return self._json({"ok": True, **res})
+
             if path == "/api/alerts/read":
                 ids = data.get("ids")
                 res = engine.mark_read(

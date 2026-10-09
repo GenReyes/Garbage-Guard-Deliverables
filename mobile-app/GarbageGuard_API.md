@@ -2,7 +2,12 @@
 
 For King Perth. Everything the app needs to talk to the Raspberry Pi.
 
-**What changed in this version:** two features.
+**What changed in this version:** auto-mute (`POST /api/auto_mute`, the
+`auto_mute`, `auto_mute_s`, `auto_muted` and `mute_total` state fields, and
+an `auto_muted` history event), plus the FPS fields `fps` and `cam_fps`.
+Detection labels on `/frame.jpg` are now numbered from 1 for the objects in
+view instead of showing the tracker's internal ID. Earlier additions below.
+
 
 **Mute.** An operator can silence an active accumulation alert for a set
 time. `POST /api/mute`, plus `muted` and `mute_left` in `/api/state`. Muting
@@ -104,6 +109,10 @@ Poll about once per second. This drives the whole main screen.
 | `alert_active` | Accumulation alert is currently raised. |
 | `muted` | True while an operator has silenced the alert. |
 | `mute_left` | Seconds of mute remaining. `null` means no expiry, `0` means not muted. |
+| `mute_total` | Length of the current timed mute in seconds, for a countdown bar (`mute_left / mute_total`). `0` when not muted or muted with no expiry. |
+| `auto_mute` | Auto-mute is switched on. |
+| `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
+| `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
 
 ---
 
@@ -156,6 +165,7 @@ Newest first. Six `event` values:
 | `test` | Someone pressed Test alert. | Amber row |
 | `manual` | Someone pressed Capture snapshot. | Teal row |
 | `muted` | An operator silenced the alert. | Grey row |
+| `auto_muted` | Auto-mute silenced a new alert. The `accumulation` row before it is still recorded. | Grey row |
 | `unmuted` | The mute was lifted, by hand or automatically. | Grey row |
 
 `read` is `0` or `1`. Show unread rows at full weight and read rows dimmed,
@@ -270,6 +280,25 @@ timer, so the app stays right across a reload.
 
 Muting and unmuting each write a history row, so a quiet period is explained
 in the record.
+
+---
+
+### `POST /api/auto_mute`
+
+Arms or disarms auto-mute. When it is on, every new accumulation alert is
+still recorded (row and snapshot) and is then muted straight away for the
+chosen time, so the countdown starts on its own.
+
+```json
+{ "on": true, "seconds": 900 }
+{ "on": false }
+{ "seconds": 1800 }
+```
+
+Either field may be sent alone. `seconds` of `0` means until someone
+unmutes. Returns `{"ok": true, "auto_mute": true, "auto_mute_s": 900}`.
+The setting is saved on the Pi and survives a restart. Like a manual mute,
+an auto-mute lifts itself when the count falls below the re-arm value.
 
 ---
 

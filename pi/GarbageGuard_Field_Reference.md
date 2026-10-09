@@ -160,19 +160,31 @@ sqlite3 garbageguard.db "SELECT AVG(mean_latency_ms), MIN(mean_latency_ms), MAX(
 The session summary also prints in the terminal when the script exits,
 including the ISO 25010 band.
 
-**Snapshots** are in `~/gg/snapshots/`, named by event and time. Every history entry saves one, with the detection boxes, the monitored area, and the count stamped on. On the **History** tab, press **View** on any row to open it. **Capture** above the live feed saves one on demand, which is useful for recording field conditions during calibration.
+**Snapshots** are in `~/gg/snapshots/`, named by event and time. Every history entry saves one, with the detection boxes, the monitored area, and the count stamped on. On the **History** tab, press **View** on any row to open it, and **Full size** to fill the screen with it; tap anywhere or press **Close** to come back. **Capture** on the monitor's top edge saves one on demand, which is useful for recording field conditions during calibration.
 
-**Fullscreen.** A small square button sits at the bottom right of the video
-frame. It gives the feed the whole screen, with a compact top bar (camera
+**The live feed monitor.** The whole Live Feed card is drawn as a monitor so
+the video gets as much room as possible. The top edge carries the camera
+light, CAM 01 · LIVE, the camera frame rate (FPS), a one-line hint (it turns
+amber and counts your points while you draw the monitored area), and the
+**Capture** and fullscreen buttons. The bottom edge is the mute panel.
+
+**Object labels.** Each box is labelled `#1`, `#2`, and so on for the objects
+in view. A number stays with its object while it is tracked, and is freed
+about two seconds after the object leaves so the next new object can reuse
+it. The tracker's own IDs only ever count upwards for the whole run, which is
+why they used to reach the hundreds. The count itself never used these
+numbers, so this is a display change only.
+
+**Fullscreen.** The square button at the top right of the monitor opens it. It gives the feed the whole screen, with a compact top bar (camera
 status, latency, time) and a bottom bar (counts, accumulation status, Capture)
 so nothing has to be left behind. The mute controls are there too. Exit with
 the button at the top right, or the **Escape** key. The button is disabled
 while you are drawing the monitored area, since the Apply and Undo controls
 live on the main screen.
 
-**Muting an alert.** A mute bar sits under the live feed at all times. When
-nothing is wrong it reads "No alert to mute" and the Mute button is greyed
-out. When the limit is reached it turns amber and the button becomes
+**Muting an alert.** The mute panel along the bottom of the monitor is always
+there. Its display reads "No alert to mute" when nothing is wrong and the
+Mute button is greyed out. When the limit is reached it turns amber and the button becomes
 available: pick a duration and press **Mute**, or choose **Until I unmute**
 for no expiry. While muted the red alert banner is hidden and no new
 accumulation records or snapshots are written. The mute **lifts itself** once
@@ -180,6 +192,16 @@ the count falls below the re-arm value, so the next genuine accumulation is
 never swallowed. Every mute and unmute is written to the history, which
 matters for the thesis: a quiet stretch during testing is explained in the
 record rather than looking like a missed detection.
+
+**Auto-mute.** Flip the **Auto-mute** switch on the mute panel and choose a
+duration in **Mute for**. The display then reads "Auto-mute armed". From then
+on every new alert is still recorded, with its snapshot, and is muted straight
+away; the display shows "Auto-muted" with a live countdown and an amber bar
+that empties as the time runs out. **Until I unmute** keeps it muted until
+someone presses **Unmute** or the count falls below the re-arm value. The
+switch is saved on the Pi, so it survives a restart. Turn it off for
+threshold calibration and acceptance testing, where you want to see each
+alert.
 
 **Read and unread.** Each history row has a dot: filled means unread, hollow
 means read. Tap it to toggle, or press **Mark all read**. The History tab

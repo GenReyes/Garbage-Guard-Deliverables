@@ -1,6 +1,6 @@
 import unittest
 
-from gg_counter import AccumulationCounter, point_in_polygon, rearm_level, scale_polygon, tally
+from gg_counter import AccumulationCounter, DisplayIds, point_in_polygon, rearm_level, scale_polygon, tally
 
 FPS = 14.0
 T0 = 1000.0
@@ -149,6 +149,35 @@ class CounterTests(unittest.TestCase):
         self.assertEqual((c.on, c.off), (8, 6))
         steps = run(c, [0] * 30 + [9] * 20)
         self.assertEqual(len(alert_indexes(steps)), 1)
+
+
+class DisplayIdTests(unittest.TestCase):
+    def test_labels_start_at_one_even_when_tracker_ids_are_large(self):
+        ids = DisplayIds()
+        self.assertEqual(ids.assign([347, 352, 360]), [1, 2, 3])
+
+    def test_same_object_keeps_its_number(self):
+        ids = DisplayIds()
+        ids.assign([500, 501])
+        self.assertEqual(ids.assign([501, 500]), [2, 1])
+
+    def test_untracked_detection_has_no_number(self):
+        ids = DisplayIds()
+        self.assertEqual(ids.assign([-1, 90]), [-1, 1])
+
+    def test_short_flicker_keeps_the_number(self):
+        ids = DisplayIds(grace=5)
+        ids.assign([10, 11])
+        for _ in range(4):
+            ids.assign([11])
+        self.assertEqual(ids.assign([10, 11]), [1, 2])
+
+    def test_number_is_reused_after_object_leaves(self):
+        ids = DisplayIds(grace=3)
+        ids.assign([10, 11])
+        for _ in range(5):
+            ids.assign([11])
+        self.assertEqual(ids.assign([11, 99]), [2, 1])
 
 
 if __name__ == "__main__":
