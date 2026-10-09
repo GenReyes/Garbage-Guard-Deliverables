@@ -158,6 +158,7 @@ def build_state():
         "latency_ms": latency,
         "avg_latency_ms": 68.2,
         "fps": round(1000.0 / latency, 1),
+        "cam_fps": 14.9,
         "alert_active": total >= STATE["threshold"],
         "muted": muted(),
         "mute_left": mute_left(),

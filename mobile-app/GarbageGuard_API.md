@@ -81,6 +81,7 @@ Poll about once per second. This drives the whole main screen.
   "latency_ms": 67.4,
   "avg_latency_ms": 68.2,
   "fps": 14.8,
+  "cam_fps": 14.9,
   "alert_active": false,
   "frames": 10432,
   "uptime_s": 745
@@ -98,6 +99,8 @@ Poll about once per second. This drives the whole main screen.
 | `conf` | Detection confidence as a fraction, 0.0–1.0. Multiply by 100 for display. |
 | `roi` | Polygon points, normalised 0–1. Empty list means no ROI, whole frame active. |
 | `latency_ms` | Current frame processing time. This is the thesis Performance Efficiency metric. |
+| `fps` | Detection loop speed, frames actually processed per second (measured over the last 2 s). |
+| `cam_fps` | Camera stream frame rate, frames per second arriving from the camera (measured over the last 2 s). Both read `0` while `connected` is false. |
 | `alert_active` | Accumulation alert is currently raised. |
 | `muted` | True while an operator has silenced the alert. |
 | `mute_left` | Seconds of mute remaining. `null` means no expiry, `0` means not muted. |

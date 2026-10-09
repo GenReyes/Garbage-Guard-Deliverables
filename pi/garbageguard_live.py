@@ -13,6 +13,7 @@ import os
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
 
 import argparse
+import collections
 import json
 import sqlite3
 import statistics
@@ -163,6 +164,7 @@ class FrameReader:
         self.frame = None
         self.captured_at = 0.0
         self.seq = 0
+        self.stamps = collections.deque(maxlen=90)
         self.stop_flag = threading.Event()
         self.alive = False
         self.thread = None
@@ -193,6 +195,7 @@ class FrameReader:
                 self.frame = frame
                 self.captured_at = time.perf_counter()
                 self.seq += 1
+                self.stamps.append(self.captured_at)
                 self.alive = True
         cap.release()
 
@@ -201,6 +204,14 @@ class FrameReader:
             if self.frame is None or self.seq == after_seq:
                 return None, after_seq, 0.0
             return self.frame, self.seq, self.captured_at
+
+    def fps(self):
+        with self.lock:
+            stamps = list(self.stamps)
+        recent = [t for t in stamps if time.perf_counter() - t <= 2.0]
+        if len(recent) < 2:
+            return 0.0
+        return (len(recent) - 1) / (recent[-1] - recent[0])
 
     def stop(self):
         self.stop_flag.set()
@@ -227,6 +238,8 @@ class Engine:
         self.alert_active = False
         self.mute_until = 0.0
         self.frames = 0
+        self.reader = None
+        self.proc_stamps = collections.deque(maxlen=90)
         self.all_latencies = []
         self.started_at = time.time()
 
@@ -241,6 +254,12 @@ class Engine:
         with self.lock:
             avg = (sum(self.all_latencies) / len(self.all_latencies)
                    if self.all_latencies else 0.0)
+            recent = [t for t in self.proc_stamps if time.perf_counter() - t <= 2.0]
+            proc_fps = ((len(recent) - 1) / (recent[-1] - recent[0])
+                        if len(recent) >= 2 else 0.0)
+            cam_fps = self.reader.fps() if self.reader is not None else proc_fps
+            if not self.connected:
+                cam_fps = proc_fps = 0.0
             return {
                 "connected": self.connected,
                 "counts": dict(self.counts),
@@ -252,7 +271,8 @@ class Engine:
                 "roi": list(self.settings["roi"]),
                 "latency_ms": round(self.latency_ms, 1),
                 "avg_latency_ms": round(avg, 1),
-                "fps": round(1000.0 / self.latency_ms, 1) if self.latency_ms else 0.0,
+                "fps": round(proc_fps, 1),
+                "cam_fps": round(cam_fps, 1),
                 "alert_active": self.alert_active,
                 "muted": self._muted_locked(),
                 "mute_left": self._mute_left_locked(),
@@ -462,6 +482,7 @@ class Engine:
                 return
             probe.release()
             reader = FrameReader(self._open).start()
+            self.reader = reader
         else:
             cap = self._open()
             if not cap.isOpened():
@@ -536,6 +557,7 @@ class Engine:
                 self.latency_ms = latency_ms
                 self.alert_active = step.active
                 self.frames += 1
+                self.proc_stamps.append(time.perf_counter())
                 self.all_latencies.append(latency_ms)
                 ok_enc, buf = cv2.imencode(".jpg", annotated,
                                            [cv2.IMWRITE_JPEG_QUALITY, 75])
