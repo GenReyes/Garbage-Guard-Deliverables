@@ -503,11 +503,6 @@ class Engine:
         cap = None
         reader = None
         if live:
-            probe = self._open()
-            if not probe.isOpened():
-                print("ERROR: could not open the video source.")
-                return
-            probe.release()
             reader = FrameReader(self._open).start()
             self.reader = reader
         else:

@@ -78,6 +78,12 @@ python3 test_net.py
 
 Expect `Ran 15 tests` and `OK`.
 
+```bash
+python3 test_window.py
+```
+
+Expect `Ran 5 tests` and `OK`.
+
 ## Starting at boot, and Wi-Fi setup
 
 ```bash
@@ -97,6 +103,17 @@ detection keeps running. Tap the **Garbage-Guard** icon on the desktop or in
 the app menu (or its taskbar button) to bring the dashboard back fullscreen.
 This uses `wlrctl`, which the installer offers to add; without it the button
 closes the window instead and the same icon reopens it.
+
+**Battery panel (Waveshare UPS HAT (E)).** The dashboard reads the HAT over I2C.
+Two one-time steps on the Pi:
+
+```bash
+sudo raspi-config nonint do_i2c 0
+source ~/gg-env/bin/activate && pip install smbus2
+```
+
+Reboot after enabling I2C. Without them the panel shows "No UPS found" and
+everything else works normally.
 
 On every start the browser opens `/start`:
 

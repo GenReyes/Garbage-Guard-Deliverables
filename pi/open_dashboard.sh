@@ -12,8 +12,10 @@ URL_PATH="${1:-/}"
 # Already open but minimized: just bring it to the front.
 if pgrep -f "user-data-dir=/tmp/gg-chromium" >/dev/null 2>&1; then
     if command -v wlrctl >/dev/null 2>&1 &&
-       wlrctl toplevel focus "title:Garbage-Guard" >/dev/null 2>&1; then
-        exit 0
+       wlrctl toplevel focus "app_id:chromium" >/dev/null 2>&1; then
+        sleep 0.5
+        # Only trust the focus if the window really came back on screen.
+        wlrctl toplevel find "app_id:chromium" "state:-minimized" >/dev/null 2>&1 && exit 0
     fi
     # Window exists but cannot be raised (no wlrctl): reopen it cleanly.
     pkill -f "user-data-dir=/tmp/gg-chromium" >/dev/null 2>&1

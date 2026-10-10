@@ -42,10 +42,18 @@ else
     echo "Camera reachable at $CAMERA_IP"
 fi
 
+( while true; do
+      ping -c 1 -W 2 "$CAMERA_IP" >/dev/null 2>&1 || sudo nmcli con up camera-link >/dev/null 2>&1
+      sleep 15
+  done ) &
+WATCH_PID=$!
+
 source ~/gg-env/bin/activate || { echo "Could not activate gg-env"; exit 1; }
 
 ( sleep 6
-  for i in $(seq 1 20); do
+  # Wait until the server really answers (model loading can take a while on
+  # boot) so Chromium never opens on "connection refused".
+  for i in $(seq 1 120); do
       curl -s -o /dev/null "http://127.0.0.1:$PORT/api/state" && break
       sleep 1
   done
@@ -55,7 +63,7 @@ source ~/gg-env/bin/activate || { echo "Could not activate gg-env"; exit 1; }
 
 # Close the dashboard window when detection stops, so Ctrl+C leaves nothing
 # stranded in fullscreen. Matches only this script's browser profile.
-cleanup() { pkill -f "user-data-dir=/tmp/gg-chromium" >/dev/null 2>&1; }
+cleanup() { kill "$WATCH_PID" >/dev/null 2>&1; pkill -f "user-data-dir=/tmp/gg-chromium" >/dev/null 2>&1; }
 trap cleanup EXIT INT TERM
 
 echo "Dashboard will open shortly at http://127.0.0.1:$PORT (fullscreen)"

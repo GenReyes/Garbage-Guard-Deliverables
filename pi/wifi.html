@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GarbageGuard Wi-Fi</title>
+<title>Garbage-Guard Wi-Fi</title>
 <style>
 :root{
   --base:#DED4C8; --base2:#E9E1D6; --raised:#EFE8DE; --sunk:#D0C4B5;
@@ -208,7 +208,9 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
         if(!s.has_wifi_hw){done=true;fin('No Wi-Fi adapter found','Opening the dashboard.');return}
         if(s.wifi_connected){done=true;fin('Connected to '+(s.ssid||'Wi-Fi'),'Opening the dashboard.');return}
         var wait=s.settle_s||25;
-        if(s.wifi_connecting){$('stMsg').textContent='Joining the saved network...';}
+        if(s.internet&&el>=3){done=true;var w=(s.ethernet||[]).filter(function(e){return e.connection!=='camera-link'}).length;
+          fin(w?'Connected by cable':'Online','Opening the dashboard.');return}
+        if(s.wifi_connecting&&el<wait+20){$('stMsg').textContent='Joining the saved network...';}
         else if(el>=wait){
           done=true;$('stSpin').hidden=true;$('stTitle').textContent='No Wi-Fi connection';
           $('stMsg').textContent='Opening Wi-Fi setup. You can skip it and use the dashboard offline.';

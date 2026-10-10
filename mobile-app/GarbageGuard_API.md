@@ -359,6 +359,12 @@ are not in the mock server. The app should not call them.
 | `GET /api/net` | Network status: `wifi_connected`, `ssid`, `internet`, `has_wifi_hw`, `camera_conflict`, `local`. Read-only, safe to call. |
 | `GET /api/wifi/scan`, `POST /api/wifi/connect`, `POST /api/wifi/fix_camera` | Answer only to requests from the Pi itself. Anyone else gets `403 local_only`. Passwords are never logged or returned. |
 
+`GET /api/battery` (UPS HAT readout: `ok`, `percent`, `voltage_v`, `current_a`,
+`power_w`, `on_ac`, `charging`, `state`, `minutes_left`) and `POST /api/window`
+(minimize or restore the Pi's dashboard window, local only) exist for the Pi's
+own screen. The app does not need them. `/api/battery` is read-only and
+returns `{"ok": false, "error": ...}` when no UPS is attached.
+
 For phone access away from the Pi's own screen, see `SYNC_PLAN.md`.
 
 ## Naming, please keep these exact
