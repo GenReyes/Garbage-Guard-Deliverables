@@ -186,6 +186,10 @@ button,input{font:inherit;color:inherit}
 .pill.offline{color:var(--bad);animation:shake 2.6s ease-in-out infinite}
 .pill.offline .ico{color:var(--bad)}
 .ctl{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.ctl-row{display:flex;gap:6px}
+.ctl-row #theme{flex:1;min-width:0}
+.ctl-row #wifiBtn{flex:none;text-decoration:none;color:inherit;padding:5px 9px}
+#wifiBtn[hidden]{display:none}
 
 #theme .ico{width:16px;height:16px}
 #theme .sun{transition:opacity .3s, transform .4s}
@@ -730,13 +734,18 @@ a.btn{text-decoration:none}
   <div class="ctl">
     <span class="pill online" id="connPill"><svg class="ico" id="connIco"><use href="#i-signal"/></svg>
       <span id="conn">Connecting</span></span>
-    <button class="btn sm" id="theme" type="button">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
-          <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
-        <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
-      </svg><span id="themeLbl">Dark mode</span></button>
+    <div class="ctl-row">
+      <button class="btn sm" id="theme" type="button">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
+            <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
+          <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
+        </svg><span id="themeLbl">Dark mode</span></button>
+      <a class="btn sm" id="wifiBtn" href="/wifi" hidden title="Wi-Fi setup" aria-label="Wi-Fi setup">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.6a9 9 0 0 1 12.4 0M9 16.2a4.4 4.4 0 0 1 6 0"/><circle cx="12" cy="19.4" r=".9" fill="currentColor"/></svg></a>
+    </div>
   </div>
 </header>
 
@@ -1427,6 +1436,11 @@ pullFrame(); refresh(); loadLogs();
 setInterval(pullFrame, 120);
 setInterval(refresh, 1000);
 setInterval(() => { if($("history").classList.contains("on")) loadLogs(); }, 5000);
+
+/* Wi-Fi shortcut: shown only on the Pi's own screen, where setup is allowed. */
+fetch("/api/net").then(r => r.json()).then(n => {
+  if (n.local && n.has_wifi_hw) $("wifiBtn").hidden = false;
+}).catch(() => {});
 </script>
 </body>
 </html>

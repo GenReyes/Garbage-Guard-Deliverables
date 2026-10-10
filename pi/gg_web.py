@@ -7,12 +7,19 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import gg_net
+
 BASE_DIR = Path(__file__).resolve().parent
 STREAM_FPS = 12
 SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
 
 
-def make_handler(engine):
+LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+
+def make_handler(engine, net=None):
+    net = net or gg_net.make_net()
+
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -46,9 +53,32 @@ def make_handler(engine):
             except json.JSONDecodeError:
                 return {}
 
+        def _local(self):
+            if self.client_address[0] in LOOPBACK:
+                return True
+            self._json({"ok": False, "error": "local_only",
+                        "message": "Wi-Fi can only be changed on the Pi's own screen."}, 403)
+            return False
+
         def do_GET(self):
             path = urlparse(self.path).path
             query = parse_qs(urlparse(self.path).query)
+
+            if path in ("/start", "/wifi"):
+                f = BASE_DIR / "wifi.html"
+                if not f.is_file():
+                    return self._send(404, "text/plain", "wifi.html missing")
+                return self._send(200, "text/html; charset=utf-8", f.read_bytes())
+
+            if path == "/api/net":
+                st = dict(net.status())
+                st["local"] = self.client_address[0] in LOOPBACK
+                return self._json(st)
+
+            if path == "/api/wifi/scan":
+                if not self._local():
+                    return
+                return self._json(net.scan(rescan=(query.get("rescan") or ["1"])[0] != "0"))
 
             if path in ("/", "/index.html"):
                 f = BASE_DIR / "dashboard.html"
@@ -80,6 +110,18 @@ def make_handler(engine):
         def do_POST(self):
             path = urlparse(self.path).path
             data = self._body()
+
+            if path == "/api/wifi/connect":
+                if not self._local():
+                    return
+                res = net.connect(str(data.get("ssid") or ""), data.get("password") or None,
+                                  bool(data.get("hidden")))
+                return self._json(res)
+
+            if path == "/api/wifi/fix_camera":
+                if not self._local():
+                    return
+                return self._json(net.fix_camera_route())
 
             if path == "/api/settings":
                 conf = data.get("conf")

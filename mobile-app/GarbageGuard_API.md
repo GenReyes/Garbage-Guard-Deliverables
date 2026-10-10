@@ -348,6 +348,19 @@ dialog naming the count; matching that is the safe pattern.
 
 ---
 
+## Pi-only endpoints (the app does not use these)
+
+The Pi's own screen has Wi-Fi setup. These exist in the real server only and
+are not in the mock server. The app should not call them.
+
+| Endpoint | Notes |
+|---|---|
+| `GET /start`, `GET /wifi` | HTML pages for the touchscreen startup splash and Wi-Fi setup. |
+| `GET /api/net` | Network status: `wifi_connected`, `ssid`, `internet`, `has_wifi_hw`, `camera_conflict`, `local`. Read-only, safe to call. |
+| `GET /api/wifi/scan`, `POST /api/wifi/connect`, `POST /api/wifi/fix_camera` | Answer only to requests from the Pi itself. Anyone else gets `403 local_only`. Passwords are never logged or returned. |
+
+For phone access away from the Pi's own screen, see `SYNC_PLAN.md`.
+
 ## Naming, please keep these exact
 
 The mockup used some names that do not match the system. These matter for the
@@ -417,6 +430,7 @@ at the bottom.
 | `gg_mock_server.py` | Run this. Fake API for development. |
 | `GarbageGuard_API.md` | This document. |
 | `dashboard.html` | Reference implementation, optional but useful. |
+| `SYNC_PLAN.md` | Plan for remote access and syncing the app with the Pi (Firebase and alternatives). Read before starting any cloud work. |
 
 You do not need `garbageguard_live.py`, `gg_counter.py`, `gg_web.py`, the
 model folder, or the camera.

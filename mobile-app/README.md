@@ -18,6 +18,7 @@ and test the whole app before the hardware is even switched on.
 |---|---|
 | `gg_mock_server.py` | Run this. A fake version of the Pi's server, same API, invented data. Lets you build the whole app with no hardware. |
 | `GarbageGuard_API.md` | The API reference. Every endpoint, with real request and response examples. |
+| `SYNC_PLAN.md` | Design plan for syncing the app and a portable dashboard with the Pi through Firebase or other options. Nothing is built yet. |
 
 ## Getting started
 

@@ -6,6 +6,20 @@ cd "$(dirname "$0")" || exit 1
 CAMERA_IP=192.168.1.64
 PORT=8080
 
+# GG_AUTOSTART=1 is set by install_autostart.sh. In that mode there is no
+# terminal to press Enter in, so the script never waits for a key and instead
+# restarts detection if it ever stops.
+AUTO="${GG_AUTOSTART:-0}"
+
+# Only one copy at a time. A second launch (double-clicked icon after boot)
+# just exits instead of fighting over the camera and port 8080.
+exec 9>/tmp/garbageguard.lock
+if ! flock -n 9; then
+    echo "Garbage-Guard is already running."
+    [ "$AUTO" = "1" ] || read -r -p "Press Enter to close..."
+    exit 0
+fi
+
 echo "======================================================"
 echo " GARBAGE-GUARD"
 echo "======================================================"
@@ -58,11 +72,14 @@ echo "Screen width ${SCREEN_W:-unknown}px, browser scale ${SCALE}x"
   done
   # --kiosk is the reliable way to get true fullscreen with no tabs or address
   # bar. --start-fullscreen is ignored by --app windows on some Chromium builds.
+  # /start decides where to go: straight to the dashboard when Wi-Fi is up,
+  # or to the Wi-Fi setup screen when it is not.
   chromium --no-proxy-server --no-first-run --no-default-browser-check \
+           --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
            --user-data-dir=/tmp/gg-chromium \
            --force-device-scale-factor="$SCALE" \
            --kiosk --disable-pinch --overscroll-history-navigation=0 \
-           "http://127.0.0.1:$PORT" >/dev/null 2>&1 ) &
+           "http://127.0.0.1:$PORT/start" >/dev/null 2>&1 ) &
 
 # Close the dashboard window when detection stops, so Ctrl+C leaves nothing
 # stranded in fullscreen. Matches only this script's browser profile.
@@ -75,8 +92,17 @@ echo "To leave fullscreen without stopping: Alt+F4 closes the window,"
 echo "or run  chromium --no-proxy-server http://127.0.0.1:$PORT  in a terminal."
 echo "======================================================"
 
+if [ "$AUTO" = "1" ]; then
+    while true; do
+        python garbageguard_live.py "$@"
+        rc=$?
+        echo "[$(date '+%F %T')] Detection stopped (exit $rc). Restarting in 5 s."
+        sleep 5
+    done
+fi
+
 python garbageguard_live.py "$@"
 
 echo ""
 echo "Detection stopped. Close this window, or run sudo shutdown -h now"
-read -p "Press Enter to close..."
+read -r -p "Press Enter to close..."

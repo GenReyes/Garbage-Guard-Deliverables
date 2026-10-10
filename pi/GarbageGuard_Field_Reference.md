@@ -44,6 +44,21 @@ An injector **adds** power to the cable. Do not use a splitter.
 The launcher checks the camera, brings up the network profile if needed,
 activates the environment, opens the dashboard, and starts detection.
 
+**By itself at power on:** run `~/gg/install_autostart.sh` once (see `README.md`).
+After that, switching the Pi on is enough: it opens the dashboard fullscreen.
+If there is no Wi-Fi it shows the Wi-Fi setup screen first.
+
+**First boot test checklist (not yet verified on the real Pi):**
+
+1. Run `./install_autostart.sh`, answer the prompts, then `sudo reboot`.
+2. With Wi-Fi saved: dashboard opens by itself within about a minute.
+3. With no Wi-Fi in range: setup screen appears after about 25 seconds. Join a
+   network with the on-screen keyboard. Wrong password should show an error and
+   let you retry.
+4. After joining, check the camera feed is still live. If the router uses
+   `192.168.1.x`, tap **Fix camera link** when offered.
+5. Unplug the camera cable and plug it back. Detection should recover.
+
 **Manual, if the launcher fails:**
 
 ```bash
@@ -228,6 +243,10 @@ alert data.
 | Video lags behind reality | Camera frame rate too high | Set sub-stream to 15 fps in the camera's Video/Audio page |
 | Nothing detected | Confidence too high, or view unlike training data | Model expects trash on water seen from above. Indoor tests are not representative. |
 | Bridge/bank counted as garbage | No ROI set | Draw the ROI over the water only |
+| Nothing opens at power on | Desktop auto login is off, or autostart not installed | `sudo raspi-config`, System Options, Boot / Auto Login, Desktop Autologin. Then run `./install_autostart.sh`. Check `~/gg/gg.log` |
+| Camera feed drops after joining Wi-Fi | Router and camera cable both use 192.168.1.x | Tap **Fix camera link** on the Wi-Fi screen, or re-run `install_autostart.sh` and answer y to the camera route question |
+| Wi-Fi list is empty or says the radio is off | Wi-Fi country not set | `sudo raspi-config nonint do_wifi_country PH` (use your country code), then rescan |
+| Wi-Fi setup shows "Not supported" | Network uses a login (WPA2-Enterprise) | Use a normal home or hotspot network |
 
 **Camera web interface:** `http://192.168.1.64` in a browser on the Pi.
 Use `Ctrl+Shift+R` if the page loads blank.
