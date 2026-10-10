@@ -44,42 +44,14 @@ fi
 
 source ~/gg-env/bin/activate || { echo "Could not activate gg-env"; exit 1; }
 
-# The dashboard is laid out for a 1024 px wide viewport. If the Pi's screen is
-# running at a higher resolution, 1 CSS pixel is still 1 screen pixel, so the
-# whole UI shrinks. Scaling the browser by screen width / 1024 makes it render
-# at the intended size whatever the panel is set to.
-SCREEN_W=""
-if command -v xdpyinfo >/dev/null 2>&1; then
-    SCREEN_W=$(xdpyinfo 2>/dev/null | awk '/dimensions:/{print $2}' | cut -d x -f1)
-fi
-if [ -z "$SCREEN_W" ] && [ -r /sys/class/graphics/fb0/virtual_size ]; then
-    SCREEN_W=$(cut -d , -f1 /sys/class/graphics/fb0/virtual_size 2>/dev/null)
-fi
-case "$SCREEN_W" in
-    ''|*[!0-9]*) SCALE=1 ;;
-    *) SCALE=$(awk -v w="$SCREEN_W" 'BEGIN{
-                 s = w / 1024;
-                 if (s < 1) s = 1;
-                 if (s > 3) s = 3;
-                 printf "%.2f", s }') ;;
-esac
-echo "Screen width ${SCREEN_W:-unknown}px, browser scale ${SCALE}x"
-
 ( sleep 6
   for i in $(seq 1 20); do
       curl -s -o /dev/null "http://127.0.0.1:$PORT/api/state" && break
       sleep 1
   done
-  # --kiosk is the reliable way to get true fullscreen with no tabs or address
-  # bar. --start-fullscreen is ignored by --app windows on some Chromium builds.
   # /start decides where to go: straight to the dashboard when Wi-Fi is up,
   # or to the Wi-Fi setup screen when it is not.
-  chromium --no-proxy-server --no-first-run --no-default-browser-check \
-           --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
-           --user-data-dir=/tmp/gg-chromium \
-           --force-device-scale-factor="$SCALE" \
-           --kiosk --disable-pinch --overscroll-history-navigation=0 \
-           "http://127.0.0.1:$PORT/start" >/dev/null 2>&1 ) &
+  ./open_dashboard.sh /start ) &
 
 # Close the dashboard window when detection stops, so Ctrl+C leaves nothing
 # stranded in fullscreen. Matches only this script's browser profile.
@@ -88,8 +60,8 @@ trap cleanup EXIT INT TERM
 
 echo "Dashboard will open shortly at http://127.0.0.1:$PORT (fullscreen)"
 echo "Press Ctrl+C here to stop everything."
-echo "To leave fullscreen without stopping: Alt+F4 closes the window,"
-echo "or run  chromium --no-proxy-server http://127.0.0.1:$PORT  in a terminal."
+echo "To reach the desktop, tap the minimize button next to Wi-Fi on the"
+echo "dashboard. The Garbage-Guard icon on the desktop brings it back."
 echo "======================================================"
 
 if [ "$AUTO" = "1" ]; then
