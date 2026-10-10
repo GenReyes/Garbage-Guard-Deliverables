@@ -36,6 +36,19 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.garbageguard.app.data.AlertRow
+import com.garbageguard.app.data.Battery
+import com.garbageguard.app.ui.components.BatteryGlyph
+import com.garbageguard.app.ui.components.BatteryLevel
+import com.garbageguard.app.ui.components.Hint
+import com.garbageguard.app.ui.components.ReadoutWell
+import com.garbageguard.app.ui.components.RollingText
+import com.garbageguard.app.ui.components.Tag
+import com.garbageguard.app.ui.components.Tone
+import com.garbageguard.app.ui.components.batteryLevel
+import com.garbageguard.app.ui.components.batterySource
+import com.garbageguard.app.ui.components.flowColor
+import com.garbageguard.app.ui.components.neuRaised
+import com.garbageguard.app.ui.components.signed
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.ui.HistFilter
 import com.garbageguard.app.ui.Overlay
@@ -58,11 +71,12 @@ import com.garbageguard.app.ui.theme.Gg
 
 /** Draws whichever sheet or viewer the ViewModel has open. */
 @Composable
-fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onFixBattery: () -> Unit, onAllowAlerts: () -> Unit) {
+fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, battery: Battery, onFixBattery: () -> Unit, onAllowAlerts: () -> Unit) {
     val close = { vm.overlay = null }
     when (val o = vm.overlay) {
         null -> {}
         Overlay.Mute -> MuteSheet(vm, close)
+        Overlay.PiBattery -> PiBatterySheet(battery, close)
         Overlay.Filter -> FilterSheet(vm, close)
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
         is Overlay.Viewer -> {
@@ -98,6 +112,76 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onFixBattery: () -> Un
                 GgButton("Allow alerts", onAllowAlerts, Modifier.weight(1f), kind = BtnKind.TEAL)
             }
         }
+    }
+}
+
+/** Everything the touchscreen's battery panel shows, laid out for a phone. */
+@Composable
+private fun PiBatterySheet(b: Battery, close: () -> Unit) {
+    val c = Gg.colors
+    val level = batteryLevel(b)
+    GgSheet(close) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Ico(if (b.ok && b.onAc) GgIcons.Plug else GgIcons.Battery, size = 18.dp, tint = c.text)
+            T("PI BATTERY", Modifier.weight(1f), size = 1.02f, weight = FontWeight.Black, color = c.text, spacing = 0.03f)
+            when {
+                !b.ok -> Tag("No UPS", Tone.WARN)
+                level == BatteryLevel.BAD && !b.charging -> Tag("Low", Tone.BAD)
+                b.charging -> Tag("Charging", Tone.OK)
+                b.onAc -> Tag("On AC", Tone.OK)
+                else -> Tag("On battery", Tone.WARN)
+            }
+        }
+
+        if (!b.ok) {
+            SheetText("This Pi is not reporting a battery. The readout appears when the UPS HAT is attached and the Pi software is up to date.")
+            GgButton("Close", close, Modifier.fillMaxWidth())
+            return@GgSheet
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            BatteryGlyph(b, width = 124.dp, height = 56.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    RollingText("${b.percent}", size = 2.6f, color = if (level == BatteryLevel.BAD) c.bad else c.text, spacing = -0.03f)
+                    T("%", Modifier.padding(start = 2.dp, bottom = 6.dp), size = 1f, color = c.muted)
+                }
+                T(batterySource(b), size = 0.82f, color = c.text)
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ReadoutWell("VOLTAGE", "%.2f".format(b.voltage), "V", c.text, Modifier.weight(1f))
+            ReadoutWell("CURRENT", signed(b.current, 2), "A", flowColor(b), Modifier.weight(1f))
+            ReadoutWell("POWER", signed(b.power, 1), "W", flowColor(b), Modifier.weight(1f))
+        }
+
+        if (b.cells.size == 4) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                T("CELLS", size = 0.66f, color = c.muted, spacing = 0.07f)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    b.cells.forEachIndexed { i, v ->
+                        Column(
+                            Modifier.weight(1f).neuRaised(c, 10.dp, hard = 2.dp).padding(horizontal = 8.dp, vertical = 5.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            T("${i + 1}", size = 0.58f, color = c.muted)
+                            T("%.2f V".format(v), size = 0.78f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+
+        val input = if (b.onAc && b.inputV != null && b.inputW != null && b.inputV > 0.5f) {
+            "Charger input %.1f V, %.1f W.".format(b.inputV, b.inputW)
+        } else null
+        val capacity = b.capacityMah?.let { "About %,d mAh remaining.".format(it) }
+        listOfNotNull(input, capacity).takeIf { it.isNotEmpty() }?.let {
+            Hint(it.joinToString(" "), icon = GgIcons.Battery)
+        }
+        Hint("A minus sign means the pack is powering the Pi. A plus sign means it is charging.", icon = GgIcons.Ok)
+        GgButton("Close", close, Modifier.fillMaxWidth())
     }
 }
 

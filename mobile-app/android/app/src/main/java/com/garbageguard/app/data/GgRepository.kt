@@ -16,6 +16,9 @@ interface GgRepository {
     /** From GET /api/alerts?limit=50, newest first. */
     val alerts: StateFlow<List<AlertRow>>
 
+    /** Polled from GET /api/battery every two seconds. */
+    val battery: StateFlow<Battery>
+
     /** Address of GET /frame.jpg. Null when there is no camera picture, as with demo data. */
     val frameUrl: String? get() = null
 

@@ -42,6 +42,28 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     private val _alerts = MutableStateFlow(seedHistory())
     override val alerts: StateFlow<List<AlertRow>> = _alerts.asStateFlow()
 
+    private val _battery = MutableStateFlow(Battery())
+    override val battery: StateFlow<Battery> = _battery.asStateFlow()
+
+    /** A pack that runs down for a minute, then charges for a minute. */
+    private fun stepBattery() {
+        val phase = (tick / 60) % 2
+        val f = (tick % 60) / 60f
+        val charging = phase == 1
+        val percent = if (charging) (58 + 30 * f).roundToInt() else (88 - 30 * f).roundToInt()
+        val volts = 14.2f + 2.4f * percent / 100f
+        val amps = if (charging) 1.15f + 0.1f * sin(tick / 3.0).toFloat() else -0.78f - 0.08f * sin(tick / 3.0).toFloat()
+        val cell = volts / 4f
+        _battery.value = Battery(
+            ok = true, percent = percent, voltage = volts, current = amps, power = volts * amps,
+            onAc = charging, charging = charging,
+            minutesLeft = if (charging) ((100 - percent) * 2.1f).roundToInt() else (percent * 4.3f).roundToInt(),
+            capacityMah = 5000 * percent / 100,
+            cells = listOf(cell, cell + 0.004f, cell - 0.006f, cell + 0.002f),
+            inputV = if (charging) 15.1f else 0f, inputA = if (charging) 2.2f else 0f, inputW = if (charging) 33.2f else 0f,
+        )
+    }
+
     init {
         scope.launch {
             while (isActive) {
@@ -102,6 +124,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             }
         }
         _state.value = next
+        stepBattery()
     }
 
     private fun muted(s: LiveState, seconds: Int, auto: Boolean) = s.copy(

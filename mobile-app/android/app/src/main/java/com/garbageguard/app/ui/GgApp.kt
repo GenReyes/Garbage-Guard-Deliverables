@@ -53,6 +53,7 @@ fun GgApp(vm: AppViewModel) {
         val c = Gg.colors
         val state by vm.state.collectAsState()
         val alerts by vm.alerts.collectAsState()
+        val battery by vm.battery.collectAsState()
         val context = LocalContext.current
 
         // Status and navigation bar icons follow the app theme, not the phone's.
@@ -85,6 +86,8 @@ fun GgApp(vm: AppViewModel) {
                         } else {
                             AppHeader(
                                 conn = state.conn,
+                                battery = battery,
+                                onBattery = { vm.overlay = Overlay.PiBattery },
                                 onToggleTheme = { vm.toggleTheme(c.isDark) },
                                 onPillLongPress = { if (vm.demo) vm.demoCycleConn() },
                             )
@@ -112,7 +115,7 @@ fun GgApp(vm: AppViewModel) {
                 }
 
                 OverlayHost(
-                    vm, alerts,
+                    vm, alerts, battery,
                     onFixBattery = {
                         vm.closeBatterySheet()
                         // Android's own "let this app run in the background" prompt.

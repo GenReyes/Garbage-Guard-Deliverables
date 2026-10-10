@@ -72,3 +72,26 @@ data class AlertRow(
 
 /** Same formula as rearm_level() in pi/gg_counter.py. */
 fun rearmFor(threshold: Int): Int = maxOf(0, threshold - maxOf(1, threshold / 4))
+
+/**
+ * Mirrors GET /api/battery, the Waveshare UPS HAT (E) readout. [ok] is false
+ * when the Pi has no UPS or does not answer. Current and power are negative
+ * while the pack is feeding the Pi, the way the HAT reports them.
+ */
+data class Battery(
+    val ok: Boolean = false,
+    val percent: Int = 0,
+    val voltage: Float = 0f,
+    val current: Float = 0f,
+    val power: Float = 0f,
+    val onAc: Boolean = false,
+    val charging: Boolean = false,
+    /** Minutes to full while charging, to empty on battery. Null when idle on AC. */
+    val minutesLeft: Int? = null,
+    val capacityMah: Int? = null,
+    /** The four 21700 cells, in volts. */
+    val cells: List<Float> = emptyList(),
+    val inputV: Float? = null,
+    val inputA: Float? = null,
+    val inputW: Float? = null,
+)

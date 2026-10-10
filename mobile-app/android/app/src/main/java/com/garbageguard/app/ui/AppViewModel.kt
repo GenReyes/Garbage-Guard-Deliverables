@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.garbageguard.app.data.AlertRow
+import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.EventType
 import com.garbageguard.app.data.FakeRepository
@@ -67,6 +68,8 @@ sealed interface Overlay {
     data class Viewer(val id: Long) : Overlay
     data object ClearArea : Overlay
     data object Battery : Overlay
+    /** The Pi's UPS pack, opened from the header. */
+    data object PiBattery : Overlay
     data object NotifPrompt : Overlay
 }
 
@@ -89,6 +92,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     @OptIn(ExperimentalCoroutinesApi::class)
     val alerts: StateFlow<List<AlertRow>> =
         active.flatMapLatest { it.alerts }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val battery: StateFlow<Battery> =
+        active.flatMapLatest { it.battery }.stateIn(viewModelScope, SharingStarted.Eagerly, Battery())
 
     /** True while the app runs on invented data. */
     var demo by mutableStateOf(false)

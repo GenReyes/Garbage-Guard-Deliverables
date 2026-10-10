@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.background
@@ -319,21 +320,61 @@ fun Led(alive: Boolean) {
     )
 }
 
-private val BEZEL_INK = Color(0xFF0B0A09)
-private val BEZEL_TEXT = Color(0xFFC9BFB2)
-private val BEZEL_DIM = Color(0xFF8F867B)
+private val BEZEL_INK = Color(0xFF0E0C0A)
+
+/**
+ * The casing colours, taken from the dashboard's --mon-* and --hw-* values.
+ * Light theme keeps the dark monitor; dark theme turns the casing pale, so
+ * the set always stands out from the page. The glass stays black in both.
+ */
+private class Casing(
+    val top: Color, val mid: Color, val bottom: Color,
+    val engraved: Color, val hint: Color, val fps: Color,
+    val keyTop: Color, val keyBottom: Color, val keyInk: Color,
+    val lipLight: Float, val lipDark: Float,
+)
+
+private val DarkCasing = Casing(
+    top = Color(0xFF4E4740), mid = Color(0xFF2C2621), bottom = Color(0xFF1F1A16),
+    engraved = Color(0xFFC9BFB2), hint = Color(0xFFBDB3A7), fps = Color(0xFF8FE0CF),
+    keyTop = Color(0xFF5C554D), keyBottom = Color(0xFF36302A), keyInk = Color(0xFFEDE6DC),
+    lipLight = 0.16f, lipDark = 0.35f,
+)
+
+private val PaleCasing = Casing(
+    top = Color(0xFFF4EFE7), mid = Color(0xFFD9D1C5), bottom = Color(0xFFBDB3A5),
+    engraved = Color(0xFF3B342D), hint = Color(0xFF5A5148), fps = Color(0xFF8FE0CF),
+    keyTop = Color(0xFFFFFDF9), keyBottom = Color(0xFFDCD4C8), keyInk = Color(0xFF1E1A16),
+    lipLight = 0.85f, lipDark = 0.18f,
+)
+
+/** The current casing, cross-fading when the theme changes. */
+@Composable
+private fun casing(): Casing {
+    val to = if (Gg.colors.isDark) PaleCasing else DarkCasing
+    val spec = tween<Color>(350)
+    val top by animateColorAsState(to.top, spec, label = "c1")
+    val mid by animateColorAsState(to.mid, spec, label = "c2")
+    val bottom by animateColorAsState(to.bottom, spec, label = "c3")
+    val engraved by animateColorAsState(to.engraved, spec, label = "c4")
+    val hint by animateColorAsState(to.hint, spec, label = "c5")
+    val keyTop by animateColorAsState(to.keyTop, spec, label = "c6")
+    val keyBottom by animateColorAsState(to.keyBottom, spec, label = "c7")
+    val keyInk by animateColorAsState(to.keyInk, spec, label = "c8")
+    return Casing(top, mid, bottom, engraved, hint, to.fps, keyTop, keyBottom, keyInk, to.lipLight, to.lipDark)
+}
 
 /** A small lit readout set into the bezel. */
 @Composable
 private fun Lcd(text: String) {
-    val c = Gg.colors
+    // Black glass in both themes, like the screen.
     Box(
         Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(Color(0xFF0A0806))
-            .border(1.5.dp, c.teal, RoundedCornerShape(6.dp))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-    ) { T(text, size = 10f / 14f, weight = FontWeight.Black, color = c.tealLight, tnum = true, spacing = 0.06f, maxLines = 1) }
+            .background(Color(0xFF14201A))
+            .border(2.dp, BEZEL_INK, RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    ) { T(text, size = 10f / 14f, weight = FontWeight.Black, color = Color(0xFF8FE0CF), tnum = true, spacing = 0.06f, maxLines = 1) }
 }
 
 /** A key on the set's control deck: hard black drop, pushes in when pressed. */
@@ -343,6 +384,7 @@ private fun TvKey(
     label: String?,
     teal: Boolean,
     enabled: Boolean,
+    casing: Casing,
     onClick: () -> Unit,
 ) {
     val c = Gg.colors
@@ -351,8 +393,9 @@ private fun TvKey(
     val view = LocalView.current
     val down = pressed && enabled
     val shape = RoundedCornerShape(10.dp)
-    val fill = if (teal) faceBrush(c.tealLight, c.teal, 0.62f) else faceBrush(Color(0xFFF8F4EC), Color(0xFFCFC6B8), 0.7f)
-    val ink = if (teal) c.onTeal else Color(0xFF16130F)
+    val fill = if (teal) Brush.verticalGradient(listOf(c.tealLight, c.teal))
+    else Brush.verticalGradient(listOf(casing.keyTop, casing.keyBottom))
+    val ink = if (teal) Color.White else casing.keyInk
     Row(
         Modifier
             .alpha(if (enabled) 1f else 0.4f)
@@ -394,6 +437,7 @@ fun TvFeed(
     image: ImageBitmap? = null,
 ) {
     val c = Gg.colors
+    val k = casing()
     val tvShape = RoundedCornerShape(18.dp)
     val glare = rememberInfiniteTransition(label = "glare")
     val gx by glare.animateFloat(
@@ -404,10 +448,12 @@ fun TvFeed(
             .fillMaxWidth()
             .neuShadow(c, 18.dp, 4.dp, Soft.LG)
             .clip(tvShape)
-            .background(angledBrush(170f, 0f to Color(0xFF4A443D), 0.6f to Color(0xFF241F1B), 1f to Color(0xFF241F1B)))
+            .background(angledBrush(172f, 0f to k.top, 0.46f to k.mid, 1f to k.bottom))
             .drawBehind {
-                // The lit top lip of the casing.
-                drawRect(Color.White.copy(alpha = 0.16f), topLeft = Offset(0f, 2.dp.toPx()), size = Size(size.width, 2.dp.toPx()))
+                // The moulded rim: a lit lip along the top, a shaded one along the bottom.
+                val lip = 2.dp.toPx()
+                drawRect(Color.White.copy(alpha = k.lipLight), topLeft = Offset(0f, lip), size = Size(size.width, lip))
+                drawRect(Color.Black.copy(alpha = k.lipDark), topLeft = Offset(0f, size.height - lip - 3.dp.toPx()), size = Size(size.width, 3.dp.toPx()))
             }
             .border(2.dp, c.edge, tvShape)
             .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 9.dp),
@@ -419,8 +465,8 @@ fun TvFeed(
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Led(online)
-            T("LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = BEZEL_TEXT, spacing = 0.1f, maxLines = 1)
-            T("CAM 01", size = 0.66f, color = BEZEL_DIM, spacing = 0.1f, maxLines = 1)
+            T("LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = k.engraved, spacing = 0.1f, maxLines = 1)
+            T("CAM 01", size = 0.66f, color = k.hint, spacing = 0.1f, maxLines = 1)
             Box(Modifier.weight(1f))
             Lcd(fpsLabel)
         }
@@ -458,16 +504,16 @@ fun TvFeed(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                T("LATENCY", size = 0.58f, color = BEZEL_DIM, spacing = 0.12f, maxLines = 1)
+                T("LATENCY", size = 0.58f, color = k.hint, spacing = 0.12f, maxLines = 1)
                 Lcd(latencyLabel)
             }
-            TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, onClick = onCapture)
-            TvKey(GgIcons.Expand, null, teal = false, enabled = true, onClick = onFullscreen)
+            TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, casing = k, onClick = onCapture)
+            TvKey(GgIcons.Expand, null, teal = false, enabled = true, casing = k, onClick = onFullscreen)
         }
 
         T(
             caption, Modifier.padding(horizontal = 4.dp), size = 0.68f, weight = FontWeight.Medium,
-            color = BEZEL_DIM, lineHeight = 1.3f,
+            color = k.hint, lineHeight = 1.3f,
         )
     }
 }

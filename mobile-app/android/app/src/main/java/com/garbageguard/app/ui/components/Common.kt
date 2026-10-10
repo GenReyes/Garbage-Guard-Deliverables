@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garbageguard.app.R
+import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.ui.Tab
 import com.garbageguard.app.ui.theme.Gg
@@ -532,7 +533,7 @@ fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String
 
 /** .apph */
 @Composable
-fun AppHeader(conn: ConnState, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit) {
+fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit) {
     val c = Gg.colors
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
@@ -540,6 +541,7 @@ fun AppHeader(conn: ConnState, onToggleTheme: () -> Unit, onPillLongPress: () ->
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         BrandLogo(58.dp)
+        BatteryChip(battery, onBattery)
         Spacer(Modifier.weight(1f))
         ConnPill(conn, Modifier.longPress(onPillLongPress))
         GgButton(

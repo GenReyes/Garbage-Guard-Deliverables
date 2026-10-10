@@ -47,6 +47,9 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     private val _alerts = MutableStateFlow<List<AlertRow>>(emptyList())
     override val alerts: StateFlow<List<AlertRow>> = _alerts.asStateFlow()
 
+    private val _battery = MutableStateFlow(Battery())
+    override val battery: StateFlow<Battery> = _battery.asStateFlow()
+
     override val frameUrl: String?
         get() = if (baseUrl.isEmpty()) null else "$baseUrl/frame.jpg"
 
@@ -60,6 +63,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             loaded.value = false
             _alerts.value = emptyList()
             _state.value = LiveState(conn = ConnState.NO_PI)
+            _battery.value = Battery()
         }
         baseUrl = base
         this.address = address.trim()
@@ -70,6 +74,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             while (isActive) {
                 pollState()
                 if (tick % ALERTS_EVERY == 0) refreshAlerts()
+                if (tick % 2 == 0) pollBattery()
                 tick++
                 delay(1000)
             }
@@ -98,6 +103,36 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             // One dropped poll is normal on Wi-Fi; two in a row means the link is down.
             if (++failures >= 2) _state.update { it.copy(conn = ConnState.NO_PI) }
         }
+    }
+
+    /** An older Pi without the endpoint, or one with no UPS, simply reads as "no battery". */
+    private suspend fun pollBattery() {
+        _battery.value = try {
+            parseBattery(JSONObject(request("GET", "/api/battery")))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Battery()
+        }
+    }
+
+    private fun parseBattery(o: JSONObject): Battery {
+        if (!o.optBoolean("ok", false)) return Battery()
+        val cells = o.optJSONArray("cells_v")
+        fun f(key: String): Float? = if (o.isNull(key)) null else o.optDouble(key).toFloat()
+        return Battery(
+            ok = true,
+            percent = o.optInt("percent").coerceIn(0, 100),
+            voltage = o.optDouble("voltage_v", 0.0).toFloat(),
+            current = o.optDouble("current_a", 0.0).toFloat(),
+            power = o.optDouble("power_w", 0.0).toFloat(),
+            onAc = o.optBoolean("on_ac", false),
+            charging = o.optBoolean("charging", false),
+            minutesLeft = if (o.isNull("minutes_left")) null else o.optInt("minutes_left"),
+            capacityMah = if (o.isNull("capacity_mah")) null else o.optInt("capacity_mah"),
+            cells = if (cells == null) emptyList() else (0 until cells.length()).map { cells.optDouble(it, 0.0).toFloat() },
+            inputV = f("vbus_v"), inputA = f("vbus_a"), inputW = f("vbus_w"),
+        )
     }
 
     private suspend fun refreshAlerts() {

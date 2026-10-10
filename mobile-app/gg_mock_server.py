@@ -184,6 +184,36 @@ def build_state():
     }
 
 
+def build_battery():
+    """Invented UPS HAT readout, same fields as pi/gg_ups.py. Two minutes on
+    battery, then two minutes charging, so both looks can be seen."""
+    t = time.time()
+    phase = int(t // 120) % 2
+    step = (t % 120) / 120.0
+    charging = phase == 1
+    percent = int(round(58 + 30 * step)) if charging else int(round(88 - 30 * step))
+    volts = round(14.2 + 2.4 * percent / 100.0, 3)
+    amps = round(1.15 + 0.1 * math.sin(t / 3), 3) if charging else round(-0.78 - 0.08 * math.sin(t / 3), 3)
+    cell = round(volts / 4, 3)
+    return {
+        "ok": True,
+        "percent": percent,
+        "voltage_v": volts,
+        "current_a": amps,
+        "power_w": round(volts * amps, 2),
+        "capacity_mah": int(5000 * percent / 100),
+        "minutes_left": int((100 - percent) * 2.1) if charging else int(percent * 4.3),
+        "on_ac": charging,
+        "charging": charging,
+        "state": "charging" if charging else "discharging",
+        "vbus_v": 15.1 if charging else 0.0,
+        "vbus_a": 2.2 if charging else 0.0,
+        "vbus_w": 33.2 if charging else 0.0,
+        "cells_v": [cell, round(cell + 0.004, 3), round(cell - 0.006, 3), round(cell + 0.002, 3)],
+        "t": t,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -223,6 +253,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/state":
             return self._json(build_state())
+        if path == "/api/battery":
+            return self._json(build_battery())
         if path == "/api/alerts":
             limit = int((q.get("limit") or [50])[0])
             return self._json({"alerts": LOG[:limit]})

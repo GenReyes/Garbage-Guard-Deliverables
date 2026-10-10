@@ -217,6 +217,15 @@ object GgIcons {
     }
     val Expand by lazy { icon("expand", 2.2f) { p("M9.5 3.5H3.5v6M14.5 3.5h6v6M20.5 14.5v6h-6M3.5 14.5v6h6") } }
     val Shrink by lazy { icon("shrink", 2.2f) { p("M3.5 9.5h6v-6M20.5 9.5h-6v-6M14.5 20.5v-6h6M9.5 20.5v-6h-6") } }
+    val Plug by lazy {
+        icon("plug") {
+            p("M9 3v4M15 3v4")
+            p("M6.5 7h11v3.5a5.5 5.5 0 0 1-11 0z")
+            p("M12 16v5")
+        }
+    }
+    val Bolt by lazy { icon("bolt") { fill("M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z") } }
+    val BoltEdge by lazy { icon("boltedge", 2.6f) { p("M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z") } }
     val Link by lazy {
         icon("link") {
             p("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1")
