@@ -16,6 +16,12 @@ interface GgRepository {
     /** From GET /api/alerts?limit=50, newest first. */
     val alerts: StateFlow<List<AlertRow>>
 
+    /** Address of GET /frame.jpg. Null when there is no camera picture, as with demo data. */
+    val frameUrl: String? get() = null
+
+    /** Address of GET /snapshots/<name>. Null when snapshots are not real images. */
+    fun snapshotUrl(name: String): String? = null
+
     /** Times one GET /api/state. Returns latency in ms, or an error message. */
     suspend fun testConnection(address: String): Result<Long>
 

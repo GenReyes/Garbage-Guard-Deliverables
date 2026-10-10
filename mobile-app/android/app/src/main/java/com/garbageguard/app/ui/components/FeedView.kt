@@ -39,6 +39,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.IntSize
+import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -110,38 +113,68 @@ fun FeedCanvas(
     cover: Boolean = true,
     drawPoints: List<RoiPoint>? = null,
     onTap: (RoiPoint) -> Unit = {},
+    image: ImageBitmap? = null,
 ) {
+    // The drawing space is 160 wide. Its height follows the real picture
+    // when there is one, so taps land on the same spot of the camera view.
+    val fh = if (image != null && image.width > 0) FW * image.height / image.width else 100f
     Canvas(
         modifier = modifier.then(
-            if (drawPoints != null) Modifier.pointerInput(cover) {
+            if (drawPoints != null) Modifier.pointerInput(cover, fh) {
                 detectTapGestures { p ->
-                    val s = fitScale(size.width.toFloat(), size.height.toFloat(), cover)
-                    val ox = (size.width - 160f * s) / 2f
-                    val oy = (size.height - 100f * s) / 2f
-                    val x = (p.x - ox) / (160f * s)
-                    val y = (p.y - oy) / (100f * s)
+                    val s = fitScale(size.width.toFloat(), size.height.toFloat(), fh, cover)
+                    val ox = (size.width - FW * s) / 2f
+                    val oy = (size.height - fh * s) / 2f
+                    val x = (p.x - ox) / (FW * s)
+                    val y = (p.y - oy) / (fh * s)
                     if (x in 0f..1f && y in 0f..1f) onTap(RoiPoint(x, y))
                 }
             } else Modifier
         ),
     ) {
-        val s = fitScale(size.width, size.height, cover)
-        val ox = (size.width - 160f * s) / 2f
-        val oy = (size.height - 100f * s) / 2f
+        val s = fitScale(size.width, size.height, fh, cover)
+        val ox = (size.width - FW * s) / 2f
+        val oy = (size.height - fh * s) / 2f
+        if (image != null) {
+            // The Pi's frame already carries its boxes and the area outline.
+            drawImage(
+                image,
+                dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
+                dstSize = IntSize((FW * s).roundToInt(), (fh * s).roundToInt()),
+            )
+        }
         withTransform({
             translate(ox, oy)
             scale(s, s, pivot = Offset.Zero)
-        }) { drawFrame(frame, drawPoints) }
+        }) {
+            if (image == null) drawFrame(frame)
+            drawAreaInProgress(drawPoints, fh)
+        }
     }
 }
 
-private fun fitScale(w: Float, h: Float, cover: Boolean): Float {
-    val a = w / 160f
-    val b = h / 100f
+private const val FW = 160f
+
+private fun fitScale(w: Float, h: Float, fh: Float, cover: Boolean): Float {
+    val a = w / FW
+    val b = h / fh
     return if (cover) maxOf(a, b) else minOf(a, b)
 }
 
-private fun DrawScope.drawFrame(f: FeedFrame, drawPoints: List<RoiPoint>?) {
+private fun DrawScope.drawAreaInProgress(drawPoints: List<RoiPoint>?, fh: Float) {
+    if (drawPoints.isNullOrEmpty()) return
+    val closed = drawPoints.size >= 3
+    val path = polygon(drawPoints, close = closed, fh = fh)
+    if (closed) drawPath(path, COL_ROI.copy(alpha = 0.22f))
+    drawPath(path, COL_ROI, style = Stroke(width = 1.4f))
+    drawPoints.forEach {
+        val c = Offset(it.x * FW, it.y * fh)
+        drawCircle(COL_ROI, radius = 3f, center = c)
+        drawCircle(Color(0xFF16130F), radius = 3f, center = c, style = Stroke(width = 1f))
+    }
+}
+
+private fun DrawScope.drawFrame(f: FeedFrame) {
     val frame = Size(160f, 100f)
     // Water.
     drawRect(
@@ -192,30 +225,18 @@ private fun DrawScope.drawFrame(f: FeedFrame, drawPoints: List<RoiPoint>?) {
                 cornerRadius = CornerRadius(2f, 2f),
             )
         }
-        if (roi != null && f.outline && drawPoints == null) {
+        if (roi != null && f.outline) {
             drawPath(
                 polygon(roi, close = true), COL_ROI.copy(alpha = 0.55f),
                 style = Stroke(width = 1.2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 2f))),
             )
         }
     }
-
-    if (!drawPoints.isNullOrEmpty()) {
-        val closed = drawPoints.size >= 3
-        val path = polygon(drawPoints, close = closed)
-        if (closed) drawPath(path, COL_ROI.copy(alpha = 0.22f))
-        drawPath(path, COL_ROI, style = Stroke(width = 1.4f))
-        drawPoints.forEach {
-            val c = Offset(it.x * 160f, it.y * 100f)
-            drawCircle(COL_ROI, radius = 3f, center = c)
-            drawCircle(Color(0xFF16130F), radius = 3f, center = c, style = Stroke(width = 1f))
-        }
-    }
 }
 
-private fun polygon(points: List<RoiPoint>, close: Boolean) = Path().apply {
-    moveTo(points[0].x * 160f, points[0].y * 100f)
-    points.drop(1).forEach { lineTo(it.x * 160f, it.y * 100f) }
+private fun polygon(points: List<RoiPoint>, close: Boolean, fh: Float = 100f) = Path().apply {
+    moveTo(points[0].x * FW, points[0].y * fh)
+    points.drop(1).forEach { lineTo(it.x * FW, it.y * fh) }
     if (close) close()
 }
 
@@ -308,6 +329,7 @@ fun TvFeed(
     fpsLabel: String,
     showFlag: Boolean,
     onFullscreen: () -> Unit,
+    image: ImageBitmap? = null,
 ) {
     val c = Gg.colors
     val tvShape = RoundedCornerShape(14.dp)
@@ -337,7 +359,7 @@ fun TvFeed(
                     .clip(RoundedCornerShape(7.dp))
                     .background(FEED_BLACK),
             ) {
-                FeedCanvas(frame, Modifier.fillMaxSize())
+                FeedCanvas(frame, Modifier.fillMaxSize(), image = image)
                 Box(Modifier.fillMaxSize().scanLines())
                 Box(
                     Modifier.fillMaxSize().drawBehind {

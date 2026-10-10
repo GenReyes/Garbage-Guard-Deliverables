@@ -12,6 +12,15 @@ import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.EventType
 import com.garbageguard.app.data.FakeRepository
 import com.garbageguard.app.data.GgRepository
+import com.garbageguard.app.data.LiveState
+import com.garbageguard.app.data.PiRepository
+import android.content.SharedPreferences
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import com.garbageguard.app.data.RoiPoint
 import com.garbageguard.app.ui.theme.ThemeMode
 import kotlinx.coroutines.delay
@@ -53,12 +62,38 @@ sealed interface Overlay {
 
 class AppViewModel : ViewModel() {
 
-    // The one line to change when the real API is ready:
-    // val repo: GgRepository = PiRepository(baseUrl = address, scope = viewModelScope)
-    val repo: GgRepository = FakeRepository(viewModelScope)
+    // Two sources behind one interface: the real Pi over the local network,
+    // and invented data for showing the app with no Pi in the room.
+    private val pi = PiRepository(viewModelScope)
+    private val fake by lazy { FakeRepository(viewModelScope) }
+    private val active = MutableStateFlow<GgRepository>(pi)
+    val repo: GgRepository get() = active.value
 
-    val state = repo.state
-    val alerts = repo.alerts
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<LiveState> =
+        active.flatMapLatest { it.state }.stateIn(viewModelScope, SharingStarted.Eagerly, LiveState())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val alerts: StateFlow<List<AlertRow>> =
+        active.flatMapLatest { it.alerts }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** True while the app runs on invented data. */
+    var demo by mutableStateOf(false)
+        private set
+
+    /** Where the live picture comes from. Null in demo mode, which draws its own. */
+    val frameUrl: String? get() = if (setupDone) repo.frameUrl else null
+
+    fun snapshotUrl(name: String?): String? = name?.let { repo.snapshotUrl(it) }
+
+    private var prefs: SharedPreferences? = null
+
+    /** Remembers the Pi address between launches. */
+    fun attach(prefs: SharedPreferences) {
+        if (this.prefs != null) return
+        this.prefs = prefs
+        if (address.isEmpty()) address = prefs.getString(KEY_ADDRESS, "") ?: ""
+    }
 
     // ---------- app-side state, kept in memory for now ----------
 
@@ -133,7 +168,7 @@ class AppViewModel : ViewModel() {
         address = addr
         setupState = SetupState.TESTING
         viewModelScope.launch {
-            repo.testConnection(addr)
+            pi.testConnection(addr)
                 .onSuccess {
                     setupLatency = it
                     setupState = SetupState.OK
@@ -150,7 +185,24 @@ class AppViewModel : ViewModel() {
         if (setupState != SetupState.TESTING) setupState = SetupState.EMPTY
     }
 
+    /** Continue after a successful test: start following the real Pi. */
     fun finishSetup() {
+        demo = false
+        active.value = pi
+        pi.start(address)
+        prefs?.edit()?.putString(KEY_ADDRESS, address)?.apply()
+        enterApp()
+    }
+
+    /** Skip the Pi and run on invented data. */
+    fun useDemo() {
+        pi.stop()
+        demo = true
+        active.value = fake
+        enterApp()
+    }
+
+    private fun enterApp() {
         setupDone = true
         everConnected = true
         tab = Tab.MONITOR
@@ -205,8 +257,12 @@ class AppViewModel : ViewModel() {
     fun capture() = launchAction("Snapshot saved") { repo.capture() }
 
     fun retry() {
-        (repo as? FakeRepository)?.demoSetConn(ConnState.ONLINE)
-        showToast("Connected")
+        if (demo) {
+            fake.demoSetConn(ConnState.ONLINE)
+            showToast("Connected")
+        } else viewModelScope.launch {
+            showToast(if (pi.refreshNow()) "Connected" else "Still cannot reach the Pi")
+        }
     }
 
     /** Demo only: a long press on the status pill steps through the connection states. */
@@ -310,5 +366,6 @@ class AppViewModel : ViewModel() {
 
     companion object {
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
+        private const val KEY_ADDRESS = "pi_address"
     }
 }

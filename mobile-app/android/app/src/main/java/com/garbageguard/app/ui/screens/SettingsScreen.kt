@@ -123,7 +123,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
 
         GgCard {
             Hd(GgIcons.Link, "Connection")
-            SettingRow("Pi address", vm.address.ifEmpty { AppViewModel.DEFAULT_ADDRESS }) {
+            SettingRow("Pi address", if (vm.demo) "Demo data, no Pi" else vm.address) {
                 GgButton("Change", vm::changeAddress, small = true)
             }
             SettingRow(

@@ -81,7 +81,7 @@ fun GgApp(vm: AppViewModel) {
                             AppHeader(
                                 conn = state.conn,
                                 onToggleTheme = { vm.themeMode = if (c.isDark) ThemeMode.LIGHT else ThemeMode.DARK },
-                                onPillLongPress = vm::demoCycleConn,
+                                onPillLongPress = { if (vm.demo) vm.demoCycleConn() },
                             )
                             Box(Modifier.weight(1f)) {
                                 when (vm.tab) {

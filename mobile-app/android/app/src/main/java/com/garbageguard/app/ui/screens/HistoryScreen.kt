@@ -60,6 +60,7 @@ import com.garbageguard.app.ui.components.Soft
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.rememberSnapshot
 import com.garbageguard.app.ui.theme.Gg
 
 fun eventIcon(e: EventType): ImageVector = when (e) {
@@ -282,7 +283,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize())
+                if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = rememberSnapshot(vm.snapshotUrl(row.snapshot)))
                 else T("No image", size = 0.6f, weight = FontWeight.Bold, color = c.muted, maxLines = 1)
             }
         }

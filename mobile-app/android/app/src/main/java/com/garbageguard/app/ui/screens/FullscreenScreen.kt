@@ -51,6 +51,7 @@ import com.garbageguard.app.ui.components.OfflinePanel
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.Wordmark
 import com.garbageguard.app.ui.components.neuInset
+import com.garbageguard.app.ui.components.rememberLiveFrame
 import com.garbageguard.app.ui.components.neuRaised
 import com.garbageguard.app.ui.components.scanLines
 import com.garbageguard.app.ui.theme.Gg
@@ -141,9 +142,10 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 .border(2.dp, c.edge, RoundedCornerShape(13.dp)),
         ) {
             FeedCanvas(
-                frame = frameOf(state),
+                frame = frameOf(state).copy(outline = !vm.drawing),
                 modifier = Modifier.fillMaxSize(),
                 cover = false,
+                image = rememberLiveFrame(vm.frameUrl),
                 drawPoints = if (vm.drawing) vm.drawPoints else null,
                 onTap = { vm.drawPoints.add(it) },
             )

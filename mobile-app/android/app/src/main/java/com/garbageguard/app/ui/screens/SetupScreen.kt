@@ -91,6 +91,10 @@ fun SetupScreen(vm: AppViewModel) {
                 icon = GgIcons.Signal,
             )
         }
+
+        // Not in the mockup: lets the app be shown with no Pi nearby.
+        GgButton("Try with demo data", vm::useDemo, Modifier.fillMaxWidth(), icon = GgIcons.Eye)
+        Hint("Demo data is invented on the phone. Nothing is sent to or read from a Pi.", center = true, modifier = Modifier.fillMaxWidth())
     }
 }
 

@@ -53,6 +53,7 @@ import com.garbageguard.app.ui.components.SheetTitle
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.ggBackground
 import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.rememberSnapshot
 import com.garbageguard.app.ui.theme.Gg
 
 /** Draws whichever sheet or viewer the ViewModel has open. */
@@ -66,7 +67,7 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onAllowAlerts: () -> U
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
-            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, close)
+            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), close)
         }
         Overlay.ClearArea -> GgSheet(close) {
             SheetTitle("Clear monitored area?")
@@ -205,7 +206,8 @@ private fun SheetTextIn(text: String, modifier: Modifier) {
 
 /** .viewer, the snapshot with its numbers. */
 @Composable
-private fun SnapshotViewer(row: AlertRow, close: () -> Unit) {
+private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) {
+    val image = rememberSnapshot(imageUrl)
     val c = Gg.colors
     var fullSize by remember { mutableStateOf(false) }
     BackHandler { if (fullSize) fullSize = false else close() }
@@ -217,7 +219,7 @@ private fun SnapshotViewer(row: AlertRow, close: () -> Unit) {
                 .background(Color.Black)
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { fullSize = false },
             contentAlignment = Alignment.Center,
-        ) { FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false) }
+        ) { FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image) }
         return
     }
 
@@ -241,7 +243,8 @@ private fun SnapshotViewer(row: AlertRow, close: () -> Unit) {
         }
         Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).background(FEED_BLACK)) {
-            FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize())
+            // A real snapshot is evidence, so it is fitted whole, not cropped.
+            FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = image == null, image = image)
         }
         val conf = row.peakConfidence?.let { "${Math.round(it * 100)}%" } ?: "–"
         val cells = listOf(

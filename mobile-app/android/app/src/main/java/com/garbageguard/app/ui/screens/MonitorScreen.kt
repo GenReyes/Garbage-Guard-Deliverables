@@ -61,6 +61,7 @@ import com.garbageguard.app.ui.components.neuRaised
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.ui.components.ring
+import com.garbageguard.app.ui.components.rememberLiveFrame
 import com.garbageguard.app.ui.theme.Gg
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -376,6 +377,7 @@ private fun FeedCard(vm: AppViewModel, s: LiveState) {
             fpsLabel = fpsLabel(s),
             showFlag = s.alertActive && !s.muted && online,
             onFullscreen = vm::openFullscreen,
+            image = rememberLiveFrame(vm.frameUrl),
         )
         Hint(
             if (s.roi.size >= 3) "Grey boxes fall outside the monitored area and are not counted."
