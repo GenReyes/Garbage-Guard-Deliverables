@@ -34,12 +34,8 @@ chmod +x "$HERE/start.sh" "$HERE/open_dashboard.sh"
 mkdir -p "$CFG"
 touch "$AUTOSTART"
 
-# A fresh labwc autostart does not exist, so on some installs the system one
-# (/etc/xdg/labwc/autostart) is used for the panel and wallpaper. Creating our
-# own file replaces it, so copy the system lines in first, once.
-if [ ! -s "$AUTOSTART" ] && [ -f /etc/xdg/labwc/autostart ]; then
-    cp /etc/xdg/labwc/autostart "$AUTOSTART"
-fi
+# Pi OS runs the system autostart (panel, desktop) as well as this one, so
+# nothing is copied from it. Copying it started the panel twice.
 
 grep -v "$MARK" "$AUTOSTART" > "$AUTOSTART.tmp"
 echo "GG_AUTOSTART=1 \"$HERE/start.sh\" >> \"$LOG\" 2>&1 & $MARK" >> "$AUTOSTART.tmp"
