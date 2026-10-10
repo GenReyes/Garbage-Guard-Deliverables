@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import gg_net
+import gg_ups
 
 BASE_DIR = Path(__file__).resolve().parent
 STREAM_FPS = 12
@@ -17,8 +18,9 @@ SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
 
 
-def make_handler(engine, net=None):
+def make_handler(engine, net=None, ups=None):
     net = net or gg_net.make_net()
+    ups = ups or gg_ups.Ups()
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -85,6 +87,9 @@ def make_handler(engine, net=None):
                 if not f.is_file():
                     return self._send(404, "text/plain", "dashboard.html missing")
                 return self._send(200, "text/html; charset=utf-8", f.read_bytes())
+
+            if path == "/api/battery":
+                return self._json(ups.status())
 
             if path == "/api/state":
                 return self._json(engine.snapshot_state())
