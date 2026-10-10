@@ -58,7 +58,7 @@ import com.garbageguard.app.ui.theme.Gg
 
 /** Draws whichever sheet or viewer the ViewModel has open. */
 @Composable
-fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onAllowAlerts: () -> Unit) {
+fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onFixBattery: () -> Unit, onAllowAlerts: () -> Unit) {
     val close = { vm.overlay = null }
     when (val o = vm.overlay) {
         null -> {}
@@ -79,11 +79,11 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, onAllowAlerts: () -> U
         }
         Overlay.Battery -> GgSheet(close) {
             SheetTitle("Keep alerts working")
-            SheetText("Samsung puts apps to sleep to save battery, which can delay or block alerts. Set Garbage-Guard to Unrestricted.")
-            SheetText("Settings, Apps, Garbage-Guard, Battery, Unrestricted.", mutedSmall = true)
+            SheetText("Android puts apps to sleep to save battery, which can delay or block alerts. Allow Garbage-Guard to keep running in the background.")
+            SheetText("If no prompt appears: Settings, Apps, Garbage-Guard, Battery, Unrestricted.", mutedSmall = true)
             Acts {
                 GgButton("Later", close, Modifier.weight(1f))
-                GgButton("Open settings", vm::fixBattery, Modifier.weight(1f), icon = GgIcons.Battery, kind = BtnKind.TEAL)
+                GgButton("Allow", onFixBattery, Modifier.weight(1f), icon = GgIcons.Battery, kind = BtnKind.TEAL)
             }
         }
         Overlay.NotifPrompt -> GgSheet(close) {
@@ -158,11 +158,11 @@ private fun FilterSheet(vm: AppViewModel, close: () -> Unit) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                T("From", size = 0.82f)
+                T("FROM", size = 0.76f, spacing = 0.05f)
                 GgInput(vm.dateFrom, { vm.dateFrom = it }, "yyyy-mm-dd")
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                T("To", size = 0.82f)
+                T("TO", size = 0.76f, spacing = 0.05f)
                 GgInput(vm.dateTo, { vm.dateTo = it }, "yyyy-mm-dd")
             }
         }
@@ -213,6 +213,8 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
     BackHandler { if (fullSize) fullSize = false else close() }
 
     if (fullSize) {
+        // Full size means the whole screen, sideways, like the live feed.
+        LandscapeImmersive()
         Box(
             Modifier
                 .fillMaxSize()
@@ -261,7 +263,7 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
                     line.forEach { (value, label) ->
                         Column(Modifier.weight(1f)) {
                             T(value, size = 1.3f, weight = FontWeight.Black, color = c.text, tnum = true)
-                            T(label, size = 0.74f, weight = FontWeight.Bold, color = c.muted)
+                            T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f)
                         }
                     }
                 }

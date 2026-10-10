@@ -3,11 +3,21 @@ package com.garbageguard.app.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,11 +66,6 @@ fun GgApp(vm: AppViewModel) {
         val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             vm.setNotifications(granted)
         }
-        LaunchedEffect(Unit) {
-            val granted = Build.VERSION.SDK_INT < 33 ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-            if (granted) vm.notifications = PermState.ON
-        }
 
         LaunchedEffect(vm.toastSeq) {
             if (vm.toast != null) {
@@ -80,14 +85,25 @@ fun GgApp(vm: AppViewModel) {
                         } else {
                             AppHeader(
                                 conn = state.conn,
-                                onToggleTheme = { vm.themeMode = if (c.isDark) ThemeMode.LIGHT else ThemeMode.DARK },
+                                onToggleTheme = { vm.toggleTheme(c.isDark) },
                                 onPillLongPress = { if (vm.demo) vm.demoCycleConn() },
                             )
                             Box(Modifier.weight(1f)) {
-                                when (vm.tab) {
-                                    Tab.MONITOR -> MonitorScreen(vm, state)
-                                    Tab.HISTORY -> HistoryScreen(vm, alerts)
-                                    Tab.SETTINGS -> SettingsScreen(vm, state)
+                                // Tabs slide a short way in the direction of travel.
+                                AnimatedContent(
+                                    targetState = vm.tab,
+                                    transitionSpec = {
+                                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                                        (slideInHorizontally(tween(220)) { dir * it / 8 } + fadeIn(tween(220))) togetherWith
+                                            (slideOutHorizontally(tween(160)) { -dir * it / 8 } + fadeOut(tween(110)))
+                                    },
+                                    label = "tab",
+                                ) { tab ->
+                                    when (tab) {
+                                        Tab.MONITOR -> MonitorScreen(vm, state)
+                                        Tab.HISTORY -> HistoryScreen(vm, alerts)
+                                        Tab.SETTINGS -> SettingsScreen(vm, state)
+                                    }
                                 }
                             }
                             BottomNav(vm.tab, alerts.count { !it.read }, vm::selectTab)
@@ -97,6 +113,19 @@ fun GgApp(vm: AppViewModel) {
 
                 OverlayHost(
                     vm, alerts,
+                    onFixBattery = {
+                        vm.closeBatterySheet()
+                        // Android's own "let this app run in the background" prompt.
+                        val direct = Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                        try {
+                            context.startActivity(direct)
+                        } catch (_: Exception) {
+                            runCatching { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+                        }
+                    },
                     onAllowAlerts = {
                         if (Build.VERSION.SDK_INT >= 33) {
                             vm.overlay = null

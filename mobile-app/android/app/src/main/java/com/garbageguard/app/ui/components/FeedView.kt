@@ -5,7 +5,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -317,9 +319,66 @@ fun Led(alive: Boolean) {
     )
 }
 
+private val BEZEL_INK = Color(0xFF0B0A09)
+private val BEZEL_TEXT = Color(0xFFC9BFB2)
+private val BEZEL_DIM = Color(0xFF8F867B)
+
+/** A small lit readout set into the bezel. */
+@Composable
+private fun Lcd(text: String) {
+    val c = Gg.colors
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color(0xFF0A0806))
+            .border(1.5.dp, c.teal, RoundedCornerShape(6.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp),
+    ) { T(text, size = 10f / 14f, weight = FontWeight.Black, color = c.tealLight, tnum = true, spacing = 0.06f, maxLines = 1) }
+}
+
+/** A key on the set's control deck: hard black drop, pushes in when pressed. */
+@Composable
+private fun TvKey(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String?,
+    teal: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val c = Gg.colors
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val view = LocalView.current
+    val down = pressed && enabled
+    val shape = RoundedCornerShape(10.dp)
+    val fill = if (teal) faceBrush(c.tealLight, c.teal, 0.62f) else faceBrush(Color(0xFFF8F4EC), Color(0xFFCFC6B8), 0.7f)
+    val ink = if (teal) c.onTeal else Color(0xFF16130F)
+    Row(
+        Modifier
+            .alpha(if (enabled) 1f else 0.4f)
+            .offset { if (down) IntOffset(3.dp.roundToPx(), 3.dp.roundToPx()) else IntOffset.Zero }
+            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 3.dp, Soft.NONE, hardColor = BEZEL_INK))
+            .clip(shape)
+            .background(fill)
+            .border(2.dp, BEZEL_INK, shape)
+            .clickable(interactionSource = src, indication = null, enabled = enabled) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+            .height(42.dp)
+            .padding(horizontal = if (label == null) 12.dp else 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Ico(icon, size = 17.dp, tint = ink)
+        if (label != null) T(label, size = 0.76f, color = ink, spacing = 0.05f, maxLines = 1)
+    }
+}
+
 /**
- * .tv, the live feed in its television bezel with the FPS tag, the alert
- * flag, the offline panel and the fullscreen key.
+ * The television. Top strip: power light, name, frame rate. Then the
+ * picture. Then the control deck with the latency readout, Capture and
+ * the fullscreen key, and a line of small print along the bottom edge.
  */
 @Composable
 fun TvFeed(
@@ -327,93 +386,88 @@ fun TvFeed(
     online: Boolean,
     noPi: Boolean,
     fpsLabel: String,
+    latencyLabel: String,
+    caption: String,
     showFlag: Boolean,
+    onCapture: () -> Unit,
     onFullscreen: () -> Unit,
     image: ImageBitmap? = null,
 ) {
     val c = Gg.colors
-    val tvShape = RoundedCornerShape(14.dp)
+    val tvShape = RoundedCornerShape(18.dp)
     val glare = rememberInfiniteTransition(label = "glare")
     val gx by glare.animateFloat(
-        -1.2f, 3.2f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing)), label = "glare",
+        -1.2f, 4.2f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing)), label = "glare",
     )
-    Box(
+    Column(
         Modifier
             .fillMaxWidth()
-            .neuShadow(c, 14.dp, 3.dp, Soft.NONE)
+            .neuShadow(c, 18.dp, 4.dp, Soft.LG)
             .clip(tvShape)
-            .background(
-                angledBrush(170f, 0f to Color(0xFF4A443D), 0.6f to Color(0xFF241F1B), 1f to Color(0xFF241F1B))
-            )
+            .background(angledBrush(170f, 0f to Color(0xFF4A443D), 0.6f to Color(0xFF241F1B), 1f to Color(0xFF241F1B)))
             .drawBehind {
-                // inset 0 2px 0 rgba(255,255,255,.18), the lit top lip of the bezel
-                drawRect(Color.White.copy(alpha = 0.18f), topLeft = Offset(0f, 2.dp.toPx()), size = Size(size.width, 2.dp.toPx()))
+                // The lit top lip of the casing.
+                drawRect(Color.White.copy(alpha = 0.16f), topLeft = Offset(0f, 2.dp.toPx()), size = Size(size.width, 2.dp.toPx()))
             }
-            .border(2.dp, c.edge, tvShape),
+            .border(2.dp, c.edge, tvShape)
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 9.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        Column(Modifier.padding(start = 7.dp, end = 7.dp, top = 7.dp)) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 10f)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(FEED_BLACK),
-            ) {
-                FeedCanvas(frame, Modifier.fillMaxSize(), image = image)
-                Box(Modifier.fillMaxSize().scanLines())
-                Box(
-                    Modifier.fillMaxSize().drawBehind {
-                        val w = size.width * 0.26f
-                        val x = gx * w
-                        drawRect(
-                            Brush.horizontalGradient(
-                                listOf(Color.Transparent, Color.White.copy(alpha = 0.1f), Color.Transparent),
-                                startX = x, endX = x + w,
-                            ),
-                            topLeft = Offset(x, 0f), size = Size(w, size.height),
-                        )
-                    }
-                )
-                Box(Modifier.fillMaxSize().border(2.dp, Color.Black, RoundedCornerShape(7.dp)))
-                if (showFlag) AlertFlag()
-                if (!online) OfflinePanel(noPi)
-            }
-            Row(
-                Modifier.height(15.dp).padding(horizontal = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Led(online)
-                T("CAM 01 · LIVE", size = 9f / 14f, color = Color(0xFFC9BFB2), spacing = 0.09f, maxLines = 1)
-            }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Led(online)
+            T("LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = BEZEL_TEXT, spacing = 0.1f, maxLines = 1)
+            T("CAM 01", size = 0.66f, color = BEZEL_DIM, spacing = 0.1f, maxLines = 1)
+            Box(Modifier.weight(1f))
+            Lcd(fpsLabel)
         }
-        // .fps-tag
+
         Box(
             Modifier
-                .align(Alignment.TopStart)
-                .padding(7.dp)
-                .clip(RoundedCornerShape(7.dp))
-                .background(Color(0xB80A0806))
-                .border(1.5.dp, c.teal, RoundedCornerShape(7.dp))
-                .padding(horizontal = 7.dp, vertical = 2.dp),
-        ) { T(fpsLabel, size = 9f / 14f, weight = FontWeight.Black, color = c.tealLight, tnum = true, spacing = 0.06f, maxLines = 1) }
-        // .fsb
-        val src = remember { MutableInteractionSource() }
-        val pressed by src.collectIsPressedAsState()
-        val keyShape = RoundedCornerShape(12.dp)
-        Box(
-            Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 9.dp, bottom = 8.dp)
-                .offset { if (pressed) IntOffset(3.dp.roundToPx(), 3.dp.roundToPx()) else IntOffset.Zero }
-                .size(44.dp)
-                .alpha(0.85f)
-                .then(if (pressed) Modifier else Modifier.neuShadow(c, 12.dp, 3.dp, Soft.NONE))
-                .clip(keyShape)
-                .background(if (c.isDark) Color(0xC71A1714) else Color(0xD1F5F0E8))
-                .border(2.dp, c.edge, keyShape)
-                .clickable(interactionSource = src, indication = null, onClick = onFullscreen),
-            contentAlignment = Alignment.Center,
-        ) { Ico(GgIcons.Expand, size = 20.dp, tint = if (c.isDark) c.text else Color(0xFF16130F)) }
+                .fillMaxWidth()
+                .aspectRatio(16f / 10f)
+                .clip(RoundedCornerShape(9.dp))
+                .background(FEED_BLACK),
+        ) {
+            FeedCanvas(frame, Modifier.fillMaxSize(), image = image)
+            Box(Modifier.fillMaxSize().scanLines())
+            Box(
+                Modifier.fillMaxSize().drawBehind {
+                    val w = size.width * 0.26f
+                    val x = gx * w
+                    drawRect(
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, Color.White.copy(alpha = 0.1f), Color.Transparent),
+                            startX = x, endX = x + w,
+                        ),
+                        topLeft = Offset(x, 0f), size = Size(w, size.height),
+                    )
+                }
+            )
+            Box(Modifier.fillMaxSize().border(2.dp, Color.Black, RoundedCornerShape(9.dp)))
+            if (showFlag) AlertFlag()
+            if (!online) OfflinePanel(noPi)
+        }
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                T("LATENCY", size = 0.58f, color = BEZEL_DIM, spacing = 0.12f, maxLines = 1)
+                Lcd(latencyLabel)
+            }
+            TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, onClick = onCapture)
+            TvKey(GgIcons.Expand, null, teal = false, enabled = true, onClick = onFullscreen)
+        }
+
+        T(
+            caption, Modifier.padding(horizontal = 4.dp), size = 0.68f, weight = FontWeight.Medium,
+            color = BEZEL_DIM, lineHeight = 1.3f,
+        )
     }
 }

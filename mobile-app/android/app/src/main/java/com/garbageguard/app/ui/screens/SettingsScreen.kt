@@ -57,7 +57,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 if (dirty) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         Ico(GgIcons.Warn, size = 13.dp, tint = c.warnText)
-                        T("Unsaved", size = 0.8f, weight = FontWeight.Black, color = c.warnText)
+                        T("UNSAVED", size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
                     }
                 }
             }
@@ -103,7 +103,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 )
                 if (!granted) GgButton("Turn on", { vm.overlay = Overlay.NotifPrompt }, small = true)
             }
-            SettingRow("Battery", "Samsung may put the app to sleep") {
+            SettingRow("Battery", "Android may put the app to sleep") {
                 Tag(
                     if (vm.batteryUnrestricted) "Unrestricted" else "Restricted",
                     if (vm.batteryUnrestricted) Tone.OK else Tone.WARN,
@@ -117,7 +117,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             Segmented(
                 listOf("Auto", "Light", "Dark"),
                 selected = ThemeMode.entries.indexOf(vm.themeMode),
-                onSelect = { vm.themeMode = ThemeMode.entries[it] },
+                onSelect = { vm.chooseTheme(ThemeMode.entries[it]) },
             )
         }
 
@@ -145,7 +145,7 @@ private fun Field(icon: ImageVector, label: String, content: @Composable () -> U
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Ico(icon, size = 14.dp, tint = Gg.colors.muted)
-            T(label, size = 0.82f)
+            T(label.uppercase(), size = 0.76f, spacing = 0.05f)
         }
         content()
     }
@@ -166,7 +166,7 @@ private fun SettingRow(label: String, sub: String, trailing: @Composable () -> U
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            T(label, size = 0.92f)
+            T(label.uppercase(), size = 0.84f, spacing = 0.04f)
             T(sub, size = 0.78f, weight = FontWeight.Bold, color = Gg.colors.muted)
         }
         trailing()

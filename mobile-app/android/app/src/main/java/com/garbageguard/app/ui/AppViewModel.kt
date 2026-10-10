@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garbageguard.app.data.AlertRow
 import com.garbageguard.app.data.ConnState
@@ -14,7 +13,18 @@ import com.garbageguard.app.data.FakeRepository
 import com.garbageguard.app.data.GgRepository
 import com.garbageguard.app.data.LiveState
 import com.garbageguard.app.data.PiRepository
+import android.Manifest
+import android.app.Application
+import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.PowerManager
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
+import com.garbageguard.app.notify.Alerts
+import com.garbageguard.app.notify.AppGraph
+import com.garbageguard.app.notify.WatchService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -60,11 +70,14 @@ sealed interface Overlay {
     data object NotifPrompt : Overlay
 }
 
-class AppViewModel : ViewModel() {
+class AppViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val appContext: Context = app.applicationContext
+    private val prefs: SharedPreferences = AppGraph.prefs(app)
 
     // Two sources behind one interface: the real Pi over the local network,
     // and invented data for showing the app with no Pi in the room.
-    private val pi = PiRepository(viewModelScope)
+    private val pi = AppGraph.pi // lives beyond the screen so alerts keep arriving
     private val fake by lazy { FakeRepository(viewModelScope) }
     private val active = MutableStateFlow<GgRepository>(pi)
     val repo: GgRepository get() = active.value
@@ -86,18 +99,10 @@ class AppViewModel : ViewModel() {
 
     fun snapshotUrl(name: String?): String? = name?.let { repo.snapshotUrl(it) }
 
-    private var prefs: SharedPreferences? = null
-
-    /** Remembers the Pi address between launches. */
-    fun attach(prefs: SharedPreferences) {
-        if (this.prefs != null) return
-        this.prefs = prefs
-        if (address.isEmpty()) address = prefs.getString(KEY_ADDRESS, "") ?: ""
-    }
 
     // ---------- app-side state, kept in memory for now ----------
 
-    var address by mutableStateOf("")
+    var address by mutableStateOf(prefs.getString(AppGraph.KEY_ADDRESS, "").orEmpty())
     var setupDone by mutableStateOf(false)
     var setupState by mutableStateOf(SetupState.EMPTY)
     var setupMessage by mutableStateOf("")
@@ -107,7 +112,16 @@ class AppViewModel : ViewModel() {
         private set
 
     var tab by mutableStateOf(Tab.MONITOR)
-    var themeMode by mutableStateOf(ThemeMode.AUTO)
+    var themeMode by mutableStateOf(
+        runCatching { ThemeMode.valueOf(prefs.getString(AppGraph.KEY_THEME, "AUTO")!!) }.getOrDefault(ThemeMode.AUTO)
+    )
+        private set
+
+    /** Auto follows the phone. The choice is remembered. */
+    fun chooseTheme(mode: ThemeMode) {
+        themeMode = mode
+        prefs.edit().putString(AppGraph.KEY_THEME, mode.name).apply()
+    }
     var loading by mutableStateOf(false)
         private set
 
@@ -118,7 +132,31 @@ class AppViewModel : ViewModel() {
 
     var notifications by mutableStateOf(PermState.OFF)
     var batteryUnrestricted by mutableStateOf(false)
+        private set
     private var askedForAlerts = false
+
+    init {
+        AppGraph.init(appContext)
+        // Demo data raises notifications too, while the app is running.
+        viewModelScope.launch {
+            alerts.collect { rows ->
+                if (demo) Alerts.onRows(appContext, "demo", rows, viewModelScope) { null }
+            }
+        }
+        refreshSystemState()
+        // A remembered address means the app goes straight back to its Pi.
+        if (address.isNotEmpty()) finishSetup(firstTime = false)
+    }
+
+    /** Reads the two Android settings the Alerts card reports. Called whenever the app returns to the screen. */
+    fun refreshSystemState() {
+        val granted = Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (granted) notifications = PermState.ON else if (notifications == PermState.ON) notifications = PermState.OFF
+        val power = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+        batteryUnrestricted = power.isIgnoringBatteryOptimizations(appContext.packageName)
+        if (granted && setupDone && !demo) WatchService.start(appContext)
+    }
 
     // Fullscreen feed and area drawing.
     var fullscreen by mutableStateOf(false)
@@ -186,19 +224,24 @@ class AppViewModel : ViewModel() {
     }
 
     /** Continue after a successful test: start following the real Pi. */
-    fun finishSetup() {
+    fun finishSetup(firstTime: Boolean = true) {
         demo = false
         active.value = pi
+        AppGraph.mute = { pi.mute(it) }
         pi.start(address)
-        prefs?.edit()?.putString(KEY_ADDRESS, address)?.apply()
+        prefs.edit().putString(AppGraph.KEY_ADDRESS, address).apply()
+        if (notifications == PermState.ON) WatchService.start(appContext)
         enterApp()
     }
 
     /** Skip the Pi and run on invented data. */
     fun useDemo() {
         pi.stop()
+        WatchService.stop(appContext)
+        prefs.edit().remove(AppGraph.KEY_ADDRESS).apply()
         demo = true
         active.value = fake
+        AppGraph.mute = { fake.mute(it) }
         enterApp()
     }
 
@@ -210,8 +253,10 @@ class AppViewModel : ViewModel() {
         viewModelScope.launch {
             delay(1100)
             loading = false
-            if (!askedForAlerts && notifications != PermState.ON) {
+            // Ask once, ever. After that the Alerts card in Settings is the way in.
+            if (!askedForAlerts && !prefs.getBoolean(KEY_ASKED, false) && notifications != PermState.ON) {
                 askedForAlerts = true
+                prefs.edit().putBoolean(KEY_ASKED, true).apply()
                 overlay = Overlay.NotifPrompt
             }
         }
@@ -335,14 +380,16 @@ class AppViewModel : ViewModel() {
     fun setNotifications(granted: Boolean) {
         overlay = null
         notifications = if (granted) PermState.ON else PermState.BLOCKED
+        if (granted && setupDone && !demo) WatchService.start(appContext)
         showToast(if (granted) "Alerts are on" else "Alerts are off")
     }
 
-    fun fixBattery() {
+    /** The sheet's button opens Android's own prompt; the result is read back in refreshSystemState. */
+    fun closeBatterySheet() {
         overlay = null
-        batteryUnrestricted = true
-        showToast("Battery set to Unrestricted")
     }
+
+    fun toggleTheme(darkNow: Boolean) = chooseTheme(if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK)
 
     // ---------- history ----------
 
@@ -366,6 +413,6 @@ class AppViewModel : ViewModel() {
 
     companion object {
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
-        private const val KEY_ADDRESS = "pi_address"
+        private const val KEY_ASKED = "asked_alerts"
     }
 }

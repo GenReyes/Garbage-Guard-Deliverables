@@ -15,7 +15,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        vm.attach(getPreferences(MODE_PRIVATE))
         setContent { GgApp(vm) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Picks up changes made in Android's own settings screens.
+        vm.refreshSystemState()
     }
 }

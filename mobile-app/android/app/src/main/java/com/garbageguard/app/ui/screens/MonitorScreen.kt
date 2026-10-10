@@ -52,6 +52,7 @@ import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.Hd
 import com.garbageguard.app.ui.components.Hint
 import com.garbageguard.app.ui.components.Ico
+import com.garbageguard.app.ui.components.RollingText
 import com.garbageguard.app.ui.components.Skeleton
 import com.garbageguard.app.ui.components.Soft
 import com.garbageguard.app.ui.components.T
@@ -166,19 +167,16 @@ private fun Hero(s: LiveState) {
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             T(
-                if (noPi) "Last update $lastUpdate" else "$p% of limit",
-                size = 0.74f, weight = FontWeight.Bold, color = c.muted,
+                if (noPi) "LAST UPDATE $lastUpdate" else "$p% OF LIMIT",
+                size = 0.68f, color = c.muted, spacing = 0.06f,
             )
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                T(
-                    if (noPi) "–" else "${s.smoothed}", size = 2f, weight = FontWeight.Black,
-                    color = c.text, tnum = true, spacing = -0.03f, lineHeight = 1.05f,
-                )
-                T("of ${s.threshold} items", Modifier.padding(bottom = 3.dp), size = 0.9f, weight = FontWeight.Bold, color = c.muted)
+                RollingText(if (noPi) "–" else "${s.smoothed}", size = 2.2f, color = c.text, spacing = -0.03f)
+                T("OF ${s.threshold} ITEMS", Modifier.padding(bottom = 4.dp), size = 0.76f, color = c.muted, spacing = 0.05f)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Ico(level.icon, Modifier.ring(s.alertActive && !s.muted && !noPi), size = 14.dp, tint = stateColor)
-                T(level.label, size = 0.85f, color = stateColor)
+                T(level.label.uppercase(), size = 0.8f, weight = FontWeight.Black, color = stateColor, spacing = 0.05f)
             }
         }
     }
@@ -204,12 +202,9 @@ private fun Counts(s: LiveState) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Ico(GgIcons.Box, size = 12.dp, tint = tint)
-                    T(label, size = 0.74f, weight = FontWeight.Bold, color = c.muted, maxLines = 1)
+                    T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f, maxLines = 1)
                 }
-                T(
-                    if (noPi) "–" else "$value", size = 1.45f, weight = FontWeight.Black,
-                    color = c.text, tnum = true, lineHeight = 1.05f,
-                )
+                RollingText(if (noPi) "–" else "$value", size = 1.5f, color = c.text)
             }
         }
     }
@@ -361,32 +356,25 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
     }
 }
 
-/** The Live feed card. */
+/**
+ * The live feed. The whole card is the television: the picture fills it
+ * edge to edge and the readouts and keys sit on the set's own control deck.
+ */
 @Composable
 private fun FeedCard(vm: AppViewModel, s: LiveState) {
     val online = s.conn == ConnState.ONLINE
     val noPi = s.conn == ConnState.NO_PI
-    GgCard {
-        Hd(GgIcons.Cam, "Live feed") {
-            GgButton("Capture", vm::capture, icon = GgIcons.Shutter, kind = BtnKind.TEAL, small = true, enabled = online)
-        }
-        TvFeed(
-            frame = frameOf(s),
-            online = online,
-            noPi = noPi,
-            fpsLabel = fpsLabel(s),
-            showFlag = s.alertActive && !s.muted && online,
-            onFullscreen = vm::openFullscreen,
-            image = rememberLiveFrame(vm.frameUrl),
-        )
-        Hint(
-            if (s.roi.size >= 3) "Grey boxes fall outside the monitored area and are not counted."
-            else "Whole frame is monitored. Draw an area in Settings.",
-            icon = GgIcons.EyeOff,
-        )
-        Hint(
-            "Latency ${if (noPi) "–" else s.latencyMs.roundToInt()} ms, average ${if (noPi) "–" else s.avgLatencyMs.roundToInt()} ms",
-            icon = GgIcons.Clock,
-        )
-    }
+    TvFeed(
+        frame = frameOf(s),
+        online = online,
+        noPi = noPi,
+        fpsLabel = fpsLabel(s),
+        latencyLabel = if (noPi) "-- MS" else "${s.latencyMs.roundToInt()} MS \u00B7 AVG ${s.avgLatencyMs.roundToInt()}",
+        caption = if (s.roi.size >= 3) "Grey boxes fall outside the monitored area and are not counted."
+        else "Whole frame is monitored. Draw an area in Settings.",
+        showFlag = s.alertActive && !s.muted && online,
+        onCapture = vm::capture,
+        onFullscreen = vm::openFullscreen,
+        image = rememberLiveFrame(vm.frameUrl),
+    )
 }

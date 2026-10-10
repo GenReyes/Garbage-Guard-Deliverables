@@ -10,7 +10,15 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -231,6 +239,7 @@ fun GgButton(
         BtnKind.DANGER -> { fill = faceBrush(Color(0xFFFF8A7E), c.bad, 0.62f); fg = c.onBad }
     }
     val down = pressed && enabled
+    val view = LocalView.current
     val sizeMod = if (square) Modifier.size(44.dp) else Modifier.defaultMinSize(minHeight = if (small) 40.dp else 44.dp)
     Row(
         modifier = modifier
@@ -240,7 +249,11 @@ fun GgButton(
             .clip(shape)
             .then(if (down) Modifier.background(c.sunk).neuInset(c, radius) else Modifier.background(fill))
             .border(2.dp, c.edge, shape)
-            .clickable(interactionSource = src, indication = null, enabled = enabled, onClick = onClick)
+            .clickable(interactionSource = src, indication = null, enabled = enabled) {
+                // A small tick, so keys feel like the physical buttons they are drawn as.
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
             .then(sizeMod)
             .padding(horizontal = if (square) 0.dp else if (small) 10.dp else 13.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
@@ -249,7 +262,7 @@ fun GgButton(
         val tint = if (down) c.text else fg
         CompositionLocalProvider(LocalContentColor provides tint) {
             if (icon != null) Ico(icon, size = if (small) 14.dp else 16.dp)
-            if (text != null) T(text, size = if (small) 0.88f else 1f, weight = FontWeight.Normal, maxLines = 1)
+            if (text != null) T(text.uppercase(), size = if (small) 0.74f else 0.84f, spacing = 0.05f, maxLines = 1)
         }
     }
 }
@@ -299,7 +312,7 @@ fun Hd(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
         Ico(icon, size = 18.dp)
-        T(title, Modifier.weight(1f), size = titleSize, weight = FontWeight.Black)
+        T(title.uppercase(), Modifier.weight(1f), size = titleSize * 0.92f, weight = FontWeight.Black, spacing = 0.03f)
         trailing()
     }
 }
@@ -339,7 +352,7 @@ fun Tag(text: String, tone: Tone) {
             .background(bg)
             .border(2.dp, c.edge, CircleShape)
             .padding(horizontal = 9.dp, vertical = 3.dp),
-    ) { T(text, size = 0.74f, weight = FontWeight.Black, color = c.text, maxLines = 1) }
+    ) { T(text.uppercase(), size = 0.66f, weight = FontWeight.Black, color = c.text, spacing = 0.05f, maxLines = 1) }
 }
 
 /** .sw, the small Auto switch. */
@@ -393,7 +406,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                         indication = null,
                     ) { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { T(label, size = 0.88f, color = if (on) c.text else c.muted) }
+            ) { T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f) }
         }
     }
 }
@@ -465,37 +478,31 @@ fun Skeleton(height: Dp, modifier: Modifier = Modifier) {
 @Composable
 fun logoPainter() = painterResource(if (Gg.colors.isDark) R.drawable.gg_logo_dark else R.drawable.gg_logo_light)
 
-/** The GARBAGE-GUARD wordmark with the boxed second word. */
+/** The badge alone. It carries the name and has a light and a dark drawing. */
 @Composable
-fun Wordmark(size: Float = 0.9f) {
-    val c = Gg.colors
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        T("GARBAGE-", size = size, weight = FontWeight.Black, color = c.text, spacing = -0.02f, maxLines = 1)
-        Spacer(Modifier.width(2.dp))
-        Box(
-            Modifier
-                .neuShadow(c, 7.dp, 2.dp, Soft.NONE, hardColor = c.chipShadow)
-                .clip(RoundedCornerShape(7.dp))
-                .background(c.text)
-                .padding(horizontal = 6.dp, vertical = 1.dp),
-        ) { T("GUARD", size = size, weight = FontWeight.Black, color = c.base2, spacing = -0.02f, maxLines = 1) }
-    }
+fun BrandLogo(size: Dp, modifier: Modifier = Modifier) {
+    Image(logoPainter(), contentDescription = "Garbage-Guard", modifier = modifier.size(size))
 }
 
-/** .brand */
+/** A number that rolls to its new value instead of jumping. */
 @Composable
-fun BrandChip(showLogo: Boolean = true, minHeight: Dp = 40.dp) {
-    val c = Gg.colors
-    Row(
-        Modifier
-            .neuRaised(c, 12.dp, fill = raisedBrush(c))
-            .defaultMinSize(minHeight = minHeight)
-            .padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (showLogo) Image(logoPainter(), contentDescription = "Garbage-Guard", modifier = Modifier.size(24.dp))
-        Wordmark()
+fun RollingText(
+    text: String,
+    size: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+    spacing: Float = 0f,
+) {
+    AnimatedContent(
+        targetState = text,
+        modifier = modifier,
+        transitionSpec = {
+            (slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(220))) togetherWith
+                (slideOutVertically(tween(160)) { -it / 2 } + fadeOut(tween(120)))
+        },
+        label = "roll",
+    ) { shown ->
+        T(shown, size = size, weight = FontWeight.Black, color = color, tnum = true, spacing = spacing, lineHeight = 1.05f, maxLines = 1)
     }
 }
 
@@ -532,7 +539,7 @@ fun AppHeader(conn: ConnState, onToggleTheme: () -> Unit, onPillLongPress: () ->
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        BrandChip()
+        BrandLogo(58.dp)
         Spacer(Modifier.weight(1f))
         ConnPill(conn, Modifier.longPress(onPillLongPress))
         GgButton(
@@ -579,8 +586,8 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Ico(icon, size = 16.dp, tint = if (selected) c.teal else c.text)
-            T(label, weight = FontWeight.Normal, color = c.text, maxLines = 1)
+            Ico(icon, size = 18.dp, tint = if (selected) c.teal else c.muted)
+            T(label.uppercase(), size = 0.7f, color = if (selected) c.text else c.muted, spacing = 0.06f, maxLines = 1)
         }
         if (badge > 0) {
             Box(

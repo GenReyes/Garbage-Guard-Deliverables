@@ -32,6 +32,15 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     private var job: Job? = null
     private var failures = 0
 
+    /** The address as the user typed it. */
+    var address: String = ""
+        private set
+
+    /** True once the history has really come from the Pi at least once. */
+    val loaded = MutableStateFlow(false)
+
+    val running: Boolean get() = job?.isActive == true
+
     private val _state = MutableStateFlow(LiveState(conn = ConnState.NO_PI))
     override val state: StateFlow<LiveState> = _state.asStateFlow()
 
@@ -46,7 +55,14 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     /** Starts polling the Pi at [address], for example 192.168.1.101:8080. */
     fun start(address: String) {
-        baseUrl = toBaseUrl(address) ?: return
+        val base = toBaseUrl(address) ?: return
+        if (base != baseUrl) {
+            loaded.value = false
+            _alerts.value = emptyList()
+            _state.value = LiveState(conn = ConnState.NO_PI)
+        }
+        baseUrl = base
+        this.address = address.trim()
         failures = 0
         job?.cancel()
         job = scope.launch {
@@ -88,6 +104,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         try {
             val rows = JSONObject(request("GET", "/api/alerts?limit=$ALERT_LIMIT")).optJSONArray("alerts")
             _alerts.value = parseAlerts(rows ?: JSONArray())
+            loaded.value = true
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {

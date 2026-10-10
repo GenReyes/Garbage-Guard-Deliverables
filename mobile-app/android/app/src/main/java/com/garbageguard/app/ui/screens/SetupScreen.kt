@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.ui.SetupState
-import com.garbageguard.app.ui.components.BrandChip
+import com.garbageguard.app.ui.components.BrandLogo
 import com.garbageguard.app.ui.components.BtnKind
 import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgCard
@@ -50,13 +50,18 @@ fun SetupScreen(vm: AppViewModel) {
             .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            GgButton(
+                null, { vm.toggleTheme(c.isDark) }, icon = if (c.isDark) GgIcons.Sun else GgIcons.Moon,
+                small = true, square = true,
+            )
+        }
         Column(
-            Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp),
+            Modifier.fillMaxWidth().padding(bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Image(logoPainter(), contentDescription = "Garbage-Guard", modifier = Modifier.size(120.dp))
-            BrandChip(showLogo = false, minHeight = 38.dp)
+            BrandLogo(200.dp)
             Hint("Enter the address shown on the Pi to start.", center = true, size = 0.9f)
         }
 
@@ -64,7 +69,7 @@ fun SetupScreen(vm: AppViewModel) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Ico(GgIcons.Link, size = 14.dp, tint = c.muted)
-                    T("Pi address", size = 0.82f)
+                    T("PI ADDRESS", size = 0.76f, spacing = 0.05f)
                 }
                 GgInput(
                     value = vm.address,
@@ -87,7 +92,7 @@ fun SetupScreen(vm: AppViewModel) {
                     GgButton("Test connection", vm::testConnection, Modifier.fillMaxWidth(), icon = GgIcons.Link, kind = BtnKind.TEAL)
             }
             Hint(
-                "On a phone hotspot, the address changes each time. The Pi only joins 2.4 GHz networks.",
+                "The phone and the Pi must be on the same Wi-Fi or hotspot. On a phone hotspot, the address changes each time.",
                 icon = GgIcons.Signal,
             )
         }

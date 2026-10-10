@@ -36,6 +36,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import com.garbageguard.app.ui.components.breathe
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -151,7 +156,7 @@ fun FilterChip(label: String, icon: ImageVector?, on: Boolean, onClick: () -> Un
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         if (icon != null) Ico(icon, size = 14.dp, tint = c.text)
-        T(label, weight = FontWeight.Normal, color = c.text, maxLines = 1)
+        T(label.uppercase(), size = 0.76f, color = c.text, spacing = 0.05f, maxLines = 1)
     }
 }
 
@@ -179,48 +184,78 @@ fun EventPill(event: EventType) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Ico(eventIcon(event), size = 12.dp, tint = fg)
-        T(event.label, size = 0.78f, color = fg, maxLines = 1)
+        T(event.label.uppercase(), size = 0.68f, color = fg, spacing = 0.04f, maxLines = 1)
     }
 }
 
-/** .hwrap, one history row with Delete hidden behind it. */
+/**
+ * One history row, with Delete hidden behind it. Depth carries the
+ * priority: an unread row stands out of the page, an unread alert stands
+ * out furthest with a red edge and a slow pulse, and a row that has been
+ * read is pressed into the page.
+ */
 @Composable
 private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
     val c = Gg.colors
     val swiped = vm.swipedId == row.id
     val shift by animateDpAsState(if (swiped) (-96).dp else 0.dp, tween(200), label = "swipe")
     val shape = RoundedCornerShape(14.dp)
-    val fade = if (row.read) 0.6f else 1f
+    val unread = !row.read
+    val alert = row.event == EventType.ACCUMULATION
+    val urgent = unread && alert
+    val fade = if (unread) 1f else 0.62f
+    val lift by animateDpAsState(if (urgent) 5.dp else if (unread) 3.dp else 0.dp, tween(240), label = "lift")
+    val glow = if (urgent) breathe(1700) else 0f
 
-    Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(shape)) {
-        // .hact
-        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.End) {
-            Column(
-                Modifier
-                    .width(110.dp)
-                    .fillMaxHeight()
-                    .clip(shape)
-                    .background(c.bad)
-                    .border(2.dp, c.edge, shape)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                        vm.overlay = Overlay.Delete(row.id)
-                    }
-                    .padding(start = 14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-            ) {
-                Ico(GgIcons.Trash, size = 16.dp, tint = c.onBad)
-                T("Delete", size = 0.78f, weight = FontWeight.Black, color = c.onBad)
+    Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        // .hact, only drawn while the row is slid aside
+        if (shift != 0.dp) {
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.End) {
+                Column(
+                    Modifier
+                        .width(110.dp)
+                        .fillMaxHeight()
+                        .clip(shape)
+                        .background(c.bad)
+                        .border(2.dp, c.edge, shape)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                            vm.overlay = Overlay.Delete(row.id)
+                        }
+                        .padding(start = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                ) {
+                    Ico(GgIcons.Trash, size = 16.dp, tint = c.onBad)
+                    T("DELETE", size = 0.7f, weight = FontWeight.Black, color = c.onBad, spacing = 0.05f)
+                }
             }
         }
-        // .hcard
+
+        val surface = if (unread) {
+            Modifier
+                .drawBehind {
+                    if (urgent) {
+                        val g = 5.dp.toPx() * glow
+                        val r = 14.dp.toPx() + g
+                        drawRoundRect(
+                            c.badTint.copy(alpha = glow), topLeft = Offset(-g, -g),
+                            size = Size(size.width + 2 * g, size.height + 2 * g), cornerRadius = CornerRadius(r, r),
+                        )
+                    }
+                }
+                .neuShadow(c, 14.dp, lift, if (urgent) Soft.LG else Soft.SM)
+                .clip(shape)
+                .background(if (alert) c.badTint else c.raised)
+                .border(2.dp, if (urgent) c.bad else c.edge, shape)
+        } else {
+            Modifier.neuWell(c, 14.dp, if (alert) lerp(c.sunk, c.badTint, 0.3f) else c.sunk)
+        }
+
         Row(
             Modifier
                 .fillMaxWidth()
                 .offset(x = shift)
-                .clip(shape)
-                .background(if (row.event == EventType.ACCUMULATION) c.badTint else c.raised)
-                .border(2.dp, c.edge, shape)
+                .then(surface)
                 .pointerInput(row.id) {
                     var total = 0f
                     detectHorizontalDragGestures(
@@ -284,7 +319,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                 contentAlignment = Alignment.Center,
             ) {
                 if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = rememberSnapshot(vm.snapshotUrl(row.snapshot)))
-                else T("No image", size = 0.6f, weight = FontWeight.Bold, color = c.muted, maxLines = 1)
+                else T("NO IMAGE", size = 0.5f, color = c.muted, maxLines = 1)
             }
         }
     }

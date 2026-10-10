@@ -49,7 +49,7 @@ import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.Led
 import com.garbageguard.app.ui.components.OfflinePanel
 import com.garbageguard.app.ui.components.T
-import com.garbageguard.app.ui.components.Wordmark
+import com.garbageguard.app.ui.components.BrandLogo
 import com.garbageguard.app.ui.components.neuInset
 import com.garbageguard.app.ui.components.rememberLiveFrame
 import com.garbageguard.app.ui.components.neuRaised
@@ -63,17 +63,11 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * The feed turned sideways. One composable covers both uses in the mockup:
- * watching (counts, state, Mute and Capture on one bar) and drawing the
- * monitored area (Undo, Clear, Cancel, Apply).
- */
+/** Turns the phone sideways and hides the system bars for as long as it is on screen. */
 @Composable
-fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
-    val c = Gg.colors
+fun LandscapeImmersive() {
     val context = LocalContext.current
     val view = LocalView.current
-
     DisposableEffect(Unit) {
         val activity = context.findActivity()
         val bars = activity?.window?.let { WindowCompat.getInsetsController(it, view) }
@@ -85,6 +79,17 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
             bars?.show(WindowInsetsCompat.Type.systemBars())
         }
     }
+}
+
+/**
+ * The feed turned sideways. One composable covers both uses in the mockup:
+ * watching (counts, state, Mute and Capture on one bar) and drawing the
+ * monitored area (Undo, Clear, Cancel, Apply).
+ */
+@Composable
+fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
+    val c = Gg.colors
+    LandscapeImmersive()
     BackHandler { vm.closeFullscreen() }
 
     val online = state.conn == ConnState.ONLINE
@@ -111,7 +116,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 Spacer(Modifier.weight(1f))
                 GgButton(null, vm::closeFullscreen, icon = GgIcons.X, small = true, square = true)
             } else {
-                Wordmark(size = 1f)
+                BrandLogo(38.dp)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Led(online)
                     T("CAM 01 · LIVE", size = 0.9f, color = c.text, maxLines = 1)
@@ -175,7 +180,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Ico(level.icon, size = 14.dp, tint = stateInk)
-                    T(level.label, size = 0.9f, color = stateInk, maxLines = 1)
+                    T(level.label.uppercase(), size = 0.8f, color = stateInk, spacing = 0.04f, maxLines = 1)
                 }
                 T(
                     "$p% · ${state.smoothed} of ${state.threshold}",
