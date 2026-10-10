@@ -1,0 +1,20 @@
+# Build output and caches
+.gradle/
+build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Machine-specific: holds the path to each person's Android SDK
+local.properties
+
+# Android Studio settings
+.idea/
+*.iml
+
+# Built apps and signing keys
+*.apk
+*.aab
+*.jks
+*.keystore
