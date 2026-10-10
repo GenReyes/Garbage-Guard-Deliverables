@@ -1614,8 +1614,11 @@ async function pollBattery(){
 }
 
 /* ---------------- minimize ---------------- */
-/* The kiosk browser cannot shrink its own window, so the page collapses into
-   a small badge in the corner. Tapping the badge brings the dashboard back. */
+/* The kiosk window has no title bar to tap, so the page shrinks into a badge
+   and then asks gg_web to minimize the window (labwc + wlrctl). The desktop is
+   then free for settings; the Garbage-Guard icon or the taskbar brings the
+   window back, and the badge springs open into the full dashboard again.
+   Away from the Pi (or without the helper) the badge just stays in the page. */
 $("bubLogo").innerHTML = document.querySelector("#brand .logo").innerHTML;
 function paintBubble(){
   const bub = $("bub"), s = last || {};
@@ -1626,14 +1629,30 @@ function paintBubble(){
   bub.classList.toggle("off", s.connected === false);
   bub.classList.toggle("charging", !!(batt && batt.charging));
 }
+let hidWindow = false;
 function setMini(on){
   document.body.classList.toggle("mini", on);
   if(on && fsOn) closeFs();
   paintBubble();
-  post("/api/window", {mode: on ? "mini" : "full"}).catch(() => {});
+  if(!on){ hidWindow = false; return; }
+  setTimeout(async () => {
+    if(!document.body.classList.contains("mini")) return;
+    try{
+      const j = await post("/api/window", {mode: "mini"});
+      if(j.ok) hidWindow = true;
+      else if(j.error !== "local_only") toast("Could not minimize the window", "i-warn");
+    }catch(e){}
+  }, 700);
 }
 $("miniBtn").onclick = () => setMini(true);
 $("bub").onclick = () => setMini(false);
+/* Window brought back from the taskbar or the icon: open the dashboard up. */
+function backFromDesktop(){
+  if(hidWindow && document.visibilityState === "visible" &&
+     document.body.classList.contains("mini")) setTimeout(() => setMini(false), 150);
+}
+document.addEventListener("visibilitychange", backFromDesktop);
+window.addEventListener("focus", backFromDesktop);
 
 pollBattery();
 setInterval(pollBattery, 2000);

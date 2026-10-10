@@ -91,6 +91,13 @@ blanking. Desktop auto login must be on (`sudo raspi-config`, System Options,
 Boot / Auto Login, Desktop Autologin). Undo with `./install_autostart.sh --remove`.
 Boot messages go to `~/gg/gg.log`.
 
+To reach the Pi desktop by touch (for settings or fixes), tap the minimize
+button next to Wi-Fi on the dashboard. The dashboard window is minimized and
+detection keeps running. Tap the **Garbage-Guard** icon on the desktop or in
+the app menu (or its taskbar button) to bring the dashboard back fullscreen.
+This uses `wlrctl`, which the installer offers to add; without it the button
+closes the window instead and the same icon reopens it.
+
 On every start the browser opens `/start`:
 
 - Wi-Fi connected: it goes straight to the dashboard.

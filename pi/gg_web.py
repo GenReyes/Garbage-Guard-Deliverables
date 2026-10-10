@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import gg_net
 import gg_ups
+import gg_window
 
 BASE_DIR = Path(__file__).resolve().parent
 STREAM_FPS = 12
@@ -127,6 +128,14 @@ def make_handler(engine, net=None, ups=None):
                 if not self._local():
                     return
                 return self._json(net.fix_camera_route())
+
+            if path == "/api/window":
+                # Only the Pi's own screen may hide its window.
+                if self.client_address[0] not in LOOPBACK:
+                    return self._json({"ok": False, "error": "local_only"}, 403)
+                if data.get("mode") == "mini":
+                    return self._json(gg_window.minimize())
+                return self._json(gg_window.restore())
 
             if path == "/api/settings":
                 conf = data.get("conf")
