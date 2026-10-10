@@ -23,6 +23,16 @@
      Dark mode keeps the black shadow, which already reads against the pale
      chip and beats teal there on contrast. */
   --chip-sh:var(--teal);
+  /* Live feed housing. Light mode keeps the dark monitor for contrast against
+     the pale page; dark mode flips it to a pale casing for the same reason.
+     The screen and LCD stay black glass in both so it still reads as a TV. */
+  --mon-bg:linear-gradient(172deg,#4E4740 0%,#2C2621 46%,#1F1A16 100%);
+  --mon-ink:#EDE6DC; --mon-engr:#C9BFB2; --mon-hint:#BDB3A7; --mon-fps:#8FE0CF;
+  --mon-emboss:0 -1px 0 rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.07);
+  --mon-rim:inset 0 2px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.35);
+  --hw-bg:linear-gradient(180deg,#5C554D,#36302A); --hw-ink:#EDE6DC;
+  --hw-hi:inset 0 1px 0 rgba(255,255,255,.22);
+  --mon-well:#1E1A16; --mon-well-ink:#EDE6DC;
   color-scheme:light;
 }
 [data-theme="dark"]{
@@ -33,6 +43,13 @@
   --ok:#4ECB71; --warn:#F0B429; --bad:#FF6B5E;
   --ok-tint:#1E3B27; --warn-tint:#453213; --bad-tint:#4A211C;
   --chip-sh:var(--edge);
+  --mon-bg:linear-gradient(172deg,#F4EFE7 0%,#D9D1C5 48%,#BDB3A5 100%);
+  --mon-ink:#1E1A16; --mon-engr:#3B342D; --mon-hint:#5A5148; --mon-fps:#0B7A70;
+  --mon-emboss:0 1px 0 rgba(255,255,255,.65), 0 -1px 0 rgba(0,0,0,.12);
+  --mon-rim:inset 0 2px 0 rgba(255,255,255,.85), inset 0 -3px 0 rgba(0,0,0,.18);
+  --hw-bg:linear-gradient(180deg,#FFFDF9,#DCD4C8); --hw-ink:#1E1A16;
+  --hw-hi:inset 0 1px 0 #fff;
+  --mon-well:#ECE6DC; --mon-well-ink:#1E1A16;
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -108,7 +125,7 @@ button,input{font:inherit;color:inherit}
 
 /* ---------------- status strip ---------------- */
 .strip{flex:none;display:grid;gap:var(--gap);align-items:stretch;
-  grid-template-columns:auto minmax(188px,1.05fr) repeat(3,minmax(72px,.6fr)) minmax(100px,.78fr) auto}
+  grid-template-columns:auto minmax(150px,.85fr) repeat(3,minmax(86px,.5fr)) minmax(84px,.55fr) minmax(168px,.95fr) auto}
 .brand{display:flex;align-items:center;gap:6px;border:2px solid var(--edge);
   border-radius:12px;padding:3px 9px;background:linear-gradient(162deg,var(--lite),var(--raised));
   box-shadow:var(--hard-sm), var(--soft-sm);cursor:default;user-select:none;
@@ -152,6 +169,87 @@ button,input{font:inherit;color:inherit}
 .box .ico{width:13px;height:13px}
 .c-bottle{color:#0F7BD4} .c-bag{color:#A32BC9} .c-cont{color:#1E9E4A}
 .box.bump .v{animation:pop .4s ease}
+
+/* ---------------- UPS battery ---------------- */
+/* Mirrors the UPS HAT (E) readout: a pack glyph that fills with charge, then
+   pack voltage, battery current and power. Current and power go negative when
+   the pack is feeding the Pi (AC unplugged), as the HAT reports them. */
+.batt{gap:2px}
+.batt .k b{font-weight:900;color:var(--text)}
+.bt-row{position:relative;z-index:1;display:flex;align-items:center;gap:8px}
+.bt-cell{position:relative;flex:none;width:50px;height:24px;border:2px solid var(--edge);
+  border-radius:6px;background:var(--sunk);box-shadow:var(--well);padding:2px;
+  margin-right:4px}
+.bt-cell::after{content:"";position:absolute;right:-6px;top:6px;width:4px;height:8px;
+  border:2px solid var(--edge);border-left:0;border-radius:0 3px 3px 0;background:var(--raised)}
+.bt-fill{display:block;height:100%;width:0;border-radius:3px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#7BE08F,var(--ok));
+  transition:width .7s cubic-bezier(.4,0,.2,1), background .3s}
+/* four 21700 cells, so four segments */
+.bt-cell .seg{position:absolute;inset:2px;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),var(--sunk) calc(25% - 1px) 25%)}
+.bt-bolt{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;
+  color:#fff;stroke:var(--edge);stroke-width:1.4;display:none;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+.b-chg .bt-bolt{display:block;animation:pop 1.6s ease-in-out infinite}
+.b-chg .bt-fill::after{content:"";position:absolute;top:0;bottom:0;width:40%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:sweep 2.2s ease-in-out infinite}
+.b-warn .bt-fill{background:linear-gradient(180deg,#F9CF6A,var(--warn))}
+.b-bad .bt-fill{background:linear-gradient(180deg,#FF8A7E,var(--bad))}
+.b-bad:not(.b-chg) .bt-cell{animation:blink 1.4s ease-in-out infinite}
+.b-bad{border-color:var(--bad)}
+.batt .v{font-size:19px}
+.bt-m{position:relative;z-index:1;margin:0;display:flex;gap:7px;font-size:11px;font-weight:800;
+  font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+.bt-m span{display:inline-flex;align-items:baseline;gap:1px}
+.bt-m small{font-size:9px;font-weight:800;color:var(--muted)}
+.bt-m .neg{color:#A35A00}
+[data-theme="dark"] .bt-m .neg{color:var(--warn)}
+.bt-m .pos{color:var(--teal)}
+.batt .k .ico{width:12px;height:12px}
+.b-chg .k .ico{color:var(--teal)}
+.b-dis .k .ico{color:#A35A00}
+[data-theme="dark"] .b-dis .k .ico{color:var(--warn)}
+.b-none .bt-m,.b-none .v{opacity:.45}
+
+/* ---------------- minimize to a bubble ---------------- */
+#app{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--gap);
+  transform-origin:calc(100% - 46px) calc(100% - 46px);
+  transition:transform .42s cubic-bezier(.6,-.05,.3,1), opacity .32s ease, filter .32s ease}
+.mini #app{transform:scale(.06);opacity:0;filter:blur(2px);pointer-events:none}
+.ctl-row #miniBtn{flex:none;width:36px;padding:0}
+#miniBtn .ico{width:16px;height:16px}
+#miniBtn:hover .m-arr{animation:mini .9s ease-in-out infinite}
+@keyframes mini{0%,100%{transform:translate(0,0)}50%{transform:translate(2px,2px)}}
+
+.bub{position:fixed;right:14px;bottom:14px;z-index:90;width:72px;height:72px;padding:0;
+  border-radius:50%;border:2px solid var(--edge);cursor:pointer;
+  background:linear-gradient(162deg,var(--lite),var(--raised));
+  box-shadow:var(--hard), var(--soft);display:grid;place-items:center;
+  opacity:0;transform:scale(.3) rotate(-30deg);pointer-events:none;
+  transition:opacity .2s ease, transform .45s cubic-bezier(.34,1.56,.64,1)}
+.mini .bub{opacity:1;transform:none;pointer-events:auto;transition-delay:.22s}
+.bub:active{transform:scale(.92);box-shadow:var(--press)}
+/* battery ring around the badge, same colours as the battery panel */
+.bub .ring{position:absolute;inset:4px;border-radius:50%;
+  background:conic-gradient(var(--ring,var(--ok)) calc(var(--p,0)*1%), var(--sunk) 0);
+  -webkit-mask:radial-gradient(circle,transparent 26px,#000 27px);
+          mask:radial-gradient(circle,transparent 26px,#000 27px)}
+.bub .logo{width:50px;height:50px;position:relative}
+.bub .dot2{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;
+  border:2px solid var(--edge);background:var(--ok);box-shadow:0 0 0 2px var(--raised)}
+.bub.alert .dot2{background:var(--bad);animation:pulse 1s ease-in-out infinite}
+.bub.off .dot2{background:var(--muted)}
+.bub .chg{position:absolute;bottom:-4px;left:50%;margin-left:-11px;width:22px;height:22px;
+  border-radius:50%;border:2px solid var(--edge);background:var(--teal);color:#fff;
+  display:none;place-items:center}
+.bub .chg .ico{width:12px;height:12px}
+.bub.charging .chg{display:grid}
+.mini .bub .logo{animation:bubIn .6s .3s ease both}
+@keyframes bubIn{0%{transform:scale(.6) rotate(-90deg)}100%{transform:none}}
+.mini .bub:not(:active){animation:bob 3.2s 1s ease-in-out infinite}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -3px}}
 
 .level::after{display:none}
 .level{padding:0}
@@ -245,12 +343,11 @@ main{flex:1;min-height:0;display:flex}
    Only the screen is black glass, so the feed gets the space the old header,
    inner TV frame and footer note used to take. */
 .card-feed{flex:1;min-width:0}
-.monitor{gap:0;padding:0;border-radius:18px;color:#EDE6DC;
-  background:linear-gradient(172deg,#4E4740 0%,#2C2621 46%,#1F1A16 100%);
-  box-shadow:var(--hard), var(--soft), inset 0 2px 0 rgba(255,255,255,.16),
-             inset 0 -3px 0 rgba(0,0,0,.35)}
-[data-theme="dark"] .monitor{background:linear-gradient(172deg,#3E3832 0%,#211C18 46%,#15110E 100%)}
+.monitor{gap:0;padding:0;border-radius:18px;color:var(--mon-ink);background:var(--mon-bg);
+  box-shadow:var(--hard), var(--soft), var(--mon-rim);
+  transition:background .35s ease, color .35s ease}
 .monitor::before{border-radius:16px 16px 50%/14px;opacity:.12}
+[data-theme="dark"] .monitor::before{opacity:.5}
 .mon-top,.mon-bot{position:relative;z-index:1;flex:none;display:flex;align-items:center;
   gap:8px;padding:0 10px}
 .mon-top{height:42px}
@@ -258,13 +355,15 @@ main{flex:1;min-height:0;display:flex}
 .led{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;
   box-shadow:0 0 7px var(--ok);animation:blink 2.6s ease-in-out infinite}
 .led.dead{background:var(--bad);box-shadow:0 0 7px var(--bad);animation:none}
-.engr{font-size:10px;font-weight:900;letter-spacing:.11em;color:#C9BFB2;white-space:nowrap;
-  text-shadow:0 -1px 0 rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.07)}
-.fpsb{color:#8FE0CF;font-variant-numeric:tabular-nums;min-width:52px}
+.engr{font-size:10px;font-weight:900;letter-spacing:.11em;color:var(--mon-engr);white-space:nowrap;
+  text-shadow:var(--mon-emboss)}
+.fpsb{color:var(--mon-fps);font-variant-numeric:tabular-nums;min-width:52px}
 .hint{flex:1;min-width:0;display:flex;align-items:center;gap:5px;overflow:hidden;
   text-overflow:ellipsis;letter-spacing:.02em;font-weight:700;color:#BDB3A7}
 .hint .ico{width:12px;height:12px;flex:none}
+.monitor .mon-top .hint{color:var(--mon-hint);margin:0;font-size:10px}
 .drawing .hint{color:#F0B429}
+[data-theme="dark"] .drawing .hint{color:#9A6A00}
 .screen{position:relative;flex:1;min-height:0;margin:0 10px;border-radius:9px;overflow:hidden;
   background:#0B0A09;border:2px solid #0E0C0A;
   box-shadow:inset 0 0 0 1px #000, inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.12)}
@@ -284,9 +383,9 @@ main{flex:1;min-height:0;display:flex}
 /* hardware buttons on the housing */
 .hw{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;
   min-height:32px;padding:0 12px;border-radius:9px;cursor:pointer;
-  font:inherit;font-size:12px;font-weight:900;letter-spacing:.03em;color:#EDE6DC;
-  border:2px solid #0E0C0A;background:linear-gradient(180deg,#5C554D,#36302A);
-  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22);
+  font:inherit;font-size:12px;font-weight:900;letter-spacing:.03em;color:var(--hw-ink);
+  border:2px solid #0E0C0A;background:var(--hw-bg);
+  box-shadow:0 3px 0 #0E0C0A, var(--hw-hi);
   transition:transform .08s ease, box-shadow .08s ease, filter .15s ease}
 .hw:hover{filter:brightness(1.12)}
 .hw:active{transform:translateY(3px);box-shadow:0 0 0 #0E0C0A, inset 0 2px 4px rgba(0,0,0,.45)}
@@ -327,17 +426,17 @@ main{flex:1;min-height:0;display:flex}
 .is-muted .prog.on{display:block}
 .lcd .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(240,180,41,.18)}
 .prog > i{display:block;height:100%;width:100%;background:#F0B429;transition:width .9s linear}
-.mon-bot .mute-pick{color:#C9BFB2;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
-.mon-bot .mute-pick select{background:#1E1A16;color:#EDE6DC;border:2px solid #0E0C0A;
+.mon-bot .mute-pick{color:var(--mon-engr);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.mon-bot .mute-pick select{background:var(--mon-well);color:var(--mon-well-ink);border:2px solid #0E0C0A;
   box-shadow:inset 0 2px 4px rgba(0,0,0,.5);text-transform:none;letter-spacing:0;
   min-height:32px}
 
 /* auto-mute switch */
 .sw{display:inline-flex;align-items:center;gap:7px;flex:none;min-height:32px;padding:0 4px;
   border:0;background:none;cursor:pointer;font:inherit;font-size:10px;font-weight:900;
-  letter-spacing:.08em;text-transform:uppercase;color:#C9BFB2}
+  letter-spacing:.08em;text-transform:uppercase;color:var(--mon-engr)}
 .sw > i{position:relative;width:38px;height:22px;border-radius:999px;flex:none;
-  background:#1E1A16;border:2px solid #0E0C0A;box-shadow:inset 0 2px 4px rgba(0,0,0,.55);
+  background:var(--mon-well);border:2px solid #0E0C0A;box-shadow:inset 0 2px 4px rgba(0,0,0,.55);
   transition:background .18s ease}
 .sw > i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
   border-radius:50%;background:linear-gradient(180deg,#F5F0E8,#B9AFA3);
@@ -345,7 +444,7 @@ main{flex:1;min-height:0;display:flex}
 .sw[aria-checked="true"] > i{background:var(--teal);box-shadow:inset 0 2px 4px rgba(0,0,0,.35),
   0 0 8px rgba(23,166,143,.55)}
 .sw[aria-checked="true"] > i::after{transform:translateX(16px)}
-.sw[aria-checked="true"]{color:#8FE0CF}
+.sw[aria-checked="true"]{color:var(--mon-fps)}
 .fs .sw{color:var(--muted);font-size:11px}
 .fs .sw[aria-checked="true"]{color:var(--teal)}
 .fs .mute .prog{position:relative;flex:none;width:90px;height:6px;border-radius:999px;
@@ -439,12 +538,11 @@ main{flex:1;min-height:0;display:flex}
 /* the shared .fsbtn rule is absolute for the bezel button; the exit button
    lives in the top bar instead */
 .mon-top .fsbtn{position:static;opacity:1;width:34px;height:auto;min-height:32px;
-  border-radius:9px;border:2px solid #0E0C0A;color:#EDE6DC;
-  background:linear-gradient(180deg,#5C554D,#36302A);
-  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22)}
-[data-theme="dark"] .mon-top .fsbtn{background:linear-gradient(180deg,#5C554D,#36302A);color:#EDE6DC}
+  border-radius:9px;border:2px solid #0E0C0A;color:var(--hw-ink);background:var(--hw-bg);
+  box-shadow:0 3px 0 #0E0C0A, var(--hw-hi)}
+[data-theme="dark"] .mon-top .fsbtn{background:var(--hw-bg);color:var(--hw-ink)}
 .mon-top .fsbtn:hover{transform:none;filter:brightness(1.12);
-  box-shadow:0 3px 0 #0E0C0A, inset 0 1px 0 rgba(255,255,255,.22)}
+  box-shadow:0 3px 0 #0E0C0A, var(--hw-hi)}
 .mon-top .fsbtn:active{transform:translateY(3px);box-shadow:0 0 0 #0E0C0A}
 .mon-top .fsbtn:disabled{opacity:.38}
 .fs-exit{position:static;width:44px;height:44px;flex:none;opacity:1}
@@ -698,11 +796,25 @@ a.btn{text-decoration:none}
   <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-box" viewBox="0 0 24 24">
     <path d="M3.6 7.4 12 3.4l8.4 4v9.2L12 20.6l-8.4-4z"/><path d="M3.6 7.4 12 11.5l8.4-4.1M12 11.5v9.1"/>
   </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-plug" viewBox="0 0 24 24">
+    <path d="M9 3v4M15 3v4"/><path d="M6.5 7h11v3.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 16v5"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-batt" viewBox="0 0 24 24">
+    <rect x="2.5" y="7" width="17" height="10" rx="2.4"/><path d="M21.5 10.5v3"/><path d="M6 10.5v3M9.5 10.5v3"/>
+  </symbol>
+  <symbol stroke-linejoin="round" id="i-bolt" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z"/>
+  </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-mini" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="18" height="18" rx="3.4"/>
+    <g class="m-arr"><path d="M8 8l6.6 6.6"/><path d="M15.2 9.6v5.6H9.6"/></g>
+  </symbol>
   <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-wrench" viewBox="0 0 24 24">
     <path d="M15.6 3.4a5.4 5.4 0 0 0-5.1 7.1L3.4 17.6l3 3 7.1-7.1a5.4 5.4 0 0 0 6.9-6.6l-3.1 3.1-2.9-.6-.6-2.9z"/>
   </symbol>
 </svg>
 
+<div id="app">
 <header class="strip">
   <div class="brand" id="brand" title="Garbage-Guard">
     <span class="logo">
@@ -731,6 +843,18 @@ a.btn{text-decoration:none}
     <p class="v"><span id="lat">–</span><small> ms</small></p>
     <p class="k">Avg <span id="latAvg">–</span> ms</p></div>
 
+  <div class="box batt b-none" id="batt" title="UPS battery">
+    <p class="k"><svg class="ico" id="battIco"><use href="#i-batt"/></svg><span id="battSrc">Battery</span></p>
+    <div class="bt-row">
+      <span class="bt-cell" aria-hidden="true"><i class="bt-fill" id="battFill"></i><i class="seg"></i>
+        <svg class="bt-bolt"><use href="#i-bolt"/></svg></span>
+      <p class="v"><span id="battPct">–</span><small>%</small></p>
+    </div>
+    <p class="bt-m"><span><b id="battV">–</b><small>V</small></span>
+      <span id="battAw"><b id="battA">–</b><small>A</small></span>
+      <span id="battWw"><b id="battW">–</b><small>W</small></span></p>
+  </div>
+
   <div class="ctl">
     <span class="pill online" id="connPill"><svg class="ico" id="connIco"><use href="#i-signal"/></svg>
       <span id="conn">Connecting</span></span>
@@ -745,6 +869,8 @@ a.btn{text-decoration:none}
       <a class="btn sm" id="wifiBtn" href="/wifi" hidden title="Wi-Fi setup" aria-label="Wi-Fi setup">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.6a9 9 0 0 1 12.4 0M9 16.2a4.4 4.4 0 0 1 6 0"/><circle cx="12" cy="19.4" r=".9" fill="currentColor"/></svg></a>
+      <button class="btn sm" id="miniBtn" type="button" title="Minimize" aria-label="Minimize dashboard">
+        <svg class="ico"><use href="#i-mini"/></svg></button>
     </div>
   </div>
 </header>
@@ -879,6 +1005,14 @@ a.btn{text-decoration:none}
     </div>
   </section>
 </main>
+</div>
+
+<button class="bub" id="bub" type="button" aria-label="Open the dashboard" title="Open the dashboard">
+  <span class="ring" id="bubRing"></span>
+  <span class="logo" id="bubLogo"></span>
+  <span class="dot2"></span>
+  <span class="chg"><svg class="ico"><use href="#i-bolt"/></svg></span>
+</button>
 
 <section class="fs" id="fsRoot" hidden aria-label="Fullscreen live feed">
   <div class="fs-top">
@@ -1401,6 +1535,7 @@ async function refresh(){
     setMuteBar(s);
     if(fsOn) setFsPanel(s);
     setLevel(s);
+    paintBubble();
     const c = s.counts||{};
     bump("nBottle", c.bottle||0); bump("nBag", c.bag||0); bump("nCont", c.food_container||0);
     $("lat").textContent = s.latency_ms;
@@ -1436,6 +1571,72 @@ pullFrame(); refresh(); loadLogs();
 setInterval(pullFrame, 120);
 setInterval(refresh, 1000);
 setInterval(() => { if($("history").classList.contains("on")) loadLogs(); }, 5000);
+
+/* ---------------- UPS battery ---------------- */
+let batt = null;
+function fmtSigned(v, dp){
+  if(v == null) return "–";
+  const t = Math.abs(v).toFixed(dp);
+  return v < 0 && Number(t) !== 0 ? "−" + t : (v > 0 && Number(t) !== 0 ? "+" + t : t);
+}
+function setBattery(b){
+  batt = b;
+  const box = $("batt");
+  if(!b || !b.ok){
+    box.className = "box batt b-none";
+    $("battSrc").textContent = "No UPS found";
+    $("battPct").textContent = "–"; $("battV").textContent = "–";
+    $("battA").textContent = "–"; $("battW").textContent = "–";
+    $("battFill").style.width = "0";
+    paintBubble(); return;
+  }
+  const p = Math.max(0, Math.min(100, Math.round(b.percent)));
+  const lv = p <= 20 ? "b-bad" : p <= 40 ? "b-warn" : "b-ok";
+  const mode = b.charging ? "b-chg" : b.on_ac ? "b-ac" : "b-dis";
+  box.className = `box batt ${lv} ${mode}`;
+  $("battIco").querySelector("use").setAttribute("href", b.on_ac ? "#i-plug" : "#i-batt");
+  const left = b.minutes_left;
+  const hm = left == null ? "" : left >= 60 ? ` · ${Math.floor(left/60)} h ${left%60} m` : ` · ${left} m`;
+  $("battSrc").innerHTML = b.charging ? `On AC, <b>charging</b>${hm}`
+                         : b.on_ac ? `On AC, <b>${p >= 99 ? "full" : "idle"}</b>`
+                         : `On battery${hm} left`;
+  $("battPct").textContent = p;
+  $("battFill").style.width = p + "%";
+  $("battV").textContent = b.voltage_v.toFixed(2);
+  $("battA").textContent = fmtSigned(b.current_a, 2);
+  $("battW").textContent = fmtSigned(b.power_w, 1);
+  const sign = b.current_a < -0.005 ? "neg" : b.current_a > 0.005 ? "pos" : "";
+  $("battAw").className = $("battWw").className = sign;
+  paintBubble();
+}
+async function pollBattery(){
+  try{ setBattery(await (await fetch("/api/battery")).json()); }catch(e){ setBattery(null); }
+}
+
+/* ---------------- minimize ---------------- */
+/* The kiosk browser cannot shrink its own window, so the page collapses into
+   a small badge in the corner. Tapping the badge brings the dashboard back. */
+$("bubLogo").innerHTML = document.querySelector("#brand .logo").innerHTML;
+function paintBubble(){
+  const bub = $("bub"), s = last || {};
+  const p = batt && batt.ok ? Math.round(batt.percent) : 0;
+  bub.style.setProperty("--p", p);
+  bub.style.setProperty("--ring", p <= 20 ? "var(--bad)" : p <= 40 ? "var(--warn)" : "var(--ok)");
+  bub.classList.toggle("alert", !!s.alert_active && !s.muted);
+  bub.classList.toggle("off", s.connected === false);
+  bub.classList.toggle("charging", !!(batt && batt.charging));
+}
+function setMini(on){
+  document.body.classList.toggle("mini", on);
+  if(on && fsOn) closeFs();
+  paintBubble();
+  post("/api/window", {mode: on ? "mini" : "full"}).catch(() => {});
+}
+$("miniBtn").onclick = () => setMini(true);
+$("bub").onclick = () => setMini(false);
+
+pollBattery();
+setInterval(pollBattery, 2000);
 
 /* Wi-Fi shortcut: shown only on the Pi's own screen, where setup is allowed. */
 fetch("/api/net").then(r => r.json()).then(n => {
