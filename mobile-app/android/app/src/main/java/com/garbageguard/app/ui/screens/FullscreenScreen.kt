@@ -5,56 +5,50 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.LiveState
-import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.ui.Overlay
 import com.garbageguard.app.ui.components.AlertFlag
-import com.garbageguard.app.ui.components.AutoSwitch
-import com.garbageguard.app.ui.components.BtnKind
-import com.garbageguard.app.ui.components.ConnPill
-import com.garbageguard.app.ui.components.FEED_BLACK
+import com.garbageguard.app.ui.components.BrandLogo
 import com.garbageguard.app.ui.components.FeedCanvas
-import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.Ico
-import com.garbageguard.app.ui.components.LcdTone
-import com.garbageguard.app.ui.components.MonitorHousing
+import com.garbageguard.app.ui.components.Led
 import com.garbageguard.app.ui.components.OfflinePanel
-import com.garbageguard.app.ui.components.T
-import com.garbageguard.app.ui.components.BrandLogo
-import com.garbageguard.app.ui.components.neuInset
+import com.garbageguard.app.ui.components.RailChip
+import com.garbageguard.app.ui.components.RailFigure
+import com.garbageguard.app.ui.components.RailKey
+import com.garbageguard.app.ui.components.RailLabel
+import com.garbageguard.app.ui.components.RailMeter
+import com.garbageguard.app.ui.components.RailNote
+import com.garbageguard.app.ui.components.RailReadout
+import com.garbageguard.app.ui.components.RailState
+import com.garbageguard.app.ui.components.WideMonitor
+import com.garbageguard.app.ui.components.feedAspect
+import com.garbageguard.app.ui.components.pressable
 import com.garbageguard.app.ui.components.rememberLiveFrame
-import com.garbageguard.app.ui.components.neuRaised
 import com.garbageguard.app.ui.components.scanLines
 import com.garbageguard.app.ui.theme.Gg
 import kotlin.math.roundToInt
@@ -73,20 +67,24 @@ fun LandscapeImmersive() {
     DisposableEffect(Unit) {
         val activity = context.findActivity()
         val bars = activity?.window?.let { WindowCompat.getInsetsController(it, view) }
+        val before = activity?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         bars?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         bars?.hide(WindowInsetsCompat.Type.systemBars())
         onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.requestedOrientation = before
             bars?.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 }
 
 /**
- * The feed turned sideways. One composable covers both uses in the mockup:
- * watching (counts, state, Mute and Capture on one bar) and drawing the
- * monitored area (Undo, Clear, Cancel, Apply).
+ * The feed turned sideways, with the picture as large as the phone allows.
+ * There is no bar above or below it: the picture takes the full height at
+ * the camera's own shape, and the readouts (left) and keys (right) stand
+ * beside it. Only the monitor is reversed against the theme, as on the Pi's
+ * dashboard; the readouts and keys follow the page. Tapping the picture hides them.
+ * The same screen is used to draw the monitored area.
  */
 @Composable
 fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
@@ -98,145 +96,81 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
     val online = state.conn == ConnState.ONLINE
     val level = levelOf(state)
     val p = percentOf(state)
+    val image = rememberLiveFrame(vm.frameUrl)
+    var rails by rememberSaveable { mutableStateOf(true) }
+    val tone = when (level.lv) { Lv.OK -> c.ok; Lv.WARN -> c.warn; Lv.BAD -> c.bad; Lv.GRAY -> c.muted }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(c.base)
-            .windowInsetsPadding(WindowInsets.displayCutout)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        // ---- top bar ----
-        Bar {
+    WideMonitor(
+        aspect = feedAspect(image),
+        rails = rails || vm.drawing,
+        modifier = Modifier.fillMaxSize(),
+        left = {
+            BrandLogo(34.dp, onLongHold = vm::openGame)
             if (vm.drawing) {
-                T("DRAW AREA", weight = FontWeight.Black, color = c.text, maxLines = 1)
-                val n = vm.drawPoints.size
-                T(
-                    "Drawing: $n point${if (n == 1) "" else "s"} placed. Apply when closed.",
-                    size = 0.8f, weight = FontWeight.Bold, color = c.muted, maxLines = 1,
-                )
-                Spacer(Modifier.weight(1f))
-                GgButton(null, vm::closeFullscreen, icon = GgIcons.X, small = true, square = true)
+                RailLabel("DRAW AREA", GgIcons.Target, c.cloud)
+                RailReadout("${vm.drawPoints.size}", "POINTS")
+                RailNote("Tap the picture to outline the water. Apply when the shape is closed.")
             } else {
-                BrandLogo(38.dp, onLongHold = vm::openGame)
-                ConnPill(state.conn, onlineLabel = "Camera online", cloud = vm.remote)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)
-                    T("LATENCY ${state.latencyMs.roundToInt()} MS", size = 0.74f, color = c.muted, tnum = true, spacing = 0.05f, maxLines = 1)
+                    Led(online)
+                    if (vm.remote) Ico(GgIcons.Cloud, size = 12.dp, tint = c.cloud)
+                    RailLabel(if (vm.remote) "REMOTE" else "CAM 01")
                 }
-                Spacer(Modifier.weight(1f))
-                GgButton(
-                    null, { vm.toggleTheme(c.isDark) }, icon = if (c.isDark) GgIcons.Sun else GgIcons.Moon,
-                    small = true, square = true,
+                RailReadout(if (online) "%.1f".format(state.fps) else "--", "FPS", GgIcons.Activity, c.container)
+                RailState(
+                    icon = level.icon,
+                    label = level.label,
+                    sub = if (state.alertActive && state.muted) muteLeftLabel(state.muteLeft) else null,
+                    fill = when (level.lv) { Lv.OK -> c.okTint; Lv.WARN -> c.warnTint; Lv.BAD -> c.bad; Lv.GRAY -> c.base2 },
+                    ink = when (level.lv) { Lv.BAD -> c.onBad; else -> c.text },
+                    pulse = state.alertActive && !state.muted,
                 )
-                GgButton(null, vm::closeFullscreen, icon = GgIcons.Shrink, small = true, square = true)
+                RailLabel("ITEMS", GgIcons.Gauge, c.warn)
+                RailMeter(p / 100f, tone)
+                RailFigure("${state.smoothed}", if (level.lv == Lv.BAD) c.bad else null)
+                RailLabel("OF ${state.threshold} · $p%")
+                RailChip(GgIcons.Bottle, c.bottle, "${state.bottle}")
+                RailChip(GgIcons.Bag, c.bag, "${state.bag}")
+                RailChip(GgIcons.Container, c.container, "${state.foodContainer}")
             }
-        }
-
-        // ---- the monitor ----
-        // The bars above and below follow the page theme. Only the monitor
-        // takes the reverse theme, as on the Pi's dashboard, and the glass
-        // stays black in both.
-        val lcd = when {
-            vm.drawing -> LcdTone.MUTED to "TAP TO OUTLINE THE WATER · ${vm.drawPoints.size} PLACED"
-            state.conn == ConnState.NO_PI -> LcdTone.ALERT to "NO LINK TO PI"
-            !online -> LcdTone.ALERT to "NO CAMERA SIGNAL"
-            state.alertActive && state.muted ->
-                LcdTone.MUTED to "${if (state.autoMuted) "AUTO-MUTED" else "ALERT MUTED"} · ${muteLeftLabel(state.muteLeft).uppercase()}"
-            state.alertActive -> LcdTone.ALERT to "ACCUMULATION ALERT"
-            else -> LcdTone.IDLE to "NO ALERT"
-        }
-        val muteFraction = if (state.muted && state.muteLeft != null && state.muteTotal > 0) {
-            (state.muteLeft.toFloat() / state.muteTotal).coerceIn(0f, 1f)
-        } else null
-        MonitorHousing(
-            online = online,
-            fpsLabel = fpsLabel(state),
-            lcdText = lcd.second,
-            lcdTone = lcd.first,
-            lcdProgress = muteFraction,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-        ) {
-            FeedCanvas(
-                frame = frameOf(state).copy(outline = !vm.drawing),
-                modifier = Modifier.fillMaxSize(),
-                cover = false,
-                image = rememberLiveFrame(vm.frameUrl),
-                drawPoints = if (vm.drawing) vm.drawPoints else null,
-                onTap = {
-                    Feel.tap(view)
-                    vm.drawPoints.add(it)
-                },
-            )
-            Box(Modifier.fillMaxSize().scanLines())
-            if (state.alertActive && !state.muted && online && !vm.drawing) AlertFlag()
-            if (!online) OfflinePanel(state.conn == ConnState.NO_PI)
-        }
-
-        // ---- bottom bar ----
-        Bar {
+        },
+        right = {
             if (vm.drawing) {
+                RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen)
                 Spacer(Modifier.weight(1f))
-                GgButton("Undo", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) }, icon = GgIcons.Undo, small = true)
-                GgButton("Clear", { vm.drawPoints.clear() }, icon = GgIcons.Eraser, small = true)
-                GgButton("Cancel", vm::closeFullscreen, small = true)
-                GgButton("Apply", vm::applyArea, icon = GgIcons.Check, kind = BtnKind.INK, small = true)
+                RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) })
+                RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() })
+                RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true)
             } else {
-                val stateFill = when (level.lv) { Lv.WARN -> c.warnTint; Lv.BAD -> c.badTint; else -> c.base2 }
-                val stateInk = if (level.lv == Lv.BAD) c.bad else c.text
-                Row(
-                    Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(stateFill)
-                        .border(2.dp, c.edge, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Ico(level.icon, size = 14.dp, tint = stateInk)
-                    T(level.label.uppercase(), size = 0.8f, color = stateInk, spacing = 0.04f, maxLines = 1)
-                }
-                Ico(GgIcons.Gauge, size = 14.dp, tint = c.warnText)
-                T(
-                    "$p% · ${state.smoothed} OF ${state.threshold}",
-                    size = 0.8f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1,
-                )
-                ClassChip(state.bottle, c.bottle, GgIcons.Bottle)
-                ClassChip(state.bag, c.bag, GgIcons.Bag)
-                ClassChip(state.foodContainer, c.container, GgIcons.Container)
+                RailKey(GgIcons.Shrink, "EXIT", vm::closeFullscreen)
+                RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, if (c.isDark) "LIGHT" else "DARK", { vm.toggleTheme(c.isDark) })
                 Spacer(Modifier.weight(1f))
-                AutoSwitch(state.autoMute, vm::toggleAutoMute)
+                RailNote("Tap the picture to hide the keys.")
+                RailReadout(if (state.conn == ConnState.NO_PI) "-- MS" else "${state.latencyMs.roundToInt()} MS", "LATENCY", GgIcons.Clock, c.bag)
+                RailKey(GgIcons.BellAuto, if (state.autoMute) "AUTO ON" else "AUTO OFF", vm::toggleAutoMute, lit = state.autoMute, toggle = true)
                 if (state.alertActive) {
-                    if (state.muted) GgButton("Unmute", vm::unmute, icon = GgIcons.Bell, kind = BtnKind.TEAL, small = true)
-                    else GgButton("Mute", { vm.overlay = Overlay.Mute }, icon = GgIcons.EyeOff, small = true)
+                    if (state.muted) RailKey(GgIcons.Bell, "UNMUTE", vm::unmute, lit = true)
+                    else RailKey(GgIcons.EyeOff, "MUTE", { vm.overlay = Overlay.Mute })
                 }
-                GgButton("Capture", vm::capture, icon = GgIcons.Shutter, kind = BtnKind.TEAL, small = true, enabled = online)
+                RailKey(GgIcons.Shutter, "CAPTURE", vm::capture, lit = true, enabled = online)
             }
-        }
-    }
-}
-
-/** .fst and .fsbt */
-@Composable
-private fun Bar(content: @Composable RowScope.() -> Unit) {
-    val c = Gg.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .neuRaised(c, 13.dp)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        content = content,
-    )
-}
-
-/** .fchip */
-@Composable
-private fun ClassChip(count: Int, tint: Color, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Ico(icon, size = 16.dp, tint = tint)
-        T("$count", size = 1.1f, color = Gg.colors.text, tnum = true)
+        },
+    ) {
+        FeedCanvas(
+            frame = frameOf(state).copy(outline = !vm.drawing),
+            modifier = Modifier.fillMaxSize(),
+            cover = false,
+            image = image,
+            drawPoints = if (vm.drawing) vm.drawPoints else null,
+            onTap = {
+                Feel.tap(view)
+                vm.drawPoints.add(it)
+            },
+        )
+        Box(Modifier.fillMaxSize().scanLines())
+        // A tap on the picture clears the bezel, and a second tap brings it back.
+        if (!vm.drawing) Box(Modifier.fillMaxSize().pressable { rails = !rails })
+        if (state.alertActive && !state.muted && online && !vm.drawing) AlertFlag()
+        if (!online) OfflinePanel(state.conn == ConnState.NO_PI)
     }
 }

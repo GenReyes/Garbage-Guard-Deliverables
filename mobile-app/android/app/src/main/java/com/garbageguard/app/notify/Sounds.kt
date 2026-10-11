@@ -18,7 +18,7 @@ object Sounds {
         if (pool != null) return
         val app = context.applicationContext
         val made = SoundPool.Builder()
-            .setMaxStreams(4)
+            .setMaxStreams(6)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
@@ -27,7 +27,7 @@ object Sounds {
             )
             .build()
         pool = made
-        listOf(R.raw.gg_capture, R.raw.gg_mute, R.raw.gg_unmute, R.raw.gg_slice, R.raw.gg_miss, R.raw.gg_tap, R.raw.gg_switch, R.raw.gg_combo, R.raw.gg_bomb, R.raw.gg_boss, R.raw.gg_win).forEach {
+        listOf(R.raw.gg_capture, R.raw.gg_mute, R.raw.gg_unmute, R.raw.gg_slice, R.raw.gg_miss, R.raw.gg_tap, R.raw.gg_switch, R.raw.gg_combo, R.raw.gg_bomb, R.raw.gg_boss, R.raw.gg_win, R.raw.gg_block, R.raw.gg_dodge, R.raw.gg_cast).forEach {
             loaded[it] = made.load(app, it, 1)
         }
     }

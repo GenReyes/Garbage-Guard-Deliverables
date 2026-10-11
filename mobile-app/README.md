@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v5.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
+| `Garbage-Guard v6.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
@@ -22,6 +22,9 @@ few seconds.
 
 - **Monitor:** item count against the limit, per-class counts, the live
   camera feed, capture, mute and auto-mute, and camera reconnect.
+- **Fullscreen:** the picture takes the full height of the phone at the
+  camera's own shape, with readouts and keys on the bezel either side.
+  Tapping the picture hides them.
 - **History:** every alert, capture, test and mute event with its snapshot,
   read and unread state, filters, and deletion.
 - **Settings:** detection confidence, accumulation limit, the monitored
@@ -37,6 +40,10 @@ few seconds.
   with a switch in Settings.
 - **Firebase:** remote view when the phone is away from the Pi's Wi-Fi,
   with the month's data use shown in Settings.
+- **Any screen:** the layout is drawn once for a phone 411 dp wide and scaled
+  to fit, so small phones, large phones and tablets show the same design.
+  Phones stay upright except in fullscreen and full-size views; on a tablet
+  held sideways the pages sit as a phone-wide column in the middle.
 - **Demo mode:** runs on invented data with no Pi, for showing the app.
 
 The look is the project's own "Brutal-Morph" style: the soft depth of
@@ -76,7 +83,7 @@ gg.fb.password=<phone account password>
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v5.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v6.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 

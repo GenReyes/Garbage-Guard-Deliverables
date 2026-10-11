@@ -7,12 +7,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import com.garbageguard.app.ui.components.feedAspect
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -118,7 +121,7 @@ fun OverlayHost(
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
-            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), close)
+            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), { vm.overlay = Overlay.Delete(row.id) }, close)
         }
         Overlay.ClearArea -> GgSheet(close) {
             SheetTitle("Clear monitored area?")
@@ -553,7 +556,7 @@ private fun SheetTextIn(text: String, modifier: Modifier) {
 
 /** .viewer, the snapshot with its numbers. */
 @Composable
-private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) {
+private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Unit, close: () -> Unit) {
     val image = rememberSnapshot(imageUrl)
     val c = Gg.colors
     var fullSize by remember { mutableStateOf(false) }
@@ -572,7 +575,63 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
         return
     }
 
-    Column(
+    val limit = row.thresholdUsed
+    val pct = if (limit > 0) Math.round(row.smoothedCount * 100f / limit) else 0
+    val tone = when { pct >= 100 -> c.bad; pct >= 50 -> c.warn; else -> c.ok }
+    val conf = row.peakConfidence?.let { "${Math.round(it * 100)}%" } ?: "–"
+
+    val header: @Composable () -> Unit = {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            EventPill(row.event)
+            Box(Modifier.weight(1f))
+            GgButton("Close", close, kind = BtnKind.INK, small = true)
+        }
+    }
+    // The readings share out whatever room they are given, so the space
+    // beside or under the picture is used in full on any size of screen.
+    val readings: @Composable (Modifier) -> Unit = { place ->
+        Column(place.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.fillMaxWidth().weight(1.25f).neuRaised(c, 16.dp, hard = 4.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Ico(GgIcons.Layers, size = 14.dp, tint = accentOf(GgIcons.Layers))
+                    T("ITEMS IN THE AREA", Modifier.weight(1f), size = 0.72f, color = c.muted, spacing = 0.06f, fit = true)
+                    Ico(GgIcons.Gauge, size = 14.dp, tint = tone)
+                    T("$pct% OF LIMIT", size = 0.72f, weight = FontWeight.Black, color = tone, tnum = true, spacing = 0.05f, maxLines = 1)
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    T("${row.smoothedCount}", size = 3.4f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f)
+                    T("OF $limit ITEMS", Modifier.padding(bottom = 7.dp), size = 0.95f, color = c.muted, spacing = 0.04f, maxLines = 1)
+                }
+                Row(Modifier.fillMaxWidth().height(16.dp).neuWell(c, 8.dp)) {
+                    val f = (pct / 100f).coerceIn(0f, 1f)
+                    if (f > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(tone))
+                }
+            }
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile("${row.nBottle}", "Bottle", GgIcons.Bottle, c.bottle, Modifier.weight(1f))
+                StatTile("${row.nBag}", "Bag", GgIcons.Bag, c.bag, Modifier.weight(1f))
+                StatTile("${row.nFoodContainer}", "Container", GgIcons.Container, c.container, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile(conf, "Confidence", GgIcons.Target, accentOf(GgIcons.Target), Modifier.weight(1f))
+                StatTile(row.timestamp.drop(11).take(5), "Time", GgIcons.Clock, accentOf(GgIcons.Clock), Modifier.weight(1f))
+                StatTile(row.timestamp.take(10).drop(5), "Date", GgIcons.Calendar, accentOf(GgIcons.Calendar), Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GgButton("Delete", onDelete, Modifier.weight(1f), icon = GgIcons.Trash, kind = BtnKind.DANGER)
+                GgButton("Full size", { fullSize = true }, Modifier.weight(1.4f), icon = GgIcons.Expand, kind = BtnKind.TEAL)
+            }
+        }
+    }
+
+    BoxWithConstraints(
         Modifier
             .fillMaxSize()
             .ggBackground(c)
@@ -580,44 +639,51 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Ico(GgIcons.Shutter, size = 16.dp, tint = c.text)
-            T("${row.event.label}, ${row.timestamp.drop(5)}", Modifier.weight(1f), weight = FontWeight.Black, color = c.text)
-            GgButton("Full size", { fullSize = true }, icon = GgIcons.Eye, small = true)
-            GgButton("Close", close, kind = BtnKind.INK, small = true)
-        }
-        Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).background(FEED_BLACK)) {
-            // A real snapshot is evidence, so it is fitted whole, not cropped.
-            FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = image == null, image = image)
-        }
-        val conf = row.peakConfidence?.let { "${Math.round(it * 100)}%" } ?: "–"
-        val cells = listOf(
-            Triple("${row.smoothedCount}", "Items", GgIcons.Layers),
-            Triple("${row.nBottle}", "Bottle", GgIcons.Bottle),
-            Triple("${row.nBag}", "Bag", GgIcons.Bag),
-            Triple("${row.nFoodContainer}", "Container", GgIcons.Container),
-            Triple(conf, "Peak confidence", GgIcons.Target),
-            Triple("${row.thresholdUsed}", "Limit then", GgIcons.Gauge),
-        )
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            cells.chunked(3).forEach { line ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    line.forEach { (value, label, symbol) ->
-                        Column(Modifier.weight(1f)) {
-                            T(value, size = 1.3f, weight = FontWeight.Black, color = c.text, tnum = true)
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Ico(symbol, size = 12.dp, tint = accentOf(symbol))
-                                T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f)
-                            }
-                        }
-                    }
+        val wide = maxWidth
+        val tall = maxHeight
+        if (wide > tall) {
+            // A wide window, such as a tablet on its side: the picture takes
+            // the full height and the readings stand in a column beside it.
+            Row(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f).fillMaxHeight().background(FEED_BLACK).pressable { fullSize = true }) {
+                    FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image)
+                }
+                Box(Modifier.fillMaxHeight().width(2.dp).background(c.edge))
+                Column(Modifier.width(minOf(wide * 0.42f, 380.dp)).fillMaxHeight()) {
+                    header()
+                    readings(Modifier.weight(1f))
                 }
             }
+        } else {
+            val shape = feedAspect(image)
+            // On a short screen the picture gives up a little height so the readings still fit.
+            val pictureHeight = minOf(wide / shape, tall * 0.45f)
+            Column(Modifier.fillMaxSize()) {
+                header()
+                Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
+                // A real snapshot is evidence, so the whole of it shows, with nothing cropped.
+                Box(Modifier.fillMaxWidth().height(pictureHeight).background(FEED_BLACK).pressable { fullSize = true }) {
+                    FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image)
+                }
+                Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
+                readings(Modifier.weight(1f))
+            }
         }
+    }
+}
+
+/** One reading on the snapshot page: its symbol and name, and the figure as large as the tile allows. */
+@Composable
+private fun StatTile(value: String, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier) {
+    val c = Gg.colors
+    Column(
+        modifier.fillMaxHeight().neuRaised(c, 14.dp).padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Ico(icon, size = 15.dp, tint = tint)
+            T(label.uppercase(), Modifier.weight(1f), size = 0.64f, color = c.muted, spacing = 0.05f, fit = true)
+        }
+        T(value, Modifier.fillMaxWidth(), size = 2.6f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f, fit = true)
     }
 }

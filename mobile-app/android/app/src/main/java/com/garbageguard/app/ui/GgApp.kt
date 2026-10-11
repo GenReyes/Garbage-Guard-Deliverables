@@ -20,7 +20,15 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -81,12 +89,29 @@ fun GgApp(vm: AppViewModel) {
             }
         }
 
-        CompositionLocalProvider(LocalContentColor provides c.text) {
+        // One look on every screen. The layout is drawn for a phone 411 dp
+        // wide; narrower phones scale it down a little and tablets scale it
+        // up, so sizes, spacing and text keep the same proportions everywhere.
+        // The phone's own font size setting is kept within a small range so
+        // that no label is ever cut off.
+        val cfg = LocalConfiguration.current
+        val base = LocalDensity.current
+        // The pages are upright designs, so in a short or sideways window they are
+        // also held to its height and sit as a phone-wide column in the middle.
+        // Fullscreen is a sideways design and is sized by the short side alone.
+        val byWidth = cfg.smallestScreenWidthDp / 411f
+        val fit = (if (vm.fullscreen) byWidth else minOf(byWidth, cfg.screenHeightDp / 740f)).coerceIn(0.8f, 1.7f)
+        val scaled = remember(base.density, base.fontScale, fit) {
+            Density(base.density * fit, base.fontScale.coerceIn(0.9f, 1.1f))
+        }
+
+        CompositionLocalProvider(LocalContentColor provides c.text, LocalDensity provides scaled) {
             Box(Modifier.fillMaxSize().ggBackground(c)) {
                 if (vm.fullscreen) {
                     FullscreenScreen(vm, state)
                 } else {
-                    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                    // On a wide window the pages keep a phone's width and sit in the middle.
+                    Column(Modifier.align(Alignment.TopCenter).fillMaxHeight().widthIn(max = 480.dp).fillMaxWidth().statusBarsPadding()) {
                         if (!vm.setupDone) {
                             SetupScreen(vm)
                         } else {

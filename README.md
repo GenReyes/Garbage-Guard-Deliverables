@@ -43,7 +43,7 @@ rather than duplicating it, so there's only ever one copy to go stale.
 | Run the system on the Pi | [`pi/README.md`](pi/README.md) → Running it |
 | Run the counting tests | [`pi/README.md`](pi/README.md) → Running the tests |
 | Build the mobile app | [`mobile-app/README.md`](mobile-app/README.md) |
-| Install the app on a phone | [`mobile-app/Garbage-Guard v5.apk`](mobile-app/Garbage-Guard%20v5.apk) |
+| Install the app on a phone | [`mobile-app/Garbage-Guard v6.apk`](mobile-app/Garbage-Guard%20v6.apk) |
 | Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
 | Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
 

@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -765,6 +766,7 @@ fun GgSheet(onDismiss: () -> Unit, dismissable: Boolean = true, content: @Compos
         Column(
             Modifier
                 .align(Alignment.BottomCenter)
+                .widthIn(max = 480.dp)
                 .fillMaxWidth()
                 .graphicsLayer { translationY = slide.value * size.height }
                 .drawBehind {
