@@ -736,6 +736,12 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     else if(e.key==='Tab'||e.key==='Enter'){cfKey('NEXT');e.preventDefault()}
     else if(e.key.length===1){cfKey(e.key);e.preventDefault()}
   });
+  document.addEventListener('paste',function(e){
+    if(!$('vCloud').classList.contains('on')||!cf.enabled)return;
+    var t=((e.clipboardData&&e.clipboardData.getData('text'))||'').replace(/\s+/g,'');
+    if(!t)return;
+    cf[cfFocus]=t.slice(0,200);delete cfErr[cfFocus];cfPaint();e.preventDefault();
+  });
   $('cfOn').onclick=function(){cf.enabled=true;cfPaint()};
   $('cfOff').onclick=function(){cf.enabled=false;cfPaint()};
   $('cfBack').onclick=function(){listMode()};
