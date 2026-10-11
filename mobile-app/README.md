@@ -44,6 +44,8 @@ few seconds.
   to fit, so small phones, large phones and tablets show the same design.
   Phones stay upright except in fullscreen and full-size views; on a tablet
   held sideways the pages sit as a phone-wide column in the middle.
+- **Home-screen icon:** the light logo or the dark one, following the theme
+  the app was last left in. It changes when the app leaves the screen.
 - **Demo mode:** runs on invented data with no Pi, for showing the app.
 
 The look is the project's own "Brutal-Morph" style: the soft depth of

@@ -146,11 +146,45 @@ fun Modifier.neuRaised(
     edge: Color = c.edge,
 ): Modifier {
     val shape = RoundedCornerShape(radius)
+    // A plain raised face is never quite flat: it is a shade lighter toward
+    // the light, and its rim is lit on one side and shaded on the other.
+    val face = fill ?: if (fillColor == c.raised) cardBrush(c) else null
     return this
         .neuShadow(c, radius, hard, soft)
         .clip(shape)
-        .then(if (fill != null) Modifier.background(fill) else Modifier.background(fillColor))
+        .then(if (face != null) Modifier.background(face) else Modifier.background(fillColor))
+        .neuBevel(c, radius)
         .border(2.dp, edge, shape)
+}
+
+/** The face of a raised card: the lightest touch of the highlight colour at the top left, easing into the surface. */
+fun cardBrush(c: GgColors): Brush =
+    angledBrush(162f, 0f to androidx.compose.ui.graphics.lerp(c.raised, c.lite, 0.5f), 0.5f to c.raised, 1f to c.raised)
+
+/**
+ * The Neumorphism rim: a fine lit line along the top and left and a shaded
+ * one along the bottom and right, just inside the hard outline. It is what
+ * makes a raised surface look pressed out of the page, not printed on it.
+ */
+fun Modifier.neuBevel(c: GgColors, radius: Dp): Modifier = drawWithCache {
+    val inset = 3.dp.toPx()
+    val w = 1.5.dp.toPx()
+    val r = (radius.toPx() - inset).coerceAtLeast(0f)
+    val brush = Brush.linearGradient(
+        0f to c.lite.copy(alpha = c.lite.alpha * 0.9f),
+        0.42f to Color.Transparent,
+        0.58f to Color.Transparent,
+        1f to c.shade.copy(alpha = c.shade.alpha * 0.6f),
+        start = Offset.Zero, end = Offset(size.width, size.height),
+    )
+    onDrawBehind {
+        if (size.width > inset * 4 && size.height > inset * 4) {
+            drawRoundRect(
+                brush, topLeft = Offset(inset, inset), size = Size(size.width - inset * 2, size.height - inset * 2),
+                cornerRadius = CornerRadius(r, r), style = androidx.compose.ui.graphics.drawscope.Stroke(width = w),
+            )
+        }
+    }
 }
 
 /** A sunk surface: the well that inputs, steppers and chips sit in. */

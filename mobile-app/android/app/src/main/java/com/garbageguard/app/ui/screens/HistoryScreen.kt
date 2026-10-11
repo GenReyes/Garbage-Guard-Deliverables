@@ -178,7 +178,7 @@ fun EventPill(event: EventType) {
     }
     Row(
         Modifier
-            .neuShadow(c, 12.dp, 2.dp, Soft.NONE)
+            .neuShadow(c, 12.dp, 2.dp, Soft.SM)
             .clip(CircleShape)
             .background(bg)
             .border(2.dp, c.edge, CircleShape)

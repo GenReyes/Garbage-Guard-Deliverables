@@ -687,7 +687,7 @@ fun WideMonitor(
 private fun RailPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
     val c = Gg.colors
     Column(
-        modifier.neuRaised(c, 13.dp, hard = 3.dp).padding(horizontal = 6.dp, vertical = 8.dp),
+        modifier.neuRaised(c, 14.dp, hard = 3.dp, soft = Soft.LG).padding(horizontal = 7.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
         content = content,
@@ -723,17 +723,22 @@ fun RailKey(
     val view = LocalView.current
     val down = pressed && enabled
     val shape = RoundedCornerShape(10.dp)
-    val fill = if (lit) Brush.verticalGradient(listOf(c.tealLight, c.teal))
-    else Brush.verticalGradient(listOf(k.keyTop, k.keyBottom))
-    val ink = if (lit) Color.White else k.keyInk
+    // Raised when at rest, with the soft pair of shadows; pressed, it sinks into a well.
+    val fill = when {
+        down -> Brush.verticalGradient(listOf(c.sunk, c.sunk))
+        lit -> faceBrush(c.tealLight, c.teal)
+        else -> raisedBrush(c)
+    }
+    val ink = if (lit && !down) Color.White else k.keyInk
     Column(
         modifier
             .fillMaxWidth()
             .alpha(if (enabled) 1f else 0.4f)
             .offset { if (down) IntOffset(2.dp.roundToPx(), 2.dp.roundToPx()) else IntOffset.Zero }
-            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 2.dp, Soft.NONE, hardColor = c.edge))
+            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 2.dp, Soft.SM))
             .clip(shape)
             .background(fill)
+            .then(if (down) Modifier.neuInset(c, 10.dp) else Modifier.neuBevel(c, 10.dp))
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 if (toggle) Feel.toggle(view) else Feel.tap(view)
@@ -771,7 +776,7 @@ fun RailReadout(value: String, label: String, icon: androidx.compose.ui.graphics
     val shape = RoundedCornerShape(8.dp)
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Box(
-            Modifier.fillMaxWidth().clip(shape).background(c.sunk).border(2.dp, c.edge, shape).padding(horizontal = 4.dp, vertical = 3.dp),
+            Modifier.fillMaxWidth().neuWell(c, 8.dp).padding(horizontal = 4.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center,
         ) { T(value, size = 0.82f, weight = FontWeight.Black, color = c.teal, tnum = true, spacing = 0.03f, fit = true) }
         RailLabel(label, icon, tint)
@@ -784,7 +789,7 @@ fun RailChip(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color,
     val c = Gg.colors
     val shape = RoundedCornerShape(8.dp)
     Row(
-        Modifier.fillMaxWidth().clip(shape).background(c.sunk).border(2.dp, c.edge, shape).padding(horizontal = 8.dp, vertical = 2.dp),
+        Modifier.fillMaxWidth().neuWell(c, 8.dp).padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -807,7 +812,7 @@ fun RailState(
     val shape = RoundedCornerShape(9.dp)
     val a = if (pulse) 0.6f + 0.4f * breathe(1200) else 1f
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(fill.copy(alpha = a)).border(2.dp, c.edge, shape).padding(horizontal = 4.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().neuWell(c, 9.dp, fill.copy(alpha = a)).padding(horizontal = 4.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
@@ -826,17 +831,23 @@ fun RailGauge(fraction: Float, color: Color, count: String, limit: String) {
     val c = Gg.colors
     val f by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(500), label = "gauge")
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Box(Modifier.size(62.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxSize()) {
-                val w = 8.dp.toPx()
-                val inset = w / 2f + 1.dp.toPx()
+        // A sunk dial, the ring running round it, and a raised hub in the middle that carries the count.
+        Box(
+            Modifier.size(66.dp).neuShadow(c, 33.dp, 0.dp, Soft.SM).clip(CircleShape).background(c.sunk).neuInset(c, 33.dp).border(2.dp, c.edge, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.fillMaxSize().padding(4.dp)) {
+                val w = 7.dp.toPx()
+                val inset = w / 2f
                 val box = Size(size.width - inset * 2, size.height - inset * 2)
                 val at = Offset(inset, inset)
-                drawArc(c.edge, 135f, 270f, false, topLeft = at, size = box, style = Stroke(width = w + 3.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
-                drawArc(c.sunk, 135f, 270f, false, topLeft = at, size = box, style = Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                drawArc(c.edge.copy(alpha = 0.16f), 135f, 270f, false, topLeft = at, size = box, style = Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
                 if (f > 0.01f) drawArc(color, 135f, 270f * f, false, topLeft = at, size = box, style = Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
             }
-            T(count, size = 1.4f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1, lineHeight = 1f)
+            Box(
+                Modifier.size(36.dp).neuShadow(c, 18.dp, 0.dp, Soft.SM).clip(CircleShape).background(raisedBrush(c)).neuBevel(c, 18.dp).border(2.dp, c.edge, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { T(count, size = 1.15f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1, lineHeight = 1f) }
         }
         RailLabel(limit, GgIcons.Gauge, c.warn)
     }

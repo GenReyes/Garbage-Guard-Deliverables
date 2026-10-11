@@ -1,6 +1,10 @@
 package com.garbageguard.app
 
+import android.content.ComponentName
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import com.garbageguard.app.ui.theme.ThemeMode
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,7 +37,34 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         // Still polling through the watch service, but no longer on screen.
         AppGraph.foreground = false
+        syncIcon()
         super.onStop()
+    }
+
+    /**
+     * Makes the home-screen icon match the theme the app was left in: the
+     * dark logo for dark, the light logo for light. It runs as the app leaves
+     * the screen, because some launchers redraw the icon at that moment and
+     * a change made while the app is open can close it.
+     */
+    private fun syncIcon() {
+        val dark = when (vm.themeMode) {
+            ThemeMode.DARK -> true
+            ThemeMode.LIGHT -> false
+            ThemeMode.AUTO -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+        fun switch(name: String, on: Boolean) {
+            val entry = ComponentName(this, "com.garbageguard.app.$name")
+            val want = if (on) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            if (packageManager.getComponentEnabledSetting(entry) != want) {
+                packageManager.setComponentEnabledSetting(entry, want, PackageManager.DONT_KILL_APP)
+            }
+        }
+        runCatching {
+            // The new entry goes on before the old one goes off, so there is always one.
+            switch(if (dark) "LauncherDark" else "LauncherLight", true)
+            switch(if (dark) "LauncherLight" else "LauncherDark", false)
+        }
     }
 
     override fun onResume() {

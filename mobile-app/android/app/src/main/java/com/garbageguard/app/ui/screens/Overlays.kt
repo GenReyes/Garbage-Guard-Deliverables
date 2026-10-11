@@ -74,6 +74,7 @@ import com.garbageguard.app.ui.components.GgSheet
 import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.SheetText
 import com.garbageguard.app.ui.components.SheetTitle
+import com.garbageguard.app.ui.components.Soft
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.ggBackground
 import com.garbageguard.app.ui.components.neuWell
@@ -591,13 +592,12 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             GgButton("Close", close, kind = BtnKind.INK, small = true)
         }
     }
-    // Every reading sits in one card, set out as a table with fine rules
-    // between the rows, so the page reads as one calm sheet and still uses
-    // all the room it is given.
+    // Every reading sits in one raised sheet, each figure in a shallow well,
+    // so the page reads as one calm surface and still uses all the room it is given.
     val readings: @Composable (Modifier) -> Unit = { place ->
         Column(place.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(
-                Modifier.fillMaxWidth().weight(1f).neuRaised(c, 16.dp, hard = 4.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().weight(1f).neuRaised(c, 16.dp, hard = 4.dp, soft = Soft.LG).padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -614,14 +614,12 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
                     val f = (pct / 100f).coerceIn(0f, 1f)
                     if (f > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(tone))
                 }
-                Box(Modifier.fillMaxWidth().height(1.5.dp).background(c.edge.copy(alpha = 0.22f)))
-                Row(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCell("${row.nBottle}", "Bottle", GgIcons.Bottle, c.bottle, Modifier.weight(1f))
                     StatCell("${row.nBag}", "Bag", GgIcons.Bag, c.bag, Modifier.weight(1f))
                     StatCell("${row.nFoodContainer}", "Container", GgIcons.Container, c.container, Modifier.weight(1f))
                 }
-                Box(Modifier.fillMaxWidth().height(1.5.dp).background(c.edge.copy(alpha = 0.22f)))
-                Row(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCell(conf, "Confidence", GgIcons.Target, accentOf(GgIcons.Target), Modifier.weight(1f))
                     StatCell(row.timestamp.drop(11).take(5), "Time", GgIcons.Clock, accentOf(GgIcons.Clock), Modifier.weight(1f))
                     StatCell(row.timestamp.take(10).drop(5), "Date", GgIcons.Calendar, accentOf(GgIcons.Calendar), Modifier.weight(1f))
@@ -678,11 +676,12 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
     }
 }
 
-/** One reading in the snapshot table: its symbol and name above the figure. */
+/** One reading on the snapshot sheet: its symbol and name above the figure. */
 @Composable
 private fun StatCell(value: String, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier) {
     val c = Gg.colors
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    // Each figure rests in its own shallow well, sunk into the raised sheet.
+    Column(modifier.neuWell(c, 11.dp).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Ico(icon, size = 13.dp, tint = tint)
             T(label.uppercase(), Modifier.weight(1f), size = 0.6f, color = c.muted, spacing = 0.05f, fit = true)
