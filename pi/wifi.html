@@ -275,6 +275,17 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .cf .in span.v{overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left;unicode-bidi:plaintext}
 .cacts{display:flex;gap:10px;flex-wrap:wrap;flex:none;margin-top:2px}
 .cres{flex:none}
+.use{flex:none;display:flex;flex-direction:column;gap:5px;padding:8px 11px;border-radius:11px;
+  border:2px solid var(--edge);background:var(--sunk);box-shadow:var(--well)}
+.use-top{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:900}
+.use-top .ico{width:14px;height:14px;color:var(--orange)}
+.use-top b{margin-left:auto;font-variant-numeric:tabular-nums}
+.use-bar{height:9px;border-radius:5px;background:rgba(0,0,0,.2);overflow:hidden;border:1px solid var(--edge)}
+.use-bar > i{display:block;height:100%;border-radius:5px;background:var(--ok);transition:width .4s ease}
+.use.warn .use-bar > i{background:var(--warn)} .use.near .use-bar > i{background:var(--orange)}
+.use.bad .use-bar > i{background:var(--bad)}
+.use small{font-size:10.5px;font-weight:700;color:var(--muted);line-height:1.35}
+.use.near small,.use.bad small{color:var(--orange)}
 .tkb{padding:9px;display:flex;flex-direction:column;gap:7px}
 .tkb .kr{display:flex;gap:6px}
 .tkb .k{flex:1;min-height:44px;font-size:17px;padding:0;min-width:0}
@@ -468,6 +479,11 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       </div>
       <div class="side">
         <div class="card tkb" id="cfKb"></div>
+        <div class="card use" id="cfUse" style="display:none">
+          <div class="use-top"><svg class="ico"><use href="#i-cloud"/></svg><span>Free allowance this month</span><b id="cfUseN">–</b></div>
+          <div class="use-bar"><i id="cfUseBar" style="width:0"></i></div>
+          <small id="cfUseNote"></small>
+        </div>
       </div>
     </div>
   </section>
@@ -698,9 +714,19 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       var f=m.getAttribute('data-cm'),show=e[f]&&(cf[f]||cfErr[f])&&cf.enabled;m.className='msg'+(show?'':' hint');
       m.textContent=show?e[f]:'';
     });
+    cfUsage((cloud&&cloud.status&&cloud.status.usage)||null);
     var ok=!Object.keys(cfCheck()).length;
     $('cfTest').disabled=!local||!cf.enabled||!ok;$('cfSave').disabled=!local||(cf.enabled&&!ok);
     $('cfSave').lastChild.textContent=cf.enabled?'Test and save':'Save';
+  }
+  function cfGb(n){return (n/1073741824)>=1?(n/1073741824).toFixed(2)+' GB':Math.round(n/1048576)+' MB'}
+  function cfUsage(u){
+    var box=$('cfUse');
+    if(!u){box.style.display='none';return}
+    box.style.display='flex';box.className='use '+(u.level||'ok');
+    $('cfUseN').textContent='about '+cfGb(u.down_bytes)+' of '+cfGb(u.limit_bytes);
+    $('cfUseBar').style.width=Math.min(100,Math.round((u.fraction||0)*100))+'%';
+    $('cfUseNote').textContent=u.note||'Rough estimate counted by the Pi, resets on the 1st. Downloads by phones are what Firebase counts; the exact figure is in the Firebase console.';
   }
   function cfKb(){
     var L=['qwertyuiop','asdfghjkl','zxcvbnm'],S=['1234567890','-_.:/@#%+=','!?&*()$~\''],rows=cfSym?S:L,up=cfShift&&!cfSym,h='';

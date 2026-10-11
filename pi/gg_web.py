@@ -251,7 +251,8 @@ def make_handler(engine, net=None, ups=None):
                     note_viewer(ip, client_kind(self.headers), headers=self.headers)
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
-                st["cloud"] = {k: gg_cloud.STATUS.get(k) for k in ("enabled", "ok", "error", "watchers")}
+                st["cloud"] = {k: gg_cloud.STATUS.get(k)
+                               for k in ("enabled", "ok", "error", "watchers", "usage")}
                 return self._json(st)
 
             if path == "/api/alerts":

@@ -27,6 +27,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_web.py` | Unit tests for the connected-phone tracking in `gg_web.py`. |
 | `gg_cloud.py` | Firebase sync. Copies state, history, compressed snapshots and a preview still to a Firebase Realtime Database, and runs commands phones leave there. Uses only the Python standard library plus OpenCV, so nothing new to install. |
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
+| `gg_usage.py` | Estimates how much of Firebase's free monthly allowance has been used, and slows or stops the preview before it runs out. |
+| `test_usage.py` | Unit tests for `gg_usage.py`. |
 | `firebase.rules.json` | Security rules to paste into the Firebase console. |
 | `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
@@ -94,9 +96,10 @@ Expect `Ran 5 tests` and `OK`.
 python3 test_snapcard.py
 python3 test_web.py
 python3 test_cloud.py
+python3 test_usage.py
 ```
 
-Expect `Ran 5 tests`, `Ran 8 tests` and `Ran 10 tests`, all `OK`.
+Expect `Ran 5 tests`, `Ran 8 tests`, `Ran 13 tests` and `Ran 11 tests`, all `OK`.
 
 ## Starting at boot, and Wi-Fi setup
 
@@ -200,6 +203,34 @@ panel with the label **Firebase**.
 
 Live video does not go through Firebase. Phones away from the Wi-Fi get a
 still picture every 3 seconds, and only while they say they are watching.
+
+### Staying inside the free allowance
+
+The free Spark plan gives 10 GB of downloads a month, 1 GB of storage and 100
+connections at once. Only downloads are at risk, and the preview is what
+spends them: roughly 30–50 MB for every hour a phone sits on the live screen.
+Everything else, idle, is a few MB a month.
+
+Firebase's own usage figure can only be read with a Google Cloud service
+account, which is not something to keep on the Pi. So `gg_usage.py` counts
+what the Pi sends, multiplied by how many phones were watching at the time,
+and keeps a running total in `gg_usage.json`:
+
+| When | What the Pi does on its own |
+|---|---|
+| 70% of the month used | the bar turns amber |
+| 90% used | the preview slows to one picture every 10 s |
+| 100% used | the preview stops; state, alerts and commands carry on |
+| 300 MB of preview in one day | the preview pauses until midnight UTC |
+
+The bar shows on the Firebase card and in the dashboard's phone panel. It is
+an estimate and is labelled "about": it can be a third out either way, and
+the exact figure is in the Firebase console under Realtime Database → Usage.
+Counters reset on the 1st. Going over the limit on Spark blocks the database
+until the next month; nothing is charged.
+
+**Running a second project (for example Smart-bin) is best done in its own
+Firebase project**, because the limits are counted per project.
 
 ## What depends on what
 

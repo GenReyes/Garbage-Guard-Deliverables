@@ -315,6 +315,12 @@ button,input{font:inherit;color:inherit}
   font-size:10px;font-weight:900;line-height:13px;text-align:center;border:2px solid var(--edge);
   background:var(--raised);color:var(--text)}
 .phn b:empty{display:none}
+.phn i{display:none;place-items:center;width:17px;height:17px;border-radius:999px;flex:none;
+  border:2px solid var(--edge);background:var(--orange);color:#fff}
+.phn.cloud{width:auto;padding:0 5px 0 4px;grid-auto-flow:column;gap:4px;place-items:center}
+.phn.cloud i{display:grid;order:-1}
+.phn i svg{width:9px;height:9px}
+.phn.cloud.bad i{background:var(--bad)}
 .phn.app::after{content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--teal);
   animation:phnBeat 1.8s ease-out infinite;pointer-events:none}
 @keyframes phnBeat{0%{opacity:.8;transform:scale(.9)}100%{opacity:0;transform:scale(1.35)}}
@@ -840,6 +846,17 @@ main{flex:1;min-height:0;display:flex}
 .cl-chip.on{background:color-mix(in srgb,var(--orange) 18%,var(--raised));color:var(--orange)}
 .cl-chip.err{background:var(--bad-tint);color:var(--bad)}
 .cl-chip.off{color:var(--muted)}
+.use{display:flex;flex-direction:column;gap:5px;padding:9px 11px;border-radius:11px;border:2px solid var(--edge);
+  background:var(--sunk);box-shadow:var(--well)}
+.use-top{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:900}
+.use-top .ico{width:14px;height:14px;color:var(--orange)}
+.use-top b{margin-left:auto;font-variant-numeric:tabular-nums}
+.use-bar{height:9px;border-radius:5px;background:var(--well-bg,rgba(0,0,0,.18));overflow:hidden;border:1px solid var(--edge)}
+.use-bar > i{display:block;height:100%;border-radius:5px;background:var(--ok);transition:width .4s ease}
+.use.warn .use-bar > i{background:var(--warn)} .use.near .use-bar > i{background:var(--orange)}
+.use.bad .use-bar > i{background:var(--bad)}
+.use small{font-size:10.5px;font-weight:700;color:var(--muted)}
+.use.near small, .use.bad small{color:var(--orange)}
 .pc.cloud .pb{background:var(--orange)} .pc.app.cloud{border-left-color:var(--orange)}
 .pnote{margin:0;display:flex;gap:7px;align-items:flex-start;padding:7px 10px;border-radius:10px;border:2px solid var(--edge);
   font-size:12px;font-weight:700}
@@ -1135,7 +1152,8 @@ a.btn{text-decoration:none}
       <span class="pill online" id="connPill"><svg class="ico" id="connIco"><use href="#i-signal"/></svg>
         <span id="conn">Connecting</span></span>
       <button class="phn none" id="phn" type="button" title="No phone connected" aria-label="Mobile app connections">
-        <svg class="ico"><use href="#i-phoneoff"/></svg><b id="phnN"></b></button>
+        <svg class="ico"><use href="#i-phoneoff"/></svg><b id="phnN"></b>
+        <i id="phnC"><svg><use href="#i-cloud"/></svg></i></button>
     </div>
     <div class="ctl-row">
       <button class="btn sm" id="theme" type="button">
@@ -1413,6 +1431,11 @@ a.btn{text-decoration:none}
     <span class="tagx" id="phnSum">–</span>
     <span class="tagx cl-chip off" id="phnCloud"><svg class="ico"><use href="#i-cloud"/></svg><span>Firebase off</span></span>
     <button class="btn sm ink" id="phnClose" type="button">Close</button>
+  </div>
+  <div class="use" id="phnUse" style="display:none;margin:0 13px 11px">
+    <div class="use-top"><svg class="ico"><use href="#i-cloud"/></svg><span>Firebase this month</span><b id="useN">–</b></div>
+    <div class="use-bar"><i id="useBar" style="width:0"></i></div>
+    <small id="useNote">Rough estimate counted by the Pi. The exact figure is in the Firebase console.</small>
   </div>
   <div class="pl" id="phnList"></div>
 </dialog>
@@ -1979,7 +2002,11 @@ function setViewers(v){
   $("fsPhnT").textContent = apps ? (apps > 1 ? apps + " apps" : "App on") : web ? "Browser" : "No app";
   $("fsPhn").classList.toggle("on", !!apps);
   paintPhones();
-  b.title = apps ? `Mobile app connected (${apps})` : web ? `Viewed from another device (${web})` : "No phone connected";
+  const cu = (cloud && cloud.usage) || null, viaFb = v ? v.list.some(r => r.via === "cloud") : false;
+  b.classList.toggle("cloud", !!(cloud && cloud.enabled && (viaFb || cloud.ok)));
+  b.classList.toggle("bad", !!(cloud && cloud.enabled && (!cloud.ok || (cu && cu.level === "bad"))));
+  b.title = (apps ? `Mobile app connected (${apps})` : web ? `Viewed from another device (${web})` : "No phone connected")
+    + (cloud && cloud.enabled ? (cloud.ok ? " · Firebase synced" : " · Firebase error") : "");
 }
 function since(sec){
   if(sec < 60) return sec + " s";
@@ -1992,6 +2019,17 @@ const VIA = {
   remote: ["Remote", "Connected from outside this network, so the IP is the remote link's address and the MAC cannot be seen."],
   cloud: ["Firebase", "Away from this Wi-Fi, so the app talks to the Pi through Firebase. There is no IP or MAC, and the live view is a still picture every few seconds instead of video."]
 };
+function gb(n){ return (n / 1073741824) >= 1 ? (n/1073741824).toFixed(2) + " GB" : Math.round(n/1048576) + " MB"; }
+function paintUsage(u){
+  const box = $("phnUse");
+  if(!u){ box.style.display = "none"; return; }
+  box.style.display = "flex";
+  box.className = "use " + (u.level || "ok");
+  $("useN").textContent = "about " + gb(u.down_bytes) + " of " + gb(u.limit_bytes);
+  $("useBar").style.width = Math.min(100, Math.round((u.fraction || 0) * 100)) + "%";
+  $("useNote").textContent = u.note ||
+    "Rough estimate counted by the Pi, resets on the 1st. The exact figure is in the Firebase console.";
+}
 function paintPhones(){
   const d = $("phnDlg");
   if(!d.open) return;
@@ -2005,6 +2043,7 @@ function paintPhones(){
   cc.className = "tagx cl-chip " + st;
   cc.querySelector("span").textContent = st === "off" ? "Firebase off" : st === "on" ? "Firebase synced" : "Firebase error";
   cc.title = c.error || "";
+  paintUsage(c.usage);
   if(!v.list.length){
     $("phnList").innerHTML = `<div class="empty" style="display:flex"><svg class="ico"><use href="#i-phoneoff"/></svg>
       <span>No phone is polling the Pi right now. A phone counts as gone 4 seconds after it stops.</span></div>`;

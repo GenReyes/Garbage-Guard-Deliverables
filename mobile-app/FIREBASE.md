@@ -212,6 +212,7 @@ Everything sits under `/gg`. Only the Pi writes, except `commands` and
 /gg/watchers/<clientId>  {ts, device, os, app_version, mode}   written by phones
 /gg/commands/<pushId>    {cmd, args, ts, by}                   written by phones
 /gg/results/<pushId>     answer from the Pi, last 50 kept
+/gg/usage                how much of the free monthly allowance is estimated used
 ```
 
 ### `/gg/state`
@@ -349,6 +350,56 @@ Rough download use per phone in Firebase mode:
 So the preview is the expensive part: about 250 hours a month for one phone.
 Fetch `/gg/preview` only while the live screen is open, and stop the
 watcher writes when the app goes to the background for long.
+
+### `/gg/usage`: the allowance meter (new, please show this)
+
+Firebase counts downloads exactly, but only the console can read that figure:
+it needs a Google Cloud service account, which does not belong on the Pi. So
+the Pi counts what it sends, multiplied by how many phones were watching, and
+publishes the running total every 10 minutes (and only when it changed):
+
+```json
+{ "month": "2026-10", "down_bytes": 1288490188, "up_bytes": 420000000,
+  "limit_bytes": 10737418240, "fraction": 0.12, "level": "ok",
+  "by_kind": {"state": 90000000, "preview": 1100000000, "snaps": 70000000,
+              "alerts": 28000000, "other": 0},
+  "day": "2026-10-12", "day_preview_bytes": 41000000,
+  "day_preview_limit": 314572800, "note": null, "estimate": true }
+```
+
+- `level` is `ok` under 70%, `warn` from 70%, `near` from 90%, `bad` at 100%.
+  Use the same colours the Pi screen uses: green, amber, orange, red.
+- `note` is a sentence to show the user when the preview has been slowed or
+  stopped, and `null` the rest of the time. Show it verbatim next to the live
+  view, otherwise a frozen preview looks like a bug.
+- `estimate` is always true. Label the number **"about"**; it can be off by a
+  third. The exact figure is in the Firebase console.
+- Counters reset on the 1st (UTC). Firebase's own cycle may differ by a day
+  or two.
+
+**What the Pi does on its own, so you do not have to:**
+
+| When | What happens |
+|---|---|
+| 90% of the month used | preview slows to one picture every 10 s |
+| 100% used | preview stops; state, alerts and commands keep working |
+| 300 MB of preview in one day | preview pauses until midnight UTC |
+
+**What the app should do:**
+
+1. Show a small bar on the Firebase settings page, the same as the Pi's:
+   "about 1.20 GB of 10.00 GB this month", coloured by `level`.
+2. When `note` is set, show it on the live screen instead of a stuck picture.
+3. Stop reading `/gg/preview` the moment the live screen is closed, and
+   `DELETE` the watcher entry when the app goes to the background for more
+   than a minute. This is the single biggest saving, because the Pi only
+   sends previews while a watcher is fresh.
+4. Never poll `/gg/usage` faster than once a minute. It is tiny, but there is
+   no reason to spend the allowance measuring the allowance.
+
+**Sharing the project with Smart-bin:** use a **separate Firebase project**
+for that demo. Limits are counted per project, so a second project keeps the
+two demos from eating each other's 10 GB, and keeps the rules apart.
 
 Push notifications to a closed app (FCM) are **not** built yet. They need a
 server key on the Pi, which is a separate step. For now the app sees new

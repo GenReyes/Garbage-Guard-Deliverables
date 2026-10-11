@@ -5,7 +5,11 @@ from urllib.parse import urlparse, parse_qs
 import cv2
 import numpy as np
 
+import pathlib
+import tempfile
+
 import gg_cloud as gc
+import gg_usage
 
 JPG = cv2.imencode(".jpg", np.full((720, 1280, 3), 90, np.uint8))[1].tobytes()
 
@@ -86,8 +90,12 @@ class CloudTests(unittest.TestCase):
         self.w = FakeWorld()
         self.t = [1000.0]
         self.noted = []
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        usage = gg_usage.Usage(path=pathlib.Path(self.tmp.name) / "u.json", clock=lambda: self.t[0])
         self.c = gc.Cloud({"database_url": "https://x.firebasedatabase.app"}, token=False, http=self.w.http,
-                          clock=lambda: self.t[0], note=lambda ip, kind, headers: self.noted.append(headers))
+                          clock=lambda: self.t[0], note=lambda ip, kind, headers: self.noted.append(headers),
+                          usage=usage)
 
     def test_state_is_slim_and_skips_repeats(self):
         self.assertTrue(self.c.push_state())
@@ -191,6 +199,41 @@ class ConfigTests(unittest.TestCase):
         t[0] = 3400
         get()
         self.assertEqual(len(calls), 2)
+
+
+
+
+class UsageWiring(unittest.TestCase):
+    def setUp(self):
+        self.w = FakeWorld()
+        self.t = [1000.0]
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.u = gg_usage.Usage(path=pathlib.Path(self.tmp.name) / "u.json", clock=lambda: self.t[0])
+        self.c = gc.Cloud({"database_url": "https://x.firebasedatabase.app"}, token=False,
+                          http=self.w.http, clock=lambda: self.t[0], usage=self.u)
+
+    def test_pushes_are_counted(self):
+        self.c.push_state()
+        self.assertGreater(self.u.data["up"], 0)
+        self.assertEqual(self.u.data["down"], 0)
+        self.c.watchers = {"a": {"ts": 1}, "b": {"ts": 1}}
+        self.w.state["smoothed"] = 99
+        self.c.push_state()
+        self.assertGreater(self.u.data["down"], 0)
+
+    def test_preview_stops_when_month_is_spent(self):
+        self.c.watchers = {"a": {"ts": 1}}
+        self.assertTrue(self.c.push_preview())
+        self.u.add("state", 11 * gg_usage.GB, watchers=1)
+        self.c.tick()
+        self.assertIsNone(self.u.preview_every(3))
+
+    def test_usage_published(self):
+        self.c.push_state()
+        rep = self.c.push_usage()
+        self.assertTrue(self.w.db["gg"]["usage"]["estimate"])
+        self.assertEqual(rep["level"], "ok")
 
 
 if __name__ == "__main__":

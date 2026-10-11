@@ -33,4 +33,5 @@ garbageguard_v5_best_ncnn_model/
 # Firebase settings with the Pi account password
 gg_firebase.json
 gg_firebase.good.json
+gg_usage.json
 *.tmp

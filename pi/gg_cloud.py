@@ -21,6 +21,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import gg_usage
+
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG = BASE_DIR / "gg_firebase.json"
 GOOD = BASE_DIR / "gg_firebase.good.json"
@@ -48,11 +50,13 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 
-STATUS = {"enabled": False, "ok": False, "error": None, "last_ok": None, "watchers": 0}
+STATUS = {"enabled": False, "ok": False, "error": None, "last_ok": None, "watchers": 0,
+          "usage": None}
 
 DEFAULTS = {"root": "gg", "enabled": True, "state_s": 3, "idle_state_s": 30,
             "alerts_s": 10, "commands_s": 2, "preview_s": 3, "preview_width": 480,
-            "snap_width": 960, "snap_max_kb": 300, "history": 200, "watch_window_s": 30}
+            "snap_width": 960, "snap_max_kb": 300, "history": 200, "watch_window_s": 30,
+            "month_limit_gb": 10, "day_preview_mb": 300, "usage_s": 600}
 
 
 def http_call(method, url, body=None, timeout=15):
@@ -194,7 +198,8 @@ def public_config():
 
 
 class Cloud:
-    def __init__(self, cfg, token=None, http=http_call, local=LOCAL, clock=time.time, note=None):
+    def __init__(self, cfg, token=None, http=http_call, local=LOCAL, clock=time.time, note=None,
+                 usage=None):
         self.cfg = dict(DEFAULTS, **cfg)
         self.url = self.cfg["database_url"].rstrip("/")
         self.root = self.cfg["root"].strip("/")
@@ -208,7 +213,12 @@ class Cloud:
         self.sent_state = None
         self.sent_alerts = None
         self.sent_snaps = None
+        self.sent_usage = None
         self.watchers = {}
+        self.usage = usage if usage is not None else gg_usage.Usage(
+            clock=clock, limit=int(self.cfg["month_limit_gb"] * gg_usage.GB),
+            day_preview_mb=self.cfg["day_preview_mb"])
+        STATUS["usage"] = self.usage.report()
 
     # ---------- plumbing ----------
     def _fb(self, method, path, body=None, query=""):
@@ -222,6 +232,10 @@ class Cloud:
         if status >= 300:
             raise RuntimeError(f"Firebase {method} {path}: HTTP {status} {raw[:120]!r}")
         return json.loads(raw or b"null")
+
+    def _count(self, kind, body, per_watcher=True):
+        size = len(json.dumps(body)) if not isinstance(body, (bytes, str)) else len(body)
+        self.usage.add(kind, size, len(self.active_watchers()) if per_watcher else 0)
 
     def _get_local(self, path):
         status, raw = self.http("GET", self.local + path, None)
@@ -240,6 +254,9 @@ class Cloud:
     def watching(self):
         return any(self.watchers.values())
 
+    def active_watchers(self):
+        return {k: v for k, v in self.watchers.items() if v}
+
     def push_state(self, force=False):
         st = json.loads(self._get_local("/api/state"))
         slim = {k: st.get(k) for k in STATE_KEYS}
@@ -254,6 +271,7 @@ class Cloud:
             slim["battery"] = None
         slim["ts"] = int(self.clock() * 1000)
         self._fb("PUT", "state", slim)
+        self._count("state", slim)
         self.sent_state = key
         self.next["state_beat"] = self.clock() + every
         return True
@@ -293,6 +311,7 @@ class Cloud:
                 patch[k] = None
         if patch:
             self._fb("PATCH", "alerts", patch)
+            self._count("alerts", patch)
             for k, v in patch.items():
                 if v is None:
                     self.sent_alerts.pop(k, None)
@@ -311,6 +330,7 @@ class Cloud:
                 pic = shrink_jpeg(raw, self.cfg["snap_width"], self.cfg["snap_max_kb"])
                 if pic:
                     self._fb("PUT", f"snaps/{k}", pic)
+                    self._count("snaps", pic, per_watcher=False)
                     self.sent_snaps.add(k)
                     uploaded += 1
         return len(patch), uploaded
@@ -326,6 +346,7 @@ class Cloud:
             return False
         pic["ts"] = int(self.clock() * 1000)
         self._fb("PUT", "preview", pic)
+        self._count("preview", pic)
         return True
 
     # ---------- what comes down ----------
@@ -373,6 +394,13 @@ class Cloud:
                 self._fb("PATCH", "results", {k: None for k in sorted(res)[:-50]})
         return done
 
+    def push_usage(self):
+        rep = self.usage.report()
+        STATUS["usage"] = rep
+        self._fb("PUT", "usage", rep)
+        self.sent_usage = rep["down_bytes"]
+        return rep
+
     # ---------- loop ----------
     def tick(self):
         if self._due("commands", self.cfg["commands_s"]):
@@ -383,8 +411,13 @@ class Cloud:
             self.push_pi()
         if self._due("alerts", self.cfg["alerts_s"]):
             self.sync_alerts()
-        if self.watching() and self._due("preview", self.cfg["preview_s"]):
+        every = self.usage.preview_every(self.cfg["preview_s"])
+        if self.watching() and every and self._due("preview", every):
             self.push_preview()
+        STATUS["usage"] = self.usage.report()
+        if self._due("usage", self.cfg["usage_s"]) and self.usage.data["down"] != self.sent_usage:
+            self.push_usage()
+        self.usage.save()
 
     def run(self):
         STATUS.update(enabled=True)
