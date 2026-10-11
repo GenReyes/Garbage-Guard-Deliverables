@@ -61,7 +61,7 @@ fun SetupScreen(vm: AppViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            BrandLogo(200.dp)
+            BrandLogo(200.dp, onLongHold = vm::openGame)
             Hint("Enter the address shown on the Pi to start.", center = true, size = 0.9f)
         }
 

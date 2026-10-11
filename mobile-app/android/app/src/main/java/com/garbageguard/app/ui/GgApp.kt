@@ -30,6 +30,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import com.garbageguard.app.ui.game.SlashGame
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.garbageguard.app.ui.components.AppHeader
@@ -68,6 +70,10 @@ fun GgApp(vm: AppViewModel) {
             vm.setNotifications(granted)
         }
 
+        // Optional: stop the phone dimming while someone is watching the creek.
+        val rootView = LocalView.current
+        LaunchedEffect(vm.keepScreenOn) { rootView.keepScreenOn = vm.keepScreenOn }
+
         LaunchedEffect(vm.toastSeq) {
             if (vm.toast != null) {
                 delay(1900)
@@ -90,6 +96,7 @@ fun GgApp(vm: AppViewModel) {
                                 onBattery = { vm.overlay = Overlay.PiBattery },
                                 onToggleTheme = { vm.toggleTheme(c.isDark) },
                                 onPillLongPress = { if (vm.demo) vm.demoCycleConn() },
+                                onLogoHold = vm::openGame,
                             )
                             Box(Modifier.weight(1f)) {
                                 // Tabs slide a short way in the direction of travel.
@@ -129,6 +136,15 @@ fun GgApp(vm: AppViewModel) {
                             runCatching { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
                         }
                     },
+                    onAlertSounds = {
+                        // Android owns alert sounds: one channel per kind of alert, each adjustable.
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            )
+                        }
+                    },
                     onAllowAlerts = {
                         if (Build.VERSION.SDK_INT >= 33) {
                             vm.overlay = null
@@ -138,6 +154,8 @@ fun GgApp(vm: AppViewModel) {
                 )
 
                 vm.toast?.let { GgToast(it, bottom = if (vm.fullscreen || !vm.setupDone) 24.dp else 86.dp) }
+
+                if (vm.game) SlashGame(onExit = vm::closeGame)
             }
         }
     }

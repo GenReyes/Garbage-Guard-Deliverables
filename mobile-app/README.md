@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v2.apk` | The latest build, ready to install on a phone. Older versions are kept beside it. |
+| `Garbage-Guard v3.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `SYNC_PLAN.md` | Design notes for reaching the Pi from outside its Wi-Fi (Tailscale, Firebase). None of that is built yet. |
@@ -28,7 +28,12 @@ few seconds.
   connected phones, and restarting Garbage-Guard on the Pi.
 - **Pi battery:** the UPS HAT readout in the header, with full details on tap.
 - **Alerts:** a notification with the snapshot when the limit is reached,
-  including while the app is in the background.
+  including while the app is in the background. Each kind of event has its
+  own sound: a buzzer for the limit, and different tones for test,
+  auto-mute, capture, mute and unmute. The sounds are separate notification
+  channels, so each can be changed or silenced in Android's settings.
+- **Sound and feel:** button sounds, vibration and keep-screen-on, each
+  with a switch in Settings.
 - **Demo mode:** runs on invented data with no Pi, for showing the app.
 
 The look is the project's own "Brutal-Morph" style: the soft depth of
@@ -50,7 +55,7 @@ the options.
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v2.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v3.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 
@@ -91,7 +96,7 @@ on the first screen.
 | `ui/AppViewModel.kt` | App state and the actions behind every button. |
 | `ui/screens/` | Setup, Monitor, History, Settings, fullscreen, and the bottom sheets. |
 | `ui/components/` | The shared look: shadows, buttons, icons, the live feed, the battery. |
-| `notify/` | Alert notifications and the background watcher. |
+| `notify/` | Alert notifications and their sounds, button sounds and vibration, and the background watcher. |
 
 ## Rules that come from the thesis
 

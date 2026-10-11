@@ -64,7 +64,7 @@ object AppGraph {
             // Only lists that really came from the Pi count; the empty list
             // before the first answer must not become the starting point.
             pi.alerts.combine(pi.loaded) { rows, loaded -> if (loaded) rows else null }.collect { rows ->
-                if (rows != null) Alerts.onRows(app, "pi:${pi.address}", rows, scope) { pi.snapshotUrl(it) }
+                if (rows != null) Alerts.onRows(app, "pi:${pi.address}", rows, scope, pi.foreground) { pi.snapshotUrl(it) }
             }
         }
     }

@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.garbageguard.app.data.RoiPoint
+import com.garbageguard.app.notify.Feel
 import com.garbageguard.app.ui.theme.Gg
 
 // Fake detection boxes from the mockup, in a 160 x 100 frame: x, y, w, h.
@@ -431,7 +432,7 @@ private fun TvKey(
             .background(fill)
             .border(2.dp, BEZEL_INK, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Feel.tap(view)
                 onClick()
             }
             .height(42.dp)

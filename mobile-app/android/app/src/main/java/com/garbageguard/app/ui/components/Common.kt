@@ -81,8 +81,12 @@ import com.garbageguard.app.R
 import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.ui.Tab
+import com.garbageguard.app.notify.Feel
 import com.garbageguard.app.ui.theme.Gg
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
 
 /** The mockup sizes everything in em on a 14 px base. */
@@ -255,7 +259,7 @@ fun GgButton(
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 // A small tick, so keys feel like the physical buttons they are drawn as.
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Feel.tap(view)
                 onClick()
             }
             .then(sizeMod)
@@ -308,6 +312,7 @@ fun accentOf(icon: ImageVector): Color {
 @Composable
 fun StepKey(label: String, onClick: () -> Unit) {
     val c = Gg.colors
+    val view = LocalView.current
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
     val shape = RoundedCornerShape(11.dp)
@@ -318,7 +323,10 @@ fun StepKey(label: String, onClick: () -> Unit) {
             .clip(shape)
             .then(if (pressed) Modifier.background(c.sunk).neuInset(c, 11.dp) else Modifier.background(raisedBrush(c)))
             .border(2.dp, c.edge, shape)
-            .clickable(interactionSource = src, indication = null, onClick = onClick),
+            .clickable(interactionSource = src, indication = null) {
+                Feel.tap(view)
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) { T(label, size = 1.15f, weight = FontWeight.Normal, color = c.text) }
 }
@@ -404,7 +412,7 @@ fun Tag(text: String, tone: Tone, icon: ImageVector? = null) {
  * symbol, a caps label and the switch. It lights teal when armed.
  */
 @Composable
-fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO-MUTE") {
+fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MUTE", icon: ImageVector? = GgIcons.BellAuto) {
     val c = Gg.colors
     val view = LocalView.current
     val x by animateDpAsState(if (checked) 14.dp else 0.dp, tween(180), label = "sw")
@@ -416,15 +424,15 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO-MUT
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                Feel.toggle(view)
                 onToggle()
             }
             .padding(start = 8.dp, end = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Ico(GgIcons.BellAuto, size = 15.dp, tint = if (checked) c.teal else c.warnText)
-        T(label, size = 0.68f, weight = FontWeight.Black, color = if (checked) c.teal else c.text, spacing = 0.06f, maxLines = 1)
+        if (icon != null) Ico(icon, size = 15.dp, tint = if (checked) c.teal else accentOf(icon))
+        if (label != null) T(label, size = 0.68f, weight = FontWeight.Black, color = if (checked) c.teal else c.text, spacing = 0.06f, maxLines = 1)
         Box(
             Modifier
                 .size(width = 34.dp, height = 20.dp)
@@ -446,6 +454,7 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO-MUT
 @Composable
 fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
     val c = Gg.colors
+    val view = LocalView.current
     Row(Modifier.fillMaxWidth().neuWell(c, 12.dp)) {
         options.forEachIndexed { i, label ->
             val on = i == selected
@@ -457,7 +466,10 @@ fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = e
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                    ) { onSelect(i) },
+                    ) {
+                        if (!on) Feel.toggle(view)
+                        onSelect(i)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -538,8 +550,24 @@ fun logoPainter() = painterResource(if (Gg.colors.isDark) R.drawable.gg_logo_dar
 
 /** The badge alone. It carries the name and has a light and a dark drawing. */
 @Composable
-fun BrandLogo(size: Dp, modifier: Modifier = Modifier) {
-    Image(logoPainter(), contentDescription = "Garbage-Guard", modifier = modifier.size(size))
+fun BrandLogo(size: Dp, modifier: Modifier = Modifier, onLongHold: (() -> Unit)? = null) {
+    val view = LocalView.current
+    val hold = if (onLongHold == null) Modifier else Modifier.pointerInput(onLongHold) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            // Null means three seconds passed with the finger still down.
+            val released = withTimeoutOrNull(3000) {
+                waitForUpOrCancellation()
+                true
+            }
+            if (released == null) {
+                Feel.thump(view)
+                onLongHold()
+                waitForUpOrCancellation()
+            }
+        }
+    }
+    Image(logoPainter(), contentDescription = "Garbage-Guard", modifier = modifier.size(size).then(hold))
 }
 
 /** A number that rolls to its new value instead of jumping. */
@@ -590,14 +618,14 @@ fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String
 
 /** .apph */
 @Composable
-fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit) {
+fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit, onLogoHold: () -> Unit = {}) {
     val c = Gg.colors
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        BrandLogo(58.dp)
+        BrandLogo(58.dp, onLongHold = onLogoHold)
         BatteryChip(battery, onBattery)
         Spacer(Modifier.weight(1f))
         ConnPill(conn, Modifier.longPress(onPillLongPress))
@@ -629,6 +657,7 @@ fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
 @Composable
 private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean, badge: Int, onClick: () -> Unit) {
     val c = Gg.colors
+    val view = LocalView.current
     val shape = RoundedCornerShape(14.dp)
     Box(
         Modifier
@@ -640,8 +669,11 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null, onClick = onClick,
-            ),
+                indication = null,
+            ) {
+                if (!selected) Feel.toggle(view)
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {

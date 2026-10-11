@@ -21,6 +21,7 @@ import com.garbageguard.app.data.rearmFor
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.ui.Overlay
 import com.garbageguard.app.ui.PermState
+import com.garbageguard.app.ui.components.AutoSwitch
 import com.garbageguard.app.ui.components.BtnKind
 import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgCard
@@ -111,6 +112,26 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 )
                 if (!vm.batteryUnrestricted) GgButton("Fix", { vm.overlay = Overlay.Battery }, small = true)
             }
+        }
+
+        GgCard {
+            Hd(GgIcons.Activity, "Sound and feel")
+            SettingRow("Button sounds", "Soft clicks on keys, switches and tabs", GgIcons.Signal) {
+                AutoSwitch(vm.uiSounds, vm::toggleUiSounds, label = null, icon = null)
+            }
+            SettingRow("Vibration", "A light tick under the finger", GgIcons.Phone) {
+                AutoSwitch(vm.haptics, vm::toggleHaptics, label = null, icon = null)
+            }
+            SettingRow("Keep screen on", "The phone will not dim while the app is open", GgIcons.Sun) {
+                AutoSwitch(vm.keepScreenOn, vm::toggleKeepScreenOn, label = null, icon = null)
+            }
+            SettingRow("Alert sounds", "Each kind of alert has its own sound", GgIcons.Bell) {
+                GgButton("Adjust", { vm.openAlertSounds() }, small = true, icon = GgIcons.Gear)
+            }
+            Hint(
+                "Limit reached sounds a buzzer. Test, auto-mute, capture, mute and unmute each sound different. They also play while the app is in the background.",
+                icon = GgIcons.Ok,
+            )
         }
 
         GgCard {

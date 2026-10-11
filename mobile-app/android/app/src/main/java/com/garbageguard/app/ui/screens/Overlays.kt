@@ -85,9 +85,11 @@ fun OverlayHost(
     battery: Battery,
     viewers: List<Viewer>,
     onFixBattery: () -> Unit,
+    onAlertSounds: () -> Unit,
     onAllowAlerts: () -> Unit,
 ) {
     val close = { vm.overlay = null }
+    vm.openAlertSounds = onAlertSounds
     when (val o = vm.overlay) {
         null -> {}
         Overlay.Mute -> MuteSheet(vm, close)

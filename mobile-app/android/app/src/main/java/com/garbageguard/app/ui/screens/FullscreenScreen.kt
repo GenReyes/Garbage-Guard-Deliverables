@@ -117,7 +117,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 Spacer(Modifier.weight(1f))
                 GgButton(null, vm::closeFullscreen, icon = GgIcons.X, small = true, square = true)
             } else {
-                BrandLogo(38.dp)
+                BrandLogo(38.dp, onLongHold = vm::openGame)
                 ConnPill(state.conn, onlineLabel = "Camera online")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)

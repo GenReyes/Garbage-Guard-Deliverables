@@ -504,7 +504,7 @@ model folder, or the camera.
 
 ## What the Android app uses today
 
-As of app version 2.0 the app calls: `/api/state`, `/frame.jpg`,
+As of app version 3.0 the app calls: `/api/state`, `/frame.jpg`,
 `/api/alerts`, `/snapshots/<name>`, `/api/settings`, `/api/roi`,
 `/api/test_alert`, `/api/capture`, `/api/mute`, `/api/auto_mute`,
 `/api/alerts/read`, `/api/alerts/delete`, `/api/battery`,

@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import com.garbageguard.app.notify.Alerts
 import com.garbageguard.app.notify.AppGraph
+import com.garbageguard.app.notify.Feel
 import com.garbageguard.app.notify.WatchService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -134,6 +135,49 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     )
         private set
 
+    // ---------- sound and feel, remembered ----------
+
+    var uiSounds by mutableStateOf(prefs.getBoolean(KEY_SOUNDS, true))
+        private set
+    var haptics by mutableStateOf(prefs.getBoolean(KEY_HAPTICS, true))
+        private set
+    var keepScreenOn by mutableStateOf(prefs.getBoolean(KEY_AWAKE, false))
+        private set
+
+    fun toggleUiSounds() {
+        uiSounds = !uiSounds
+        Feel.sounds = uiSounds
+        prefs.edit().putBoolean(KEY_SOUNDS, uiSounds).apply()
+    }
+
+    fun toggleHaptics() {
+        haptics = !haptics
+        Feel.haptics = haptics
+        prefs.edit().putBoolean(KEY_HAPTICS, haptics).apply()
+    }
+
+    fun toggleKeepScreenOn() {
+        keepScreenOn = !keepScreenOn
+        prefs.edit().putBoolean(KEY_AWAKE, keepScreenOn).apply()
+    }
+
+    /** Opens Android's notification settings for the app. Set by the screen, which owns the Activity. */
+    var openAlertSounds: () -> Unit = {}
+
+    /** The hidden game. Opened by holding the logo; nothing about it is saved. */
+    var game by mutableStateOf(false)
+        private set
+
+    fun openGame() {
+        closeFullscreen()
+        overlay = null
+        game = true
+    }
+
+    fun closeGame() {
+        game = false
+    }
+
     /** Auto follows the phone. The choice is remembered. */
     fun chooseTheme(mode: ThemeMode) {
         themeMode = mode
@@ -154,10 +198,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         AppGraph.init(appContext)
+        Feel.sounds = uiSounds
+        Feel.haptics = haptics
         // Demo data raises notifications too, while the app is running.
         viewModelScope.launch {
             alerts.collect { rows ->
-                if (demo) Alerts.onRows(appContext, "demo", rows, viewModelScope) { null }
+                if (demo) Alerts.onRows(appContext, "demo", rows, viewModelScope, AppGraph.pi.foreground) { null }
             }
         }
         refreshSystemState()
@@ -477,5 +523,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
         private const val KEY_ASKED = "asked_alerts"
+        private const val KEY_SOUNDS = "ui_sounds"
+        private const val KEY_HAPTICS = "haptics"
+        private const val KEY_AWAKE = "keep_screen_on"
     }
 }

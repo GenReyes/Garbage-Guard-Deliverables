@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -215,153 +216,126 @@ private fun Counts(s: LiveState) {
     }
 }
 
-/** .mute, every state of the mute bar. */
+/**
+ * The mute bar: one line, and the same size in every state. Status on the
+ * left in two short lines, then the auto-mute key, the length picker, and
+ * one button that is always there (Mute, Unmute or Retry). A timed mute
+ * shows its countdown as a thin bar along the bottom edge, inside the card.
+ */
 @Composable
 private fun MuteBar(vm: AppViewModel, s: LiveState) {
     val c = Gg.colors
-    if (s.conn == ConnState.NO_PI) {
-        Row(
-            Modifier.fillMaxWidth().neuRaised(c, 14.dp, fillColor = c.badTint).padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Ico(GgIcons.NoLink, size = 18.dp, tint = c.bad)
-            T("Cannot reach the Pi. Check you are on the same network.", Modifier.weight(1f), size = 0.88f, color = c.text)
-            GgButton("Retry", vm::retry, icon = GgIcons.Refresh, small = true)
-        }
-        return
-    }
-
+    val noPi = s.conn == ConnState.NO_PI
     val idle = !s.alertActive && !s.muted
     val armed = s.autoMute && idle
+
     val fill = when {
+        noPi -> c.badTint
         s.muted -> c.sunk
         armed -> c.tealTint
         idle -> c.base2
         else -> c.warnTint
     }
+    val icon: ImageVector
+    val tint: Color
+    val title: String
+    val detail: String
+    when {
+        noPi -> { icon = GgIcons.NoLink; tint = c.bad; title = "NO LINK"; detail = "Check the network" }
+        s.muted -> {
+            icon = GgIcons.EyeOff; tint = c.muted
+            title = if (s.autoMuted) "AUTO-MUTED" else "MUTED"
+            detail = muteLeftLabel(s.muteLeft)
+        }
+        armed -> { icon = GgIcons.BellAuto; tint = c.teal; title = "ARMED"; detail = "Mutes next alert" }
+        idle -> { icon = GgIcons.Bell; tint = c.muted; title = "NO ALERT"; detail = "Nothing to mute" }
+        else -> { icon = GgIcons.Bell; tint = c.bad; title = "ALERT"; detail = "Limit reached" }
+    }
     val timed = s.muted && s.muteLeft != null && s.muteTotal > 0
+    val frac by animateFloatAsState(
+        if (timed) (s.muteLeft!!.toFloat() / s.muteTotal).coerceIn(0f, 1f) else 0f, tween(900), label = "mute",
+    )
 
-    Column(
-        Modifier.fillMaxWidth().neuRaised(c, 14.dp, fillColor = fill).padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        // The mockup's flex row wraps at phone width: text and Auto on the
-        // first line, the length picker and the button on the second.
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                Modifier.weight(1f).defaultMinSize(minHeight = 32.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                when {
-                    s.muted -> {
-                        Ico(GgIcons.EyeOff, size = 18.dp, tint = c.muted)
-                        T(
-                            "${if (s.autoMuted) "Auto-muted" else "Alert muted"}, ${muteLeftLabel(s.muteLeft)}",
-                            size = 0.88f, color = c.text, tnum = true,
-                        )
-                    }
-                    armed -> {
-                        Ico(GgIcons.EyeOff, size = 18.dp, tint = c.teal)
-                        T("Auto-mute armed", size = 0.88f, color = c.teal)
-                    }
-                    idle -> {
-                        Ico(GgIcons.Bell, size = 18.dp, tint = c.muted)
-                        T("No alert to mute", size = 0.88f, weight = FontWeight.Bold, color = c.muted)
-                    }
-                    else -> {
-                        Ico(GgIcons.Bell, Modifier.ring(), size = 18.dp, tint = c.bad)
-                        T("Accumulation alert is active", size = 0.88f, color = c.text)
-                    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .neuRaised(c, 14.dp, fillColor = fill)
+            .drawBehind {
+                if (timed) {
+                    val h = 4.dp.toPx()
+                    drawRect(c.shade.copy(alpha = 0.5f), topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+                    drawRect(c.warn, topLeft = Offset(0f, size.height - h), size = Size(size.width * frac, h))
                 }
             }
-            AutoSwitch(s.autoMute, vm::toggleAutoMute)
+            .padding(start = 10.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Ico(icon, Modifier.ring(s.alertActive && !s.muted && !noPi), size = 18.dp, tint = tint)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            T(title, size = if (title.length > 8) 0.62f else 0.72f, weight = FontWeight.Black, color = if (tint == c.muted) c.text else tint, spacing = 0.03f, maxLines = 1)
+            T(detail, size = 0.64f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1)
         }
-        Row(
-            Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        if (noPi) {
+            GgButton("Retry", vm::retry, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Refresh, small = true)
+        } else {
+            AutoSwitch(s.autoMute, vm::toggleAutoMute, label = null)
             MutePick(vm.muteChoice, vm::chooseMuteLength)
-            when {
-                s.muted -> GgButton("Unmute", vm::unmute, icon = GgIcons.Bell, kind = BtnKind.TEAL, small = true)
-                armed -> {}
-                else -> GgButton(
-                    "Mute", { vm.overlay = Overlay.Mute }, icon = GgIcons.EyeOff, small = true, enabled = !idle,
+            if (s.muted) {
+                GgButton("Unmute", vm::unmute, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Bell, kind = BtnKind.TEAL, small = true)
+            } else {
+                GgButton(
+                    "Mute", { vm.overlay = Overlay.Mute }, Modifier.width(MUTE_KEY_WIDTH),
+                    icon = GgIcons.EyeOff, small = true, enabled = !idle,
                 )
             }
-        }
-        if (timed) {
-            val frac = (s.muteLeft!!.toFloat() / s.muteTotal).coerceIn(0f, 1f)
-            val w by animateFloatAsState(frac, tween(900), label = "mute")
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(CircleShape)
-                    .background(c.sunk)
-                    .border(2.dp, c.edge, CircleShape)
-                    .drawBehind {
-                        val inset = 2.dp.toPx()
-                        val h = size.height - 2 * inset
-                        drawRoundRect(
-                            c.warn, topLeft = Offset(inset, inset),
-                            size = Size((size.width - 2 * inset) * w, h), cornerRadius = CornerRadius(h, h),
-                        )
-                    },
-            )
         }
     }
 }
 
-/** .mute-pick, the "for 15 min" selector. */
+private val MUTE_KEY_WIDTH = 96.dp
+
+/** The mute length selector, a fixed-width well so the bar never shifts. */
 @Composable
 fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
     val c = Gg.colors
     var open by remember { mutableStateOf(false) }
     val label = MUTE_CHOICES.firstOrNull { it.first == seconds }?.second ?: "15 min"
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)
-        T("FOR", size = 0.66f, color = c.muted, spacing = 0.06f)
-        Box {
-            Row(
-                Modifier
-                    .defaultMinSize(minHeight = 32.dp)
-                    .neuWell(c, 8.dp)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { open = true }
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                T(label, size = 0.78f, color = c.text, maxLines = 1)
-                T("▾", size = 0.7f, color = c.text)
-            }
-            DropdownMenu(
-                expanded = open,
-                onDismissRequest = { open = false },
-                containerColor = c.raised,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(2.dp, c.edge),
-            ) {
-                MUTE_CHOICES.forEach { (value, text) ->
-                    DropdownMenuItem(
-                        text = { T(text, size = 0.9f, color = if (value == seconds) c.teal else c.text) },
-                        onClick = {
-                            open = false
-                            onPick(value)
-                        },
-                    )
-                }
+    Box {
+        Row(
+            Modifier
+                .width(78.dp)
+                .height(36.dp)
+                .neuWell(c, 9.dp)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { open = true }
+                .padding(horizontal = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Ico(GgIcons.Clock, size = 12.dp, tint = c.bag)
+            T(label, Modifier.weight(1f), size = 0.72f, color = c.text, maxLines = 1)
+            T("\u25BE", size = 0.66f, color = c.muted)
+        }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = c.raised,
+            shape = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(2.dp, c.edge),
+        ) {
+            MUTE_CHOICES.forEach { (value, text) ->
+                DropdownMenuItem(
+                    text = { T(text, size = 0.9f, color = if (value == seconds) c.teal else c.text) },
+                    onClick = {
+                        open = false
+                        onPick(value)
+                    },
+                )
             }
         }
     }
 }
-
 /**
  * The live feed. The whole card is the television: the picture fills it
  * edge to edge and the readouts and keys sit on the set's own control deck.
