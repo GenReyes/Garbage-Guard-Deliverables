@@ -27,7 +27,7 @@ object Sounds {
             )
             .build()
         pool = made
-        listOf(R.raw.gg_capture, R.raw.gg_mute, R.raw.gg_unmute, R.raw.gg_slice, R.raw.gg_miss, R.raw.gg_tap, R.raw.gg_switch).forEach {
+        listOf(R.raw.gg_capture, R.raw.gg_mute, R.raw.gg_unmute, R.raw.gg_slice, R.raw.gg_miss, R.raw.gg_tap, R.raw.gg_switch, R.raw.gg_combo, R.raw.gg_bomb).forEach {
             loaded[it] = made.load(app, it, 1)
         }
     }

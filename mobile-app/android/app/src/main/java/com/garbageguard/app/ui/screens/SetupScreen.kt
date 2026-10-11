@@ -92,14 +92,14 @@ fun SetupScreen(vm: AppViewModel) {
                     GgButton("Test connection", vm::testConnection, Modifier.fillMaxWidth(), icon = GgIcons.Link, kind = BtnKind.TEAL)
             }
             Hint(
-                "The phone and the Pi must be on the same Wi-Fi or hotspot. On a phone hotspot, the address changes each time.",
+                "Phone and Pi must be on the same Wi-Fi or hotspot.",
                 icon = GgIcons.Signal,
             )
         }
 
         // Not in the mockup: lets the app be shown with no Pi nearby.
         GgButton("Try with demo data", vm::useDemo, Modifier.fillMaxWidth(), icon = GgIcons.Eye)
-        Hint("Demo data is invented on the phone. Nothing is sent to or read from a Pi.", center = true, modifier = Modifier.fillMaxWidth())
+        Hint("Invented data on the phone. No Pi needed.", center = true, modifier = Modifier.fillMaxWidth())
     }
 }
 

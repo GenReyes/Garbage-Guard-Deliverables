@@ -74,6 +74,8 @@ import com.garbageguard.app.ui.components.SheetTitle
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.ggBackground
 import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.pressable
+import com.garbageguard.app.ui.components.blockTouches
 import com.garbageguard.app.ui.components.rememberSnapshot
 import com.garbageguard.app.ui.theme.Gg
 
@@ -190,15 +192,23 @@ private fun ViewersSheet(viewers: List<Viewer>, myId: String, close: () -> Unit)
                             add("Type" to if (app) "Garbage-Guard app" + (if (v.appVersion.isNotEmpty()) " ${v.appVersion}" else "") else v.browser.ifEmpty { "Browser" })
                             if (v.os.isNotEmpty()) add("System" to v.os)
                             add("Address" to v.ip + if (v.hostname.isNotEmpty()) " (${v.hostname})" else "")
-                            if (v.mac.isNotEmpty()) add("MAC" to v.mac)
+                            if (v.mac.isNotEmpty()) add((if (v.via == "shared") "Router MAC" else "MAC") to v.mac)
                             add("Connected" to duration(v.connectedSeconds))
+                            when (v.via) {
+                                "direct" -> add("Link" to "Direct")
+                                "shared" -> add("Link" to "Shared address")
+                                "remote" -> add("Link" to "Remote")
+                            }
                         }
                         lines.forEach { (label, value) ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                T(label.uppercase(), Modifier.width(76.dp), size = 0.62f, color = c.muted, spacing = 0.06f, maxLines = 1)
-                                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true)
+                                T(label.uppercase(), Modifier.width(86.dp), size = 0.62f, color = c.muted, spacing = 0.06f, fit = true)
+                                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true, fit = true)
                             }
                         }
+                        // The dashboard's note, so a router's address is not mistaken for the phone's own.
+                        if (v.via == "shared") Hint("Behind a shared router, so the address is the router's.", icon = GgIcons.Signal)
+                        if (v.via == "remote") Hint("Reaching the Pi from outside its network.", icon = GgIcons.Signal)
                     }
                 }
             }
@@ -270,8 +280,8 @@ private fun NetCard(n: NetInterface) {
         }
         lines.forEach { (label, value) ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                T(label.uppercase(), Modifier.width(64.dp), size = 0.62f, color = c.muted, spacing = 0.06f, maxLines = 1)
-                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true)
+                T(label.uppercase(), Modifier.width(64.dp), size = 0.62f, color = c.muted, spacing = 0.06f, fit = true)
+                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true, fit = true)
             }
         }
     }
@@ -345,7 +355,7 @@ private fun PiBatterySheet(b: Battery, close: () -> Unit) {
         listOfNotNull(input, capacity).takeIf { it.isNotEmpty() }?.let {
             Hint(it.joinToString(" "), icon = GgIcons.Battery)
         }
-        Hint("A minus sign means the pack is powering the Pi. A plus sign means it is charging.", icon = GgIcons.Ok)
+        Hint("Minus means powering the Pi. Plus means charging.", icon = GgIcons.Ok)
         GgButton("Close", close, Modifier.fillMaxWidth())
     }
 }
@@ -372,7 +382,7 @@ private fun MuteSheet(vm: AppViewModel, close: () -> Unit) {
                                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())),
                             )
                         }
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        .pressable(toggle = true) {
                             vm.chooseMuteLength(seconds)
                         },
                     verticalAlignment = Alignment.CenterVertically,
@@ -481,7 +491,7 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
             Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { fullSize = false },
+                .pressable { fullSize = false },
             contentAlignment = Alignment.Center,
         ) { FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image) }
         return
@@ -491,7 +501,7 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
         Modifier
             .fillMaxSize()
             .ggBackground(c)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+            .blockTouches()
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {

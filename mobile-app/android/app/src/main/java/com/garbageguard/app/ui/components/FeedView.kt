@@ -546,8 +546,8 @@ fun TvFeed(
         }
 
         T(
-            caption, Modifier.padding(horizontal = 4.dp), size = 0.68f, weight = FontWeight.Medium,
-            color = k.hint, lineHeight = 1.3f,
+            caption, Modifier.fillMaxWidth().padding(horizontal = 4.dp), size = 0.68f, weight = FontWeight.Medium,
+            color = k.hint, lineHeight = 1.3f, fit = true,
         )
     }
 }

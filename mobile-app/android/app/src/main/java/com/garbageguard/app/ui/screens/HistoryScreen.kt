@@ -66,6 +66,7 @@ import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.accentOf
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.pressable
 import com.garbageguard.app.ui.components.rememberSnapshot
 import com.garbageguard.app.ui.theme.Gg
 
@@ -151,7 +152,7 @@ fun FilterChip(label: String, icon: ImageVector?, on: Boolean, onClick: () -> Un
         Modifier
             .defaultMinSize(minHeight = 40.dp)
             .neuWell(c, 20.dp, if (on) c.tealTint else c.sunk)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .pressable(toggle = true, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -219,7 +220,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         .clip(shape)
                         .background(c.bad)
                         .border(2.dp, c.edge, shape)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        .pressable {
                             vm.overlay = Overlay.Delete(row.id)
                         }
                         .padding(start = 14.dp),
@@ -267,7 +268,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         },
                     ) { _, dx -> total += dx }
                 }
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                .pressable(toggle = true) {
                     vm.swipedId = if (swiped) null else row.id
                 }
                 .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -278,7 +279,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
             Box(
                 Modifier
                     .size(28.dp)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    .pressable(toggle = true) {
                         vm.toggleRead(row)
                     },
                 contentAlignment = Alignment.Center,
@@ -313,9 +314,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                     .background(if (row.snapshot != null) FEED_BLACK else c.sunk)
                     .border(2.dp, c.edge, thumbShape)
                     .then(
-                        if (row.snapshot != null) Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() }, indication = null,
-                        ) { vm.overlay = Overlay.Viewer(row.id) } else Modifier
+                        if (row.snapshot != null) Modifier.pressable { vm.overlay = Overlay.Viewer(row.id) } else Modifier
                     ),
                 contentAlignment = Alignment.Center,
             ) {

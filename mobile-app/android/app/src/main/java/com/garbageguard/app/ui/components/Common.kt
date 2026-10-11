@@ -52,6 +52,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,22 +107,50 @@ fun T(
     tnum: Boolean = false,
     spacing: Float = 0f,
     lineHeight: Float = 1.25f,
+    /** Keep to one line by stepping the size down until it fits, so no word is ever cut off. */
+    fit: Boolean = false,
 ) {
+    // Keyed on length, not the text itself, so a ticking countdown does not re-shrink every second.
+    var scale by remember(text.length, size) { mutableFloatStateOf(1f) }
+    val shown = if (fit) size * scale else size
     Text(
         text = text,
         modifier = modifier,
         color = color,
         textAlign = align,
-        maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
+        maxLines = if (fit) 1 else maxLines,
+        softWrap = !fit,
+        overflow = if (fit && scale > FIT_FLOOR) TextOverflow.Clip else TextOverflow.Ellipsis,
+        onTextLayout = { if (fit && it.didOverflowWidth && scale > FIT_FLOOR) scale = (scale * 0.94f).coerceAtLeast(FIT_FLOOR) },
         style = TextStyle(
-            fontSize = em(size),
+            fontSize = em(shown),
             fontWeight = weight,
-            lineHeight = em(size * lineHeight),
-            letterSpacing = (spacing * size * 14f).sp,
+            lineHeight = em(shown * lineHeight),
+            letterSpacing = (spacing * shown * 14f).sp,
             fontFeatureSettings = if (tnum) "tnum" else null,
         ),
     )
+}
+
+private const val FIT_FLOOR = 0.6f
+
+/** Swallows touches silently, for a surface that must not let taps fall through to what is behind it. */
+@Composable
+fun Modifier.blockTouches(): Modifier =
+    clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+
+/** A press with no ripple, a tick under the finger and a soft sound. Switch-like things use [toggle]. */
+@Composable
+fun Modifier.pressable(toggle: Boolean = false, enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    val view = LocalView.current
+    return clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        enabled = enabled,
+    ) {
+        if (toggle) Feel.toggle(view) else Feel.tap(view)
+        onClick()
+    }
 }
 
 @Composable
@@ -370,16 +400,21 @@ fun Hint(
     modifier: Modifier = Modifier,
     center: Boolean = false,
     size: Float = 0.78f,
+    /** Let the text run over several lines, justified so both edges are straight. */
+    wrap: Boolean = false,
 ) {
     val c = Gg.colors
     Row(
         modifier = modifier,
+        verticalAlignment = if (wrap) Alignment.Top else Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp, if (center) Alignment.CenterHorizontally else Alignment.Start),
     ) {
-        if (icon != null) Ico(icon, Modifier.padding(top = 1.dp), size = 12.dp, tint = c.muted)
+        if (icon != null) Ico(icon, Modifier.padding(top = if (wrap) 2.dp else 0.dp), size = 12.dp, tint = c.muted)
         T(
-            text, size = size, weight = FontWeight.Normal, color = c.muted, lineHeight = 1.3f,
-            align = if (center) TextAlign.Center else null,
+            text, Modifier.weight(1f, fill = !center),
+            size = size, weight = FontWeight.Normal, color = c.muted, lineHeight = 1.3f,
+            align = if (wrap) TextAlign.Justify else if (center) TextAlign.Center else null,
+            fit = !wrap,
         )
     }
 }
@@ -713,10 +748,7 @@ fun GgSheet(onDismiss: () -> Unit, dismissable: Boolean = true, content: @Compos
                 .fillMaxSize()
                 .alpha(fade.value)
                 .background(Color(0x8C0A0806))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null, enabled = dismissable, onClick = onDismiss,
-                ),
+                .pressable(enabled = dismissable, onClick = onDismiss),
         )
         val shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
         Column(
@@ -769,7 +801,7 @@ fun SheetText(text: String, center: Boolean = false, mutedSmall: Boolean = false
     T(
         text, if (center) Modifier.fillMaxWidth() else Modifier,
         size = if (mutedSmall) 0.82f else 0.9f, weight = FontWeight.Normal,
-        color = if (mutedSmall) c.muted else c.text, align = if (center) TextAlign.Center else null,
+        color = if (mutedSmall) c.muted else c.text, align = if (center) TextAlign.Center else TextAlign.Justify,
         lineHeight = 1.35f,
     )
 }

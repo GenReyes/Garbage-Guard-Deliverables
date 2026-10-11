@@ -63,6 +63,9 @@ import com.garbageguard.app.ui.components.neuRaised
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.ui.components.ring
+import com.garbageguard.app.ui.components.pressable
+import com.garbageguard.app.notify.Feel
+import androidx.compose.ui.platform.LocalView
 import com.garbageguard.app.ui.components.rememberLiveFrame
 import com.garbageguard.app.ui.theme.Gg
 import java.time.LocalTime
@@ -274,8 +277,8 @@ private fun MuteBar(vm: AppViewModel, s: LiveState) {
     ) {
         Ico(icon, Modifier.ring(s.alertActive && !s.muted && !noPi), size = 18.dp, tint = tint)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            T(title, size = if (title.length > 8) 0.62f else 0.72f, weight = FontWeight.Black, color = if (tint == c.muted) c.text else tint, spacing = 0.03f, maxLines = 1)
-            T(detail, size = 0.64f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1)
+            T(title, size = 0.72f, weight = FontWeight.Black, color = if (tint == c.muted) c.text else tint, spacing = 0.03f, fit = true)
+            T(detail, size = 0.64f, weight = FontWeight.Bold, color = c.muted, tnum = true, fit = true)
         }
         if (noPi) {
             GgButton("Retry", vm::retry, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Refresh, small = true)
@@ -301,6 +304,7 @@ private val MUTE_KEY_WIDTH = 96.dp
 fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
     val c = Gg.colors
     var open by remember { mutableStateOf(false) }
+    val view = LocalView.current
     val label = MUTE_CHOICES.firstOrNull { it.first == seconds }?.second ?: "15 min"
     Box {
         Row(
@@ -308,13 +312,13 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
                 .width(78.dp)
                 .height(36.dp)
                 .neuWell(c, 9.dp)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { open = true }
+                .pressable { open = true }
                 .padding(horizontal = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Ico(GgIcons.Clock, size = 12.dp, tint = c.bag)
-            T(label, Modifier.weight(1f), size = 0.72f, color = c.text, maxLines = 1)
+            T(label, Modifier.weight(1f), size = 0.72f, color = c.text, fit = true)
             T("\u25BE", size = 0.66f, color = c.muted)
         }
         DropdownMenu(
@@ -328,6 +332,7 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
                 DropdownMenuItem(
                     text = { T(text, size = 0.9f, color = if (value == seconds) c.teal else c.text) },
                     onClick = {
+                        Feel.toggle(view)
                         open = false
                         onPick(value)
                     },

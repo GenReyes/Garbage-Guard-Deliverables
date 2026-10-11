@@ -155,7 +155,7 @@ fun GgApp(vm: AppViewModel) {
 
                 vm.toast?.let { GgToast(it, bottom = if (vm.fullscreen || !vm.setupDone) 24.dp else 86.dp) }
 
-                if (vm.game) SlashGame(onExit = vm::closeGame)
+                if (vm.game) SlashGame(onExit = vm::closeGame, onToggleTheme = { vm.toggleTheme(c.isDark) })
             }
         }
     }

@@ -36,6 +36,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.LiveState
 import com.garbageguard.app.ui.AppViewModel
+import com.garbageguard.app.notify.Feel
 import com.garbageguard.app.ui.Overlay
 import com.garbageguard.app.ui.components.AlertFlag
 import com.garbageguard.app.ui.components.AutoSwitch
@@ -93,6 +94,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
     LandscapeImmersive()
     BackHandler { vm.closeFullscreen() }
 
+    val view = LocalView.current
     val online = state.conn == ConnState.ONLINE
     val level = levelOf(state)
     val p = percentOf(state)
@@ -162,7 +164,10 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 cover = false,
                 image = rememberLiveFrame(vm.frameUrl),
                 drawPoints = if (vm.drawing) vm.drawPoints else null,
-                onTap = { vm.drawPoints.add(it) },
+                onTap = {
+                    Feel.tap(view)
+                    vm.drawPoints.add(it)
+                },
             )
             Box(Modifier.fillMaxSize().scanLines())
             if (state.alertActive && !state.muted && online && !vm.drawing) AlertFlag()

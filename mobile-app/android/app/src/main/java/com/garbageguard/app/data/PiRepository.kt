@@ -407,7 +407,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
                 ip = text(v, "ip"), kind = text(v, "kind"), id = text(v, "id"),
                 device = text(v, "device"), os = text(v, "os"), browser = text(v, "browser"),
                 appVersion = text(v, "app_version"), mode = text(v, "mode"),
-                connectedSeconds = v.optInt("since_s"), hostname = text(v, "hostname"), mac = text(v, "mac"),
+                connectedSeconds = v.optInt("since_s"), hostname = text(v, "hostname"), mac = text(v, "mac"), via = text(v, "via"),
             )
         }
     }

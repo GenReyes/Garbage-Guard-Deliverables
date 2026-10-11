@@ -57,6 +57,8 @@ data class Viewer(
     val connectedSeconds: Int = 0,
     val hostname: String = "",
     val mac: String = "",
+    /** "direct", "shared" (a router in between, so the address and MAC are the router's) or "remote". */
+    val via: String = "",
 )
 
 /** The seven event values a history row can carry. */

@@ -90,7 +90,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 icon = GgIcons.Eraser, enabled = hasArea,
             )
             Hint(
-                "Drawing opens the video full screen. Tap to outline the water, 3 points or more. Anything outside is ignored.",
+                "Tap the video to outline the water, 3 points or more.",
                 icon = GgIcons.Poly,
             )
         }
@@ -98,7 +98,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
         GgCard {
             Hd(GgIcons.Bell, "Alerts")
             val granted = vm.notifications == PermState.ON
-            SettingRow("Notifications", "Needed for alerts when the app is closed", GgIcons.Bell) {
+            SettingRow("Notifications", "For alerts while the app is closed", GgIcons.Bell) {
                 Tag(
                     when (vm.notifications) { PermState.ON -> "On"; PermState.BLOCKED -> "Blocked"; PermState.OFF -> "Off" },
                     if (granted) Tone.OK else Tone.BAD,
@@ -122,14 +122,14 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             SettingRow("Vibration", "A light tick under the finger", GgIcons.Phone) {
                 AutoSwitch(vm.haptics, vm::toggleHaptics, label = null, icon = null)
             }
-            SettingRow("Keep screen on", "The phone will not dim while the app is open", GgIcons.Sun) {
+            SettingRow("Keep screen on", "Stops the phone from dimming", GgIcons.Sun) {
                 AutoSwitch(vm.keepScreenOn, vm::toggleKeepScreenOn, label = null, icon = null)
             }
             SettingRow("Alert sounds", "Each kind of alert has its own sound", GgIcons.Bell) {
                 GgButton("Adjust", { vm.openAlertSounds() }, small = true, icon = GgIcons.Gear)
             }
             Hint(
-                "Limit reached sounds a buzzer. Test, auto-mute, capture, mute and unmute each sound different. They also play while the app is in the background.",
+                "Each alert type has its own sound, even in the background.",
                 icon = GgIcons.Ok,
             )
         }
@@ -221,8 +221,8 @@ private fun SettingRow(label: String, sub: String, icon: ImageVector, trailing: 
     ) {
         Ico(icon, size = 17.dp, tint = accentOf(icon))
         Column(Modifier.weight(1f)) {
-            T(label.uppercase(), size = 0.84f, spacing = 0.04f)
-            T(sub, size = 0.78f, weight = FontWeight.Bold, color = Gg.colors.muted)
+            T(label.uppercase(), size = 0.84f, spacing = 0.04f, fit = true)
+            T(sub, size = 0.78f, weight = FontWeight.Bold, color = Gg.colors.muted, fit = true)
         }
         trailing()
     }
