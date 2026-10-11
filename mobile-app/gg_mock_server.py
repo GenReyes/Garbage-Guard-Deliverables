@@ -10,6 +10,7 @@ Then point the app at http://<this-machine-ip>:8080
 """
 
 import base64
+import os
 import json
 import math
 import random
@@ -20,6 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 PORT = 8080
+DASHBOARD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pi", "dashboard.html")
 
 FRAME_B64 = (
     "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdB"
@@ -80,6 +82,8 @@ STATE = {
     "threshold": 20,
     "roi": [],
     "started": time.time(),
+    "cam_off_until": 0.0,
+    "reconnects": 0,
     "mute_until": 0.0,
     "mute_total": 0,
     "auto_mute": False,
@@ -160,7 +164,8 @@ def build_state():
         add_row("auto_muted", total, 0, 0, 0, None, datetime.now(), False)
     STATE["in_alert"] = active
     return {
-        "connected": True,
+        "connected": time.time() >= STATE["cam_off_until"] and not os.environ.get("GG_MOCK_NOCAM"),
+        "reconnects": STATE["reconnects"],
         "counts": counts,
         "raw": total,
         "smoothed": total,
@@ -266,6 +271,11 @@ class Handler(BaseHTTPRequestHandler):
             if SNAPSHOT_NAME.match(name) and name in known:
                 return self._send(200, "image/jpeg", FRAME)
             return self._send(404, "text/plain", "not found")
+        if path in ("/", "/index.html") and os.path.exists(DASHBOARD):
+            with open(DASHBOARD, "rb") as f:
+                return self._send(200, "text/html; charset=utf-8", f.read())
+        if path == "/api/net":
+            return self._json({"local": False, "has_wifi_hw": False})
         if path in ("/", "/index.html"):
             return self._send(200, "text/html",
                               "<h2>Garbage-Guard mock server</h2>"
@@ -289,6 +299,16 @@ class Handler(BaseHTTPRequestHandler):
                 "threshold": STATE["threshold"],
                 "roi": STATE["roi"],
             }})
+
+        if path == "/api/camera/reconnect":
+            STATE["cam_off_until"] = time.time() + 3
+            STATE["reconnects"] += 1
+            return self._json({"ok": True})
+
+        if path == "/api/restart":
+            STATE["started"] = time.time()
+            STATE["cam_off_until"] = time.time() + 4
+            return self._json({"ok": True})
 
         if path == "/api/roi":
             pts = data.get("points") or []

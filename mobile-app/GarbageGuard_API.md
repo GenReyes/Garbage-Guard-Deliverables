@@ -95,7 +95,8 @@ Poll about once per second. This drives the whole main screen.
 
 | Field | Meaning |
 |---|---|
-| `connected` | Camera is delivering frames. `false` means show an offline state. |
+| `connected` | Camera delivered a frame in the last 3 seconds. `false` with a working request means the Pi is fine but the camera is not: show "No camera". A failed request means "No link to Pi". |
+| `reconnects` | How many times the Pi has restarted the camera stream (button or the 12 s no-frame watchdog). |
 | `counts` | Per-class counts currently inside the ROI. Class names are fixed: `bottle`, `bag`, `food_container`. |
 | `raw` | Items detected this frame. |
 | `smoothed` | Median over the last 15 frames. **Display this one**, not `raw`. |
@@ -348,6 +349,24 @@ dialog naming the count; matching that is the safe pattern.
 
 ---
 
+### `POST /api/camera/reconnect`
+
+Drops the camera stream and opens it again, and brings the `camera-link`
+network profile up if the camera does not answer a ping. Body: none.
+Returns `{"ok": true}` at once; watch `connected` in `/api/state` for the
+result (usually back within 5–15 s). The Pi also does this by itself when no
+frame arrives for 12 seconds. Safe for the app to offer as a "Reconnect
+camera" action.
+
+### `POST /api/restart`
+
+Restarts the whole Garbage-Guard program on the Pi (detection, camera, web
+server). Returns `{"ok": true}`, then the server is gone for a few seconds.
+Poll `/api/state` until `uptime_s` starts again from near zero. Settings, the
+monitored area and history are kept. Ask the user to confirm before calling it.
+
+---
+
 ## Pi-only endpoints (the app does not use these)
 
 The Pi's own screen has Wi-Fi setup. These exist in the real server only and
@@ -360,7 +379,8 @@ are not in the mock server. The app should not call them.
 | `GET /api/wifi/scan`, `POST /api/wifi/connect`, `POST /api/wifi/fix_camera` | Answer only to requests from the Pi itself. Anyone else gets `403 local_only`. Passwords are never logged or returned. |
 
 `GET /api/battery` (UPS HAT readout: `ok`, `percent`, `voltage_v`, `current_a`,
-`power_w`, `on_ac`, `charging`, `state`, `minutes_left`) and `POST /api/window`
+`power_w`, `on_ac`, `charging`, `state`, `minutes_left`, `capacity_mah`,
+`cells_v`, `vbus_v`, `vbus_a`, `vbus_w`) and `POST /api/window`
 (minimize or restore the Pi's dashboard window, local only) exist for the Pi's
 own screen. The app does not need them. `/api/battery` is read-only and
 returns `{"ok": false, "error": ...}` when no UPS is attached.

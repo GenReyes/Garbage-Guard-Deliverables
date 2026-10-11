@@ -127,6 +127,26 @@ class NetTests(unittest.TestCase):
 
 
 class FakeTests(unittest.TestCase):
+    def test_camera_up_skips_when_reachable(self):
+        run = runner_for({})
+        res = g.Net(runner=run).camera_up()
+        self.assertTrue(res["reachable"])
+        self.assertFalse(any(c[0] == "nmcli" for c in run.calls))
+
+    def test_camera_up_brings_profile_up(self):
+        state = {"pings": 0}
+
+        def run(args, timeout=20):
+            run.calls.append(args)
+            if args[0] == "ping":
+                state["pings"] += 1
+                return (1 if state["pings"] == 1 else 0), "", ""
+            return 0, "", ""
+        run.calls = []
+        res = g.Net(runner=run).camera_up()
+        self.assertIn(["nmcli", "con", "up", "camera-link"], run.calls)
+        self.assertTrue(res["ok"])
+
     def test_fake_flow(self):
         f = g.FakeNet("offline", settle_s=0)
         self.assertFalse(f.status()["wifi_connected"])

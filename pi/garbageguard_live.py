@@ -40,6 +40,7 @@ IMGSZ = 640
 
 SMOOTH_WINDOW = 15
 ALERT_COOLDOWN_SEC = 60
+WATCHDOG_S = 12
 PERF_FLUSH_EVERY = 100
 WEB_PORT = 8080
 
@@ -159,16 +160,27 @@ def stamp_snapshot(frame, state):
 class FrameReader:
     """Keeps the RTSP queue drained so the engine always gets the newest frame."""
 
+    STALE_S = 3.0
+
     def __init__(self, open_fn):
         self.open_fn = open_fn
         self.lock = threading.Lock()
         self.frame = None
         self.captured_at = 0.0
+        self.last_ok = 0.0
         self.seq = 0
         self.stamps = collections.deque(maxlen=90)
         self.stop_flag = threading.Event()
-        self.alive = False
         self.thread = None
+        self.started = time.perf_counter()
+
+    @property
+    def alive(self):
+        return time.perf_counter() - self.last_ok <= self.STALE_S
+
+    def silent_for(self):
+        ref = self.last_ok or self.started
+        return time.perf_counter() - ref
 
     def start(self):
         self.thread = threading.Thread(target=self._loop, daemon=True)
@@ -180,24 +192,28 @@ class FrameReader:
         misses = 0
         while not self.stop_flag.is_set():
             ok, frame = cap.read()
+            if self.stop_flag.is_set():
+                break
             if not ok:
                 misses += 1
-                self.alive = False
                 if misses > 50:
                     print("Stream lost. Reconnecting...")
                     cap.release()
                     time.sleep(2.0)
+                    if self.stop_flag.is_set():
+                        return
                     cap = self.open_fn()
                     misses = 0
                 time.sleep(0.02)
                 continue
             misses = 0
+            now = time.perf_counter()
             with self.lock:
                 self.frame = frame
-                self.captured_at = time.perf_counter()
+                self.captured_at = now
+                self.last_ok = now
                 self.seq += 1
-                self.stamps.append(self.captured_at)
-                self.alive = True
+                self.stamps.append(now)
         cap.release()
 
     def latest(self, after_seq):
@@ -242,6 +258,9 @@ class Engine:
         self.auto_muted = False
         self.frames = 0
         self.reader = None
+        self.reconnect_flag = threading.Event()
+        self.reconnect_reason = ""
+        self.reconnects = 0
         self.proc_stamps = collections.deque(maxlen=90)
         self.all_latencies = []
         self.started_at = time.time()
@@ -285,6 +304,7 @@ class Engine:
                 "auto_mute": bool(self.settings.get("auto_mute")),
                 "auto_mute_s": int(self.settings.get("auto_mute_s", 0)),
                 "frames": self.frames,
+                "reconnects": self.reconnects,
                 "uptime_s": int(time.time() - self.started_at),
             }
 
@@ -485,11 +505,37 @@ class Engine:
         return snap is not None
 
     def _open(self):
-        cap = cv2.VideoCapture(int(self.source) if str(self.source).isdigit()
-                               else self.source)
+        if str(self.source).isdigit():
+            return cv2.VideoCapture(int(self.source))
+        params = []
+        for name, ms in (("CAP_PROP_OPEN_TIMEOUT_MSEC", 5000),
+                         ("CAP_PROP_READ_TIMEOUT_MSEC", 5000)):
+            if hasattr(cv2, name):
+                params += [getattr(cv2, name), ms]
+        cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG, params) if params \
+            else cv2.VideoCapture(self.source)
         if str(self.source).lower().startswith("rtsp"):
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         return cap
+
+    def reconnect(self, reason="manual"):
+        self.reconnect_flag.set()
+        self.reconnect_reason = reason
+        return True
+
+    def _swap_reader(self):
+        old = self.reader
+        print(f"Camera reconnect ({self.reconnect_reason}).")
+        if old is not None:
+            old.stop()
+        reader = FrameReader(self._open).start()
+        with self.lock:
+            self.reader = reader
+            self.connected = False
+            self.jpeg = None
+            self.reconnects += 1
+            self.display_ids = DisplayIds()
+        return reader
 
     def run(self, show_window=False):
         print(f"Loading model: {self.model_path}")
@@ -516,6 +562,14 @@ class Engine:
 
         while not self.stop_flag.is_set():
             if live:
+                if self.reconnect_flag.is_set():
+                    self.reconnect_flag.clear()
+                    reader = self._swap_reader()
+                    seq = 0
+                elif reader.silent_for() > WATCHDOG_S:
+                    self.reconnect_reason = "no frames"
+                    reader = self._swap_reader()
+                    seq = 0
                 frame, seq, captured_at = reader.latest(seq)
                 if frame is None:
                     with self.lock:

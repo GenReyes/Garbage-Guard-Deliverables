@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sys
 import threading
@@ -129,6 +130,16 @@ def make_handler(engine, net=None, ups=None):
                     return
                 return self._json(net.fix_camera_route())
 
+            if path == "/api/camera/reconnect":
+                engine.reconnect("button")
+                threading.Thread(target=net.camera_up, daemon=True).start()
+                return self._json({"ok": True})
+
+            if path == "/api/restart":
+                self._json({"ok": True})
+                threading.Thread(target=restart_process, daemon=True).start()
+                return
+
             if path == "/api/window":
                 # Only the Pi's own screen may hide its window.
                 if self.client_address[0] not in LOOPBACK:
@@ -232,6 +243,12 @@ class QuietServer(ThreadingHTTPServer):
         if isinstance(err, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
             return
         super().handle_error(request, client_address)
+
+
+def restart_process(delay=0.6):
+    time.sleep(delay)
+    print("Restarting Garbage-Guard from the dashboard.", flush=True)
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 def serve(engine, port=8080):

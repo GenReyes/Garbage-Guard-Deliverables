@@ -238,6 +238,15 @@ class Net:
             code, msg = friendly_error(err or out)
             return {"ok": False, "error": code, "message": msg}
 
+    def camera_up(self):
+        rc, _, _ = self._run(["ping", "-c", "1", "-W", "2", self.camera_ip], 5)
+        if rc == 0:
+            return {"ok": True, "reachable": True, "action": "none"}
+        rc, _, err = self._nm("con", "up", CAMERA_PROFILE, timeout=20)
+        rc2, _, _ = self._run(["ping", "-c", "1", "-W", "2", self.camera_ip], 5)
+        return {"ok": rc2 == 0, "reachable": rc2 == 0, "action": "camera-link up",
+                "message": "" if rc == 0 else friendly_error(err)}
+
     def fix_camera_route(self):
         with self._lock:
             rc, out, _ = self._nm("-g", "ipv4.addresses", "connection", "show", CAMERA_PROFILE)
@@ -305,6 +314,9 @@ class FakeNet(Net):
         self.ssid = ssid
         self.conflict = True
         return {"ok": True, "ssid": ssid}
+
+    def camera_up(self):
+        return {"ok": True, "reachable": True, "action": "none"}
 
     def fix_camera_route(self):
         time.sleep(0.8)

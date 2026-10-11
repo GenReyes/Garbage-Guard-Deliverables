@@ -655,6 +655,96 @@ tr.read td.n{font-weight:800}
   flex-direction:column;align-items:center;gap:7px}
 .empty .ico{width:26px;height:26px;opacity:.5}
 
+/* ---------------- camera status ---------------- */
+.pill.nocam{color:#9A6A00;animation:none}
+.pill.nocam .ico{color:var(--warn);animation:breathe 1.6s ease-in-out infinite}
+[data-theme="dark"] .pill.nocam{color:var(--warn)}
+.screen.nosig #feed,#feed:not([src]){visibility:hidden}
+.off{color:var(--text)}
+.off.busy .ico{color:var(--teal);animation:spin 1s linear infinite}
+
+/* ---------------- camera refresh ---------------- */
+/* Tap: the arrows wind back and whip round once, then keep turning slowly
+   until the camera answers. Hold: the outline fills over 5 s while the arrows
+   spin up the other way and the button warms to amber; letting go early
+   drains it back. */
+.rfb{position:relative;overflow:visible;touch-action:none;user-select:none;-webkit-user-select:none}
+.rfb .ico{overflow:visible}
+.rfb .arr{transform-origin:12px 12px;transform-box:view-box}
+.rfb .core{transform-origin:12px 12px;transform-box:view-box;transform:scale(0);
+  fill:currentColor;stroke:none;transition:transform .25s ease}
+.rfb .trace{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);
+  pointer-events:none;overflow:visible}
+.rfb .trace rect{fill:none;stroke:var(--warn);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .3s ease, opacity .3s;
+  opacity:0;filter:drop-shadow(0 0 3px var(--warn))}
+.rfb.tap .arr{animation:rf-tap .75s cubic-bezier(.45,-.45,.3,1.35)}
+.rfb.wait .arr{animation:spin 1.4s linear infinite}
+.rfb.wait{color:var(--mon-fps)}
+.rfb.hold{transition:background .2s;background:linear-gradient(180deg,#F9CF6A,var(--warn));color:#1E1A16}
+.rfb.hold .arr{animation:rf-wind 5s cubic-bezier(.6,0,1,.6) forwards}
+.rfb.hold .core{transform:scale(1);transition:transform 5s cubic-bezier(.5,0,.9,.4)}
+.rfb.hold .trace rect{opacity:1;stroke-dashoffset:0;transition:stroke-dashoffset 5s linear, opacity .15s}
+.rfb.done{animation:rf-done .5s ease-out}
+@keyframes rf-tap{0%{transform:rotate(0)}22%{transform:rotate(-40deg)}100%{transform:rotate(360deg)}}
+@keyframes rf-wind{from{transform:rotate(0)}to{transform:rotate(-2160deg)}}
+@keyframes rf-done{0%{box-shadow:0 0 0 0 var(--warn)}100%{box-shadow:0 0 0 14px transparent}}
+.hint.holdtip{color:var(--warn)!important}
+[data-theme="dark"] .monitor .mon-top .hint.holdtip{color:#9A6A00!important}
+
+/* full-page restart cover */
+#reboot{position:fixed;inset:0;z-index:200;display:none;place-items:center;
+  background:var(--base);color:var(--text)}
+#reboot.on{display:grid;animation:rise .3s ease-out}
+.rb{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:20px}
+.rb .spin{width:64px;height:64px;border-radius:50%;border:5px solid var(--sunk);
+  border-top-color:var(--teal);animation:spin .9s linear infinite;box-shadow:var(--soft-sm)}
+.rb h2{margin:0;font-size:20px;font-weight:900}
+.rb p{margin:0;color:var(--muted);font-weight:700;font-size:13px}
+.rb .btn[hidden]{display:none}
+
+/* ---------------- battery details ---------------- */
+#batt{cursor:pointer;transition:transform .08s ease, box-shadow .08s ease}
+#batt:active{transform:translate(3px,3px);box-shadow:var(--press)}
+#batt:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+#battDlg{width:min(560px,94vw)}
+.bd{padding:13px;display:flex;flex-direction:column;gap:12px}
+.bd-hero{display:flex;align-items:center;gap:20px}
+.bd .bt-cell{width:150px;height:66px;border-radius:13px;padding:4px;margin-right:10px}
+.bd .bt-cell::after{right:-12px;top:20px;width:9px;height:22px;border-radius:0 6px 6px 0}
+.bd .bt-cell .seg{inset:4px}
+.bd .bt-fill{border-radius:8px}
+.bd .bt-bolt{width:40px;height:40px;margin:-20px 0 0 -20px}
+.bd-pct{margin:0;font-size:44px;font-weight:900;line-height:1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums}
+.bd-pct small{font-size:18px;color:var(--muted);margin-left:2px}
+.b-bad .bd-pct{color:var(--bad)}
+.bd-src{margin:4px 0 0;font-size:13px;font-weight:700}
+.bd-src b{font-weight:900}
+.bd-wells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.well{border-radius:12px;background:var(--sunk);box-shadow:var(--well);border:2px solid var(--edge);
+  padding:7px 10px}
+.well .lb{display:block;font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--muted)}
+.well b{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.well small{font-size:11px;font-weight:800;color:var(--muted);margin-left:2px}
+.well.neg b{color:#A35A00} [data-theme="dark"] .well.neg b{color:var(--warn)}
+.well.pos b{color:var(--teal)}
+.bd-lbl{margin:0 0 -6px;font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--muted)}
+.bd-cells{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.cellv{border:2px solid var(--edge);border-radius:10px;padding:5px 8px;text-align:center;
+  background:linear-gradient(162deg,var(--lite),var(--raised));box-shadow:2px 2px 0 var(--edge), var(--soft-sm)}
+.cellv span{display:block;font-size:9px;font-weight:800;color:var(--muted)}
+.cellv b{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums}
+.cellv.lowc{border-color:var(--bad)} .cellv.lowc b{color:var(--bad)}
+.bd-note{margin:0;display:flex;gap:6px;align-items:flex-start;font-size:12px;font-weight:700;color:var(--muted)}
+.bd-note .ico{width:14px;height:14px;flex:none;margin-top:1px}
+.bd-note[hidden]{display:none}
+.tagx{font-size:11px;font-weight:900;padding:3px 9px;border-radius:999px;border:2px solid var(--edge);
+  white-space:nowrap}
+.tagx.ok{background:var(--ok-tint);color:#15703A} [data-theme="dark"] .tagx.ok{color:var(--ok)}
+.tagx.warn{background:var(--warn-tint);color:#8A5A00} [data-theme="dark"] .tagx.warn{color:var(--warn)}
+.tagx.bad{background:var(--bad-tint);color:var(--bad)}
+
 /* ---------------- dialogs ---------------- */
 dialog{border:2px solid var(--edge);border-radius:19px;padding:0;background:var(--raised);
   color:var(--text);box-shadow:6px 6px 0 var(--edge), var(--soft);
@@ -713,6 +803,7 @@ a.btn{text-decoration:none}
     <path d="M12 2.6 20 6v6c0 4.6-3.3 8.4-8 9.4C7.3 20.4 4 16.6 4 12V6z"/>
     <path class="wave" d="M7.6 12.6c1.3-1 2.2-1 3.4 0s2.1 1 3.4 0 2.2-1 3.4 0"/>
   </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-camoff" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M9.5 6H14l1.6 2.2H19a2 2 0 0 1 2 2v7.3M17.8 19H5a2 2 0 0 1-2-2v-6.8a2 2 0 0 1 2-2h1.6"/><path d="M10.3 10.6a3 3 0 0 0 4 4"/></symbol>
   <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-cam" viewBox="0 0 24 24">
     <rect x="2.5" y="6" width="19" height="13" rx="3"/>
     <path d="M8.5 6l1.4-2.3h4.2L15.5 6"/>
@@ -843,7 +934,7 @@ a.btn{text-decoration:none}
     <p class="v"><span id="lat">–</span><small> ms</small></p>
     <p class="k">Avg <span id="latAvg">–</span> ms</p></div>
 
-  <div class="box batt b-none" id="batt" title="UPS battery">
+  <div class="box batt b-none" id="batt" title="Battery details" role="button" tabindex="0" aria-haspopup="dialog">
     <p class="k"><svg class="ico" id="battIco"><use href="#i-batt"/></svg><span id="battSrc">Battery</span></p>
     <div class="bt-row">
       <span class="bt-cell" aria-hidden="true"><i class="bt-fill" id="battFill"></i><i class="seg"></i>
@@ -892,6 +983,17 @@ a.btn{text-decoration:none}
         <span class="engr hint" id="roihelp"><svg class="ico"><use href="#i-eyeoff"/></svg>Grey boxes are outside the monitored area and not counted</span>
         <button class="hw teal" id="capture" type="button">
           <svg class="ico a-shutter"><use href="#i-shutter"/></svg>Capture</button>
+        <button class="hw sq rfb" id="rfBtn" type="button"
+                title="Tap: reconnect camera · Hold 5 s: restart Garbage-Guard"
+                aria-label="Reconnect camera. Hold for 5 seconds to restart Garbage-Guard">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <g class="arr"><path d="M19.4 8.6A8 8 0 0 0 5 7.4"/><path d="M5 3.6v3.8h3.8"/>
+              <path d="M4.6 15.4A8 8 0 0 0 19 16.6"/><path d="M19 20.4v-3.8h-3.8"/></g>
+            <circle class="core" cx="12" cy="12" r="2.6"/></svg>
+          <svg class="trace" viewBox="0 0 46 44" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="43" height="41" rx="13" pathLength="100"/></svg>
+        </button>
         <button class="hw sq fsbtn" id="fsOpen" type="button" aria-label="Enter fullscreen"
                 title="Fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M9.5 3.5H3.5v6"/><path class="c tr" d="M14.5 3.5h6v6"/><path class="c br" d="M20.5 14.5v6h-6"/><path class="c bl" d="M3.5 14.5v6h6"/></svg></button>
       </div>
@@ -1088,6 +1190,42 @@ a.btn{text-decoration:none}
   <button class="btn ink" id="zClose" type="button">Close</button>
   <p class="zhint">Tap anywhere to go back</p>
 </dialog>
+
+<dialog id="battDlg" aria-label="Pi battery details">
+  <div class="vh">
+    <svg class="ico" id="bdIco" style="width:18px;height:18px"><use href="#i-batt"/></svg>
+    <h3>Pi battery</h3>
+    <span class="tagx" id="bdTag">–</span>
+    <button class="btn sm ink" id="bdClose" type="button">Close</button>
+  </div>
+  <div class="bd b-none" id="bdBody">
+    <div class="bd-hero">
+      <span class="bt-cell" aria-hidden="true"><i class="bt-fill" id="bdFill"></i><i class="seg"></i>
+        <svg class="bt-bolt"><use href="#i-bolt"/></svg></span>
+      <div><p class="bd-pct"><span id="bdPct">–</span><small>%</small></p>
+        <p class="bd-src" id="bdSrc">No UPS found</p></div>
+    </div>
+    <div class="bd-wells">
+      <div class="well"><span class="lb">VOLTAGE</span><b id="bdV">–</b><small>V</small></div>
+      <div class="well" id="bdAw"><span class="lb">CURRENT</span><b id="bdA">–</b><small>A</small></div>
+      <div class="well" id="bdWw"><span class="lb">POWER</span><b id="bdW">–</b><small>W</small></div>
+    </div>
+    <p class="bd-lbl">CELLS</p>
+    <div class="bd-cells" id="bdCells"></div>
+    <p class="bd-note" id="bdInfo" hidden><svg class="ico"><use href="#i-plug"/></svg><span></span></p>
+    <p class="bd-note"><svg class="ico"><use href="#i-ok"/></svg>
+      <span>A minus sign means the pack is powering the Pi. A plus sign means it is charging.</span></p>
+  </div>
+</dialog>
+
+<div id="reboot" role="alertdialog" aria-live="assertive">
+  <div class="rb">
+    <div class="spin"></div>
+    <h2 id="rbTitle">Restarting Garbage-Guard</h2>
+    <p id="rbMsg">The camera, detection and dashboard are starting again. This takes about a minute.</p>
+    <button class="btn" id="rbReload" type="button" hidden>Reload now</button>
+  </div>
+</div>
 
 <dialog id="confirm">
   <div class="cfm">
@@ -1363,11 +1501,11 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 function setFsPanel(s){
-  $("fsLed").classList.toggle("dead", !s.connected);
-  $("fsConnPill").className = "pill " + (s.connected ? "online" : "offline");
-  $("fsConnPill").querySelector("use")
-    .setAttribute("href", s.connected ? "#i-signal" : "#i-nolink");
-  $("fsConn").textContent = s.connected ? "Camera online" : "No link to Pi";
+  const link = LINK[linkState];
+  $("fsLed").classList.toggle("dead", linkState !== "online");
+  $("fsConnPill").className = "pill " + link[0];
+  $("fsConnPill").querySelector("use").setAttribute("href", "#" + link[1]);
+  $("fsConn").textContent = link[2];
   $("fsLat").textContent = s.latency_ms;
   $("fsLatAvg").textContent = s.avg_latency_ms;
   $("fsFps").textContent = s.cam_fps ? s.cam_fps.toFixed(1) : "–";
@@ -1525,12 +1663,8 @@ async function refresh(){
   try{
     const s = await (await fetch("/api/state")).json();
     last = s;
-    const pill = $("connPill");
-    pill.className = "pill " + (s.connected ? "online" : "offline");
-    $("connIco").querySelector("use").setAttribute("href", s.connected ? "#i-signal" : "#i-nolink");
-    $("conn").textContent = s.connected ? "Camera online" : "No link to Pi";
-    $("offline").classList.toggle("show", !s.connected);
-    $("led").classList.toggle("dead", !s.connected);
+    setLink(s.connected ? "online" : "nocam");
+    noteCamera(s);
     $("flag").classList.toggle("show", !!s.alert_active && !s.muted);
     setMuteBar(s);
     if(fsOn) setFsPanel(s);
@@ -1548,12 +1682,31 @@ async function refresh(){
       $("thresh").value = s.threshold;
   }catch(e){
     setMuteBar({...(last||{}), alert_active:false, muted:false, mute_left:0});
-    $("connPill").className = "pill offline";
-    $("connIco").querySelector("use").setAttribute("href", "#i-nolink");
-    $("conn").textContent = "No link to Pi";
-    $("led").classList.add("dead");
-    $("offline").classList.add("show");
+    setLink("nopi");
   }
+}
+
+/* Three link states: the Pi answers and the camera streams, the Pi answers
+   but the camera does not, or the Pi itself cannot be reached. */
+const LINK = {online:["online","i-signal","Camera online"],
+              nocam:["nocam","i-camoff","No camera"],
+              nopi:["offline","i-nolink","No link to Pi"]};
+let linkState = "online";
+function setLink(st){
+  linkState = st;
+  const [cls, ico, txt] = LINK[st];
+  $("connPill").className = "pill " + cls;
+  $("connIco").querySelector("use").setAttribute("href", "#" + ico);
+  $("conn").textContent = txt;
+  const down = st !== "online";
+  $("led").classList.toggle("dead", down);
+  $("screen").classList.toggle("nosig", down);
+  const off = $("offline");
+  off.classList.toggle("show", down);
+  const busy = st === "nocam" && rfWaiting();
+  off.classList.toggle("busy", busy);
+  off.querySelector("use").setAttribute("href", busy ? "#i-refresh" : "#" + (st === "nopi" ? "i-nolink" : "i-camoff"));
+  off.lastChild.textContent = st === "nopi" ? "No link to Pi" : busy ? "Reconnecting camera…" : "No camera signal";
 }
 
 const feed = $("feed");
@@ -1588,7 +1741,7 @@ function setBattery(b){
     $("battPct").textContent = "–"; $("battV").textContent = "–";
     $("battA").textContent = "–"; $("battW").textContent = "–";
     $("battFill").style.width = "0";
-    paintBubble(); return;
+    paintBubble(); paintBattDlg(); return;
   }
   const p = Math.max(0, Math.min(100, Math.round(b.percent)));
   const lv = p <= 20 ? "b-bad" : p <= 40 ? "b-warn" : "b-ok";
@@ -1607,8 +1760,51 @@ function setBattery(b){
   $("battW").textContent = fmtSigned(b.power_w, 1);
   const sign = b.current_a < -0.005 ? "neg" : b.current_a > 0.005 ? "pos" : "";
   $("battAw").className = $("battWw").className = sign;
-  paintBubble();
+  paintBubble(); paintBattDlg();
 }
+
+function paintBattDlg(){
+  const d = $("battDlg");
+  if(!d.open) return;
+  const b = batt, body = $("bdBody"), tag = $("bdTag");
+  if(!b || !b.ok){
+    body.className = "bd b-none";
+    tag.className = "tagx warn"; tag.textContent = "No UPS";
+    $("bdPct").textContent = "–"; $("bdFill").style.width = "0";
+    $("bdSrc").textContent = "This Pi is not reporting a battery. Check that the UPS HAT is seated and I2C is on.";
+    ["bdV","bdA","bdW"].forEach(id => $(id).textContent = "–");
+    $("bdCells").innerHTML = ""; $("bdInfo").hidden = true;
+    return;
+  }
+  const p = Math.max(0, Math.min(100, Math.round(b.percent)));
+  const lv = p <= 20 ? "b-bad" : p <= 40 ? "b-warn" : "b-ok";
+  body.className = `bd ${lv} ${b.charging ? "b-chg" : b.on_ac ? "b-ac" : "b-dis"}`;
+  const low = lv === "b-bad" && !b.charging;
+  [tag.className, tag.textContent] = low ? ["tagx bad","Low"] : b.charging ? ["tagx ok","Charging"]
+                                   : b.on_ac ? ["tagx ok","On AC"] : ["tagx warn","On battery"];
+  $("bdIco").querySelector("use").setAttribute("href", b.on_ac ? "#i-plug" : "#i-batt");
+  $("bdPct").textContent = p;
+  $("bdFill").style.width = p + "%";
+  $("bdSrc").innerHTML = $("battSrc").innerHTML;
+  $("bdV").textContent = b.voltage_v.toFixed(2);
+  $("bdA").textContent = fmtSigned(b.current_a, 2);
+  $("bdW").textContent = fmtSigned(b.power_w, 1);
+  const sign = b.current_a < -0.005 ? "neg" : b.current_a > 0.005 ? "pos" : "";
+  $("bdAw").className = $("bdWw").className = "well " + sign;
+  const cells = b.cells_v || [];
+  $("bdCells").innerHTML = cells.map((v, i) =>
+    `<div class="cellv${v > 0 && v < 3.2 ? " lowc" : ""}"><span>Cell ${i+1}</span><b>${v.toFixed(2)} V</b></div>`).join("");
+  const bits = [];
+  if(b.on_ac && b.vbus_v > 0.5) bits.push(`Charger input ${b.vbus_v.toFixed(1)} V, ${b.vbus_a.toFixed(2)} A, ${b.vbus_w.toFixed(1)} W.`);
+  if(b.capacity_mah != null) bits.push(`About ${b.capacity_mah.toLocaleString()} mAh remaining.`);
+  $("bdInfo").hidden = !bits.length;
+  $("bdInfo").querySelector("span").textContent = bits.join(" ");
+}
+function openBattDlg(){ $("battDlg").showModal(); paintBattDlg(); pollBattery(); }
+$("batt").onclick = openBattDlg;
+$("batt").onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openBattDlg(); } };
+$("bdClose").onclick = () => $("battDlg").close();
+$("battDlg").addEventListener("click", e => { if(e.target === $("battDlg")) $("battDlg").close(); });
 async function pollBattery(){
   try{ setBattery(await (await fetch("/api/battery")).json()); }catch(e){ setBattery(null); }
 }
@@ -1656,6 +1852,99 @@ window.addEventListener("focus", backFromDesktop);
 
 pollBattery();
 setInterval(pollBattery, 2000);
+
+/* ---------------- camera refresh / restart ---------------- */
+const rf = $("rfBtn"), HOLD_MS = 5000, TAP_MS = 450;
+let rfDown = 0, rfTimer = null, rfTick = null, rfWaitUntil = 0, rfHint = "";
+function rfWaiting(){ return Date.now() < rfWaitUntil; }
+function noteCamera(s){
+  if(rfWaitUntil && s.connected){
+    rfWaitUntil = 0; rf.classList.remove("wait");
+    toast("Camera back online", "i-signal");
+  } else if(rfWaitUntil && !rfWaiting()){
+    rfWaitUntil = 0; rf.classList.remove("wait");
+    toast("Camera still not answering. Check its cable and power.", "i-warn");
+  }
+}
+function retrigger(cls){ rf.classList.remove(cls); void rf.offsetWidth; rf.classList.add(cls); }
+async function reconnectCamera(){
+  retrigger("tap");
+  setTimeout(() => rf.classList.remove("tap"), 800);
+  rfWaitUntil = Date.now() + 25000;
+  setTimeout(() => { if(rfWaiting()) rf.classList.add("wait"); }, 750);
+  toast("Reconnecting camera", "i-refresh");
+  try{ await post("/api/camera/reconnect"); }catch(e){ toast("No link to Pi", "i-nolink"); }
+  refresh();
+}
+function holdTip(left){
+  const h = $("roihelp");
+  if(left == null){
+    if(rfHint){ h.lastChild.textContent = rfHint; rfHint = ""; }
+    h.classList.remove("holdtip"); return;
+  }
+  if(!rfHint) rfHint = h.lastChild.textContent;
+  h.classList.add("holdtip");
+  h.lastChild.textContent = `Keep holding to restart Garbage-Guard · ${left}`;
+}
+function rfStart(e){
+  if(e.button > 0 || rfDown || $("reboot").classList.contains("on")) return;
+  e.preventDefault();
+  try{ rf.setPointerCapture(e.pointerId); }catch(_){}
+  rfDown = Date.now();
+  rfTimer = setTimeout(() => {
+    rf.classList.add("hold");
+    holdTip(Math.ceil((HOLD_MS - (Date.now() - rfDown)) / 1000));
+    rfTick = setInterval(() => holdTip(Math.max(1, Math.ceil((HOLD_MS - (Date.now() - rfDown)) / 1000))), 200);
+    rfTimer = setTimeout(rfFire, HOLD_MS - TAP_MS);
+  }, TAP_MS);
+}
+function rfReset(){
+  clearTimeout(rfTimer); clearInterval(rfTick); rfTimer = rfTick = null;
+  rf.classList.remove("hold"); holdTip(null); rfDown = 0;
+}
+function rfEnd(e){
+  if(!rfDown) return;
+  const held = Date.now() - rfDown;
+  const holding = rf.classList.contains("hold");
+  rfReset();
+  if(e.type === "pointercancel") return;
+  if(held < TAP_MS) reconnectCamera();
+  else if(holding) toast("Hold for 5 seconds to restart", "i-clock");
+}
+function rfFire(){
+  clearInterval(rfTick); rfTick = null; holdTip(null);
+  rf.classList.remove("hold"); retrigger("done"); rfDown = 0;
+  restartAll();
+}
+rf.addEventListener("pointerdown", rfStart);
+rf.addEventListener("pointerup", rfEnd);
+rf.addEventListener("pointercancel", rfEnd);
+rf.addEventListener("contextmenu", e => e.preventDefault());
+rf.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); reconnectCamera(); } });
+
+async function restartAll(){
+  const cover = $("reboot");
+  if(fsOn) closeFs();
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  cover.classList.add("on");
+  $("rbReload").hidden = true;
+  const before = last ? last.uptime_s : null;
+  try{ await post("/api/restart"); }
+  catch(e){ $("rbMsg").textContent = "The Pi did not answer. It may already be restarting."; }
+  const t0 = Date.now();
+  let wentDown = false;
+  const poll = setInterval(async () => {
+    const secs = Math.round((Date.now() - t0) / 1000);
+    if(secs > 20) $("rbReload").hidden = false;
+    try{
+      const s = await (await fetch("/api/state", {cache:"no-store"})).json();
+      if(wentDown || (before != null && s.uptime_s < before) || s.uptime_s < secs + 3){
+        clearInterval(poll); location.reload();
+      }
+    }catch(e){ wentDown = true; }
+  }, 1000);
+}
+$("rbReload").onclick = () => location.reload();
 
 /* Wi-Fi shortcut: shown only on the Pi's own screen, where setup is allowed. */
 fetch("/api/net").then(r => r.json()).then(n => {

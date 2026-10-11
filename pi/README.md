@@ -76,7 +76,7 @@ run this before anything else.
 python3 test_net.py
 ```
 
-Expect `Ran 15 tests` and `OK`.
+Expect `Ran 17 tests` and `OK`.
 
 ```bash
 python3 test_window.py
@@ -104,7 +104,20 @@ the app menu (or its taskbar button) to bring the dashboard back fullscreen.
 This uses `wlrctl`, which the installer offers to add; without it the button
 closes the window instead and the same icon reopens it.
 
-**Battery panel (Waveshare UPS HAT (E)).** The dashboard reads the HAT over I2C.
+**Camera refresh button** (circular arrows, next to Capture):
+
+- **Tap:** reconnects the camera. Use it after unplugging and replugging the
+  camera cable. The arrows keep turning until the picture is back.
+- **Hold 5 seconds:** restarts all of Garbage-Guard (detection, camera and
+  dashboard). The outline fills while you hold; let go early to cancel.
+  Settings and history are kept.
+
+The Pi also reconnects by itself if no frame arrives for 12 seconds. The
+status pill reads **No camera** when the Pi is fine but the camera is not,
+and **No link to Pi** only when the dashboard cannot reach the Pi at all.
+
+**Battery panel (Waveshare UPS HAT (E)).** Tap the panel for full details:
+voltage, current, power, the four cell voltages and the charger input. The dashboard reads the HAT over I2C.
 Two one-time steps on the Pi:
 
 ```bash
@@ -114,6 +127,17 @@ source ~/gg-env/bin/activate && pip install smbus2
 
 Reboot after enabling I2C. Without them the panel shows "No UPS found" and
 everything else works normally.
+
+**"Power supply is not capable of supplying 5V at 5A" pop-up.** The UPS HAT
+does not announce 5 A over USB-C the way the official Pi supply does, so the
+Pi assumes 3 A. Tell the Pi the supply is good for 5 A, once:
+
+```bash
+sudo rpi-eeprom-config --edit
+```
+
+Add the line `PSU_MAX_CURRENT=5000`, save (Ctrl+O, Enter, Ctrl+X), then
+`sudo reboot`.
 
 On every start the browser opens `/start`:
 
