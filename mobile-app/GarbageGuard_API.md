@@ -199,11 +199,17 @@ Returns the saved JPEG for a history entry. Take `<name>` from the row's
 
 The image is the camera view at the moment of the event, with the detection
 boxes and the monitored-area outline. Snapshots saved from this version on
-have an info card added **below** the photo (about 20% of the width in
-height): event, time, items against the limit with a bar, and the
-per-class counts, in the dashboard's colours. Nothing is drawn over the
-photo any more. Older snapshots still have the old dark band across the top.
-It is evidence, so show it full width; if you crop thumbnails, crop from the
+have a slim info strip added **below** the photo, one row about 7.5% of
+the width in height (48 px on a 640 px wide picture): event, time and date,
+items against the limit with a bar, the per-class counts and peak
+confidence, in the dashboard's colours. Nothing is drawn over the photo.
+Snapshots from 11 to 12 October 2026 have a taller card (about 20% of the
+width), and older ones a dark band across the top.
+
+It is evidence, so show it as large as the screen allows. The Pi's full-size
+view fits the picture to the full screen height and puts Close and the
+details in a narrow column beside it, rather than a bar underneath; the same
+works well on a phone held sideways. If you crop thumbnails, crop from the
 top so the photo stays in view.
 
 Returns 404 for any name that is not a saved snapshot.

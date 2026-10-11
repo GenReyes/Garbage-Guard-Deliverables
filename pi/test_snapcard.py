@@ -17,7 +17,9 @@ class SnapCardTests(unittest.TestCase):
 
     def test_scales_with_width(self):
         self.assertGreater(sc.card_height(1920), sc.card_height(640))
-        self.assertEqual(sc.card_height(320), 112)
+        self.assertEqual(sc.card_height(320), 40)
+        self.assertEqual(sc.card_height(640), 48)
+        self.assertLess(sc.card_height(1920) / 1080, 0.15)
 
     def test_every_event_and_bad_timestamp(self):
         frame = np.zeros((120, 200, 3), dtype=np.uint8)

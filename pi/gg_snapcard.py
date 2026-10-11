@@ -1,7 +1,8 @@
 """Info card added under a saved snapshot, so the photo itself is never covered.
 
-The card uses the dashboard's monitor colours: warm dark casing, cream text,
-teal accent, and one colour per event and per class. Pillow is used for clean
+The card is one slim row, about 7.5% of the width, so the photo keeps almost
+all of the height. It uses the dashboard's monitor colours: warm dark casing,
+cream text, teal accent, and one colour per event and per class. Pillow is used for clean
 type (it ships with ultralytics); without it a plain OpenCV card is drawn.
 """
 
@@ -68,7 +69,7 @@ def _when(ts):
 
 
 def card_height(width):
-    return max(112, int(round(width * 0.2)))
+    return max(40, int(round(width * 0.075)))
 
 
 def add_card(frame, tag, state, peak=None):
@@ -90,7 +91,7 @@ def _rgb(c):
 
 
 def _draw(d, top, w, ch, tag, state, peak):
-    s = w / 640.0
+    s = ch / 48.0
     px = lambda v: max(1, int(round(v * s)))
     label, ev = EVENTS.get(tag, (tag.upper(), TEAL))
     counts = state.get("counts") or {}
@@ -98,63 +99,75 @@ def _draw(d, top, w, ch, tag, state, peak):
     limit = int(state.get("threshold") or 0)
     day, clock = _when(state.get("timestamp"))
 
-    d.rectangle([0, top, w, top + px(5)], fill=_rgb(ev))
-    y0 = top + px(5)
-    d.rectangle([0, y0, w, top + ch], fill=_rgb(BG))
-    pad = px(14)
+    stripe = px(3)
+    d.rectangle([0, top, w, top + stripe], fill=_rgb(ev))
+    cy = top + stripe + (ch - stripe) // 2
+    right = w - px(10)
+    gap = px(14)
 
-    f_pill, f_big, f_mid, f_sm = _font(px(12)), _font(px(26)), _font(px(15)), _font(px(11), False)
-    pill_w = d.textlength(label, font=f_pill) + px(22)
-    py = y0 + px(10)
-    d.rounded_rectangle([pad, py, pad + pill_w, py + px(22)], radius=px(11), fill=_rgb(ev),
+    f_pill, f_time, f_num = _font(px(11)), _font(px(16)), _font(px(15))
+    f_sm, f_name = _font(px(10), False), _font(px(11), False)
+
+    def divider(x):
+        d.line([x, cy - px(14), x, cy + px(14)], fill=_rgb(WELL), width=px(2))
+
+    x = px(10)
+    pw = int(d.textlength(label, font=f_pill)) + px(18)
+    d.rounded_rectangle([x, cy - px(11), x + pw, cy + px(11)], radius=px(11), fill=_rgb(ev),
                         outline=(0, 0, 0), width=px(2))
-    d.text((pad + px(11), py + px(11)), label, font=f_pill, fill=(255, 255, 255), anchor="lm")
-    d.text((pad, py + px(30)), clock, font=f_big, fill=_rgb(INK))
-    d.text((pad, py + px(62)), f"{day}  ·  Garbage-Guard  ·  CAM 01", font=f_sm, fill=_rgb(MUTED))
+    d.text((x + pw // 2, cy), label, font=f_pill, fill=(255, 255, 255), anchor="mm")
+    x += pw + gap
 
-    mx = int(w * 0.40)
-    d.text((mx, py), "ITEMS IN AREA", font=f_sm, fill=_rgb(MUTED))
-    d.text((mx, py + px(14)), str(items), font=f_big, fill=_rgb(INK))
-    tw = d.textlength(str(items), font=f_big)
-    d.text((mx + tw + px(6), py + px(26)), f"/ {limit} limit", font=f_sm, fill=_rgb(MUTED))
-    by = py + px(50)
-    bw = int(w * 0.24)
-    d.rounded_rectangle([mx, by, mx + bw, by + px(10)], radius=px(5), fill=_rgb(WELL))
-    frac = min(1.0, items / limit) if limit > 0 else 0.0
-    if frac > 0:
-        d.rounded_rectangle([mx, by, mx + max(px(10), int(bw * frac)), by + px(10)], radius=px(5),
-                            fill=_rgb(level_color(items, limit)))
-    extra = []
-    if peak:
-        extra.append(f"peak {peak * 100:.0f}%")
-    if state.get("latency_ms"):
-        extra.append(f"{float(state['latency_ms']):.0f} ms")
-    if extra:
-        d.text((mx, by + px(16)), "  ·  ".join(extra), font=f_sm, fill=_rgb(MUTED))
+    bw = int(max(d.textlength(clock, font=f_time), d.textlength(day, font=f_sm)))
+    if x + bw <= right:
+        d.text((x, cy - px(6)), clock, font=f_time, fill=_rgb(INK), anchor="lm")
+        d.text((x, cy + px(12)), day, font=f_sm, fill=_rgb(MUTED), anchor="lm")
+        x += bw + gap
+        divider(x - gap // 2)
 
-    rx = int(w * 0.70)
-    ry = py
-    row = px(23)
+    num, tail = str(items), f" / {limit}"
+    iw = max(int(d.textlength(num, font=f_num) + d.textlength(tail, font=f_name)), px(64))
+    if x + iw <= right:
+        d.text((x, cy - px(6)), num, font=f_num, fill=_rgb(INK), anchor="lm")
+        d.text((x + d.textlength(num, font=f_num), cy - px(5)), tail, font=f_name,
+               fill=_rgb(MUTED), anchor="lm")
+        by = cy + px(9)
+        d.rounded_rectangle([x, by, x + iw, by + px(5)], radius=px(3), fill=_rgb(WELL))
+        frac = min(1.0, items / limit) if limit > 0 else 0.0
+        if frac > 0:
+            d.rounded_rectangle([x, by, x + max(px(5), int(iw * frac)), by + px(5)], radius=px(3),
+                                fill=_rgb(level_color(items, limit)))
+        x += iw + gap
+        divider(x - gap // 2)
+
     for key, name, col in CLASSES:
-        d.rounded_rectangle([rx, ry + px(3), rx + px(14), ry + px(17)], radius=px(4), fill=_rgb(col),
+        n = str(int(counts.get(key, 0)))
+        cw = px(10) + px(5) + int(d.textlength(name, font=f_name)) + px(5) + int(d.textlength(n, font=f_num))
+        if x + cw > right:
+            break
+        d.rounded_rectangle([x, cy - px(5), x + px(10), cy + px(5)], radius=px(3), fill=_rgb(col),
                             outline=(0, 0, 0), width=1)
-        d.text((rx + px(22), ry + px(10)), name, font=f_mid, fill=_rgb(INK), anchor="lm")
-        d.text((w - pad, ry + px(10)), str(int(counts.get(key, 0))), font=f_mid,
-               fill=_rgb(INK), anchor="rm")
-        ry += row
+        tx = x + px(15)
+        d.text((tx, cy), name, font=f_name, fill=_rgb(INK), anchor="lm")
+        tx += d.textlength(name, font=f_name) + px(5)
+        d.text((tx, cy), n, font=f_num, fill=_rgb(INK), anchor="lm")
+        x += cw + px(12)
+
+    if peak:
+        pk = f"peak {peak * 100:.0f}%"
+        if x + d.textlength(pk, font=f_sm) <= right:
+            d.text((right, cy), pk, font=f_sm, fill=_rgb(MUTED), anchor="rm")
 
 
 def _plain(out, top, w, ch, tag, state):
     label, ev = EVENTS.get(tag, (tag.upper(), TEAL))
-    cv2.rectangle(out, (0, top), (w, top + 5), ev, -1)
     c = state.get("counts") or {}
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(out, label, (12, top + 30), font, 0.6, ev, 2, cv2.LINE_AA)
-    cv2.putText(out, str(state.get("timestamp", "")), (12, top + 58), font, 0.55, INK, 1, cv2.LINE_AA)
-    cv2.putText(out, f"Items {state.get('smoothed', 0)} / {state.get('threshold', 0)}",
-                (12, top + 86), font, 0.55, INK, 1, cv2.LINE_AA)
-    x = int(w * 0.55)
-    for i, (key, name, col) in enumerate(CLASSES):
-        y = top + 30 + i * 26
-        cv2.rectangle(out, (x, y - 12), (x + 12, y), col, -1)
-        cv2.putText(out, f"{name} {int(c.get(key, 0))}", (x + 20, y), font, 0.55, INK, 1, cv2.LINE_AA)
+    sc = ch / 48.0
+    y = top + int(ch * 0.62)
+    cv2.rectangle(out, (0, top), (w, top + max(1, int(3 * sc))), ev, -1)
+    cv2.putText(out, label, (int(10 * sc), y), font, 0.45 * sc, ev, 1, cv2.LINE_AA)
+    cv2.putText(out, f"{state.get('timestamp', '')}  {state.get('smoothed', 0)}/{state.get('threshold', 0)}",
+                (int(140 * sc), y), font, 0.42 * sc, INK, 1, cv2.LINE_AA)
+    cv2.putText(out, f"B {int(c.get('bottle', 0))}  Bg {int(c.get('bag', 0))}  C {int(c.get('food_container', 0))}",
+                (int(w * 0.72), y), font, 0.42 * sc, INK, 1, cv2.LINE_AA)

@@ -537,7 +537,7 @@ main{flex:1;min-height:0;display:flex}
 
 /* fullscreen overlay */
 .fs{position:fixed;inset:0;z-index:100;background:var(--base);
-  display:flex;flex-direction:column;gap:7px;padding:8px;
+  display:flex;flex-direction:column;gap:6px;padding:6px;
   opacity:0;transform:scale(.97);transition:opacity .2s ease, transform .2s ease}
 .fs[hidden]{display:none}
 .fs.on{opacity:1;transform:none}
@@ -597,14 +597,48 @@ main{flex:1;min-height:0;display:flex}
 .fs-state.lv-muted{background:var(--purple-tint);color:var(--purple)}
 .fs-state.lv-bad{background:var(--bad);color:#fff;animation:alarm 1.5s ease-in-out infinite}
 .fs-state.lv-bad .ico{animation:ring .9s ease-in-out infinite}
-.fs-mon{flex:1;min-height:0;display:flex;flex-direction:column;border:2px solid var(--edge);
-  padding:0 0 2px}
-.fs-mon .mon-top{height:46px}
-.fs-mon .fs-stage{flex:1;margin:0 10px;border:2px solid #0E0C0A;border-radius:11px;
+/* The screen takes the full height of the monitor and is sized to the
+   camera's own shape (fitFs), so there are no black bars beside the picture.
+   The hardware keys and readouts sit on the bezel either side of it. */
+.fs-top{flex-wrap:nowrap;padding:4px 8px;min-height:0}
+.fs-top .fs-brand .logo{width:34px;height:34px}
+.fs-top .pill{padding-block:4px}
+.fs-top .fs-stat,.fs-top .fs-state{padding:3px 9px}
+.fs-top .btn.sm{min-height:34px}
+.fs-exit{width:38px;height:38px}
+.fs-mon{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;border:2px solid var(--edge);
+  padding:7px 7px 6px}
+.fs-row{flex:1;min-height:0;display:flex;align-items:center;gap:7px;position:relative;z-index:1}
+.fs-mon .fs-stage{flex:none;width:0;height:100%;align-self:center;border:2px solid #0E0C0A;border-radius:11px;
   box-shadow:inset 0 0 0 1px #000, inset 0 0 26px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.12)}
-.fs-mon .hw{min-height:38px;font-size:13px;padding:0 14px}
+.fs-keys{flex:1;min-width:58px;align-self:stretch;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px}
+.fk-cam{display:flex;align-items:center;gap:5px}
+.fk-live{margin-top:-6px}
+.fk-read{display:flex;flex-direction:column;align-items:center;line-height:1}
+.fk-read b{font-size:17px;font-weight:900;color:var(--mon-fps);font-variant-numeric:tabular-nums}
+.fk-meter{display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1}
+.fk-well{display:flex;flex-direction:column;justify-content:flex-end;width:16px;height:118px;
+  border-radius:8px;overflow:hidden;background:var(--mon-well);border:2px solid #0E0C0A;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.6)}
+.fk-well > i{display:block;width:100%;background:var(--ok);border-radius:6px 6px 0 0;transition:height .5s ease}
+.fk-meter.lv-warn .fk-well > i{background:var(--warn)}
+.fk-meter.lv-near .fk-well > i{background:var(--orange)}
+.fk-meter.lv-bad .fk-well > i,.fk-meter.lv-muted .fk-well > i{background:var(--bad)}
+.fk-meter b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--mon-ink)}
+.fk-meter.lv-bad b{color:#FF8A7E}
+.fk-cls{display:flex;flex-direction:column;gap:5px}
+.fk-cls span{display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:8px;
+  background:var(--mon-well);border:2px solid #0E0C0A;box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+.fk-cls .ico{width:14px;height:14px}
+.fk-cls b{min-width:14px;text-align:right;font-size:14px;font-weight:900;color:var(--mon-well-ink);
+  font-variant-numeric:tabular-nums}
+.hw.fk{flex-direction:column;gap:4px;width:58px;min-height:58px;padding:6px 2px;font-size:10px;
+  letter-spacing:.05em;text-transform:uppercase}
+.hw.fk .ico{width:20px;height:20px}
+.fk-sw{flex-direction:column;gap:5px;font-size:9.5px;text-align:center}
+.fs-mon .fs-lcdrow{flex:none;min-height:0;height:40px;padding:0;position:relative;z-index:1}
 .fs-mon .lcd{height:36px;font-size:13px}
-.fs-mon .mon-bot{min-height:50px}
 #fsTheme .ico{width:16px;height:16px}
 #fsTheme .sun,#fsTheme .moon{transition:opacity .3s, transform .4s}
 [data-theme="light"] #fsTheme .moon{opacity:.28;transform:translateX(2px) scale(.8)}
@@ -914,7 +948,7 @@ dialog::backdrop{background:rgba(10,8,6,.62)}
 .vb{display:grid;grid-template-columns:minmax(0,1fr) 248px;min-height:0}
 .vshot{background:#0B0A09;display:grid;place-items:center;padding:8px;min-width:0;
   box-shadow:inset 0 0 22px rgba(0,0,0,.85)}
-#vImg{display:block;max-width:100%;max-height:calc(94vh - 66px);object-fit:contain;border-radius:6px}
+#vImg{display:block;width:100%;height:calc(94vh - 82px);object-fit:contain;border-radius:6px}
 .vinfo{display:flex;flex-direction:column;gap:9px;padding:11px 12px;background:var(--base2);
   border-left:2px solid var(--edge);overflow:auto;-webkit-user-select:text;user-select:text}
 .vi-items{border:2px solid var(--edge);border-radius:12px;padding:8px 10px;background:var(--raised);
@@ -955,16 +989,26 @@ dialog::backdrop{background:rgba(10,8,6,.62)}
 .vi-row.day .ico{color:var(--indigo)} .vi-row.tm .ico{color:var(--purple)}
 #zoom{width:100vw;height:100vh;max-width:none;max-height:none;margin:0;border:0;
   border-radius:0;background:#0B0A09;box-shadow:none;overflow:hidden}
-#zoom[open]{display:flex;flex-direction:column}
+/* The picture takes the full screen height; the details sit in a slim rail
+   beside it instead of a bar underneath, so nothing shrinks the photo. */
+#zoom[open]{display:flex;flex-direction:row}
 #zoom::backdrop{background:#0B0A09}
-#zImg{flex:1;min-height:0;width:100%;object-fit:contain;display:block}
-.zbar{flex:none;display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--raised);
-  border-top:2px solid var(--edge);color:var(--text)}
-.zinfo{display:flex;gap:14px;font-weight:800;font-size:13px;flex-wrap:wrap}
-.zinfo span{display:flex;align-items:center;gap:5px}
-.zinfo .ico{width:15px;height:15px}
-.zbar .zhint{flex:1;text-align:right;color:var(--muted);font-size:12px;font-weight:700}
-#zClose{min-height:44px;padding:0 18px;font-size:15px}
+.zpic{flex:none;height:100%;max-width:calc(100vw - 92px);display:grid;place-items:center;min-width:0}
+#zImg{display:block;height:100vh;width:auto;max-width:calc(100vw - 92px);object-fit:contain}
+.zbar{flex:1;min-width:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:10px 7px;background:var(--raised);border-left:2px solid var(--edge);color:var(--text);
+  text-align:center}
+.zbar .ev{flex-direction:column;gap:3px;white-space:normal;line-height:1.15;max-width:84px;padding:6px 7px}
+.zinfo{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:13px;width:100%;align-items:center}
+.zinfo span{display:flex;align-items:center;justify-content:center;gap:5px;min-width:64px;padding:3px 7px;
+  border-radius:9px;background:var(--sunk);border:2px solid var(--edge);box-shadow:var(--well);
+  font-variant-numeric:tabular-nums}
+.zinfo span.zt{flex-direction:column;gap:1px;font-size:11px;line-height:1.2;background:none;border:0;box-shadow:none;
+  color:var(--muted)}
+.zinfo .ico{width:15px;height:15px;flex:none}
+.zbar .zhint{color:var(--muted);font-size:10.5px;font-weight:700;line-height:1.3}
+#zClose{flex-direction:column;gap:3px;min-height:58px;width:74px;padding:6px 4px;font-size:12px}
+#zClose .ico{width:18px;height:18px}
 #confirm{width:min(430px,94vw)}
 .cfm{padding:13px;display:flex;flex-direction:column;gap:11px}
 .cfm p{margin:0;font-size:13px}
@@ -1343,6 +1387,8 @@ a.btn{text-decoration:none}
       <span class="fs-sub">avg <span id="fsLatAvg">–</span> ms</span></span>
     <span class="fs-stat fs-clock"><svg class="ico"><use href="#i-clock"/></svg><span class="fs-sub" id="fsTime"></span></span>
     <span class="sp"></span>
+    <span class="fs-state" id="fsState">
+      <svg class="ico"><use href="#i-ok"/></svg><span id="fsStateTxt">Normal</span></span>
     <button class="btn sm" id="fsTheme" type="button" aria-label="Switch theme">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round">
@@ -1355,21 +1401,38 @@ a.btn{text-decoration:none}
   </div>
 
   <div class="fs-mon monitor">
-    <div class="mon-top">
-      <span class="led" id="fsLed"></span>
-      <span class="engr">CAM 01 · LIVE</span>
-      <span class="engr fpsb"><span id="fsFps">–</span> FPS</span>
-      <span class="sp" style="flex:1"></span>
-      <button class="hw teal" id="fsCapture" type="button">
-        <svg class="ico a-shutter"><use href="#i-shutter"/></svg>Capture</button>
+    <div class="fs-row" id="fsRow">
+      <div class="fs-keys fs-l">
+        <div class="fk-cam"><span class="led" id="fsLed"></span><span class="engr">CAM 01</span></div>
+        <span class="engr fk-live">LIVE</span>
+        <div class="fk-read"><b id="fsFps">–</b><span class="engr">FPS</span></div>
+        <div class="fk-meter lv-ok" id="fsMeter" title="Items in the area against the limit">
+          <span class="engr">ITEMS</span>
+          <i class="fk-well"><i id="fsMeterFill"></i></i>
+          <b id="fsItems">0</b><span class="engr" id="fsLimit">OF 20</span>
+        </div>
+        <div class="fk-cls">
+          <span title="Bottle"><svg class="ico c-bottle"><use href="#i-bottle"/></svg><b id="fsBottle">0</b></span>
+          <span title="Bag"><svg class="ico c-bag"><use href="#i-bag"/></svg><b id="fsBag">0</b></span>
+          <span title="Container"><svg class="ico c-cont"><use href="#i-cont"/></svg><b id="fsCont">0</b></span>
+        </div>
+      </div>
+      <div class="fs-stage" id="fsStage"></div>
+      <div class="fs-keys fs-r">
+        <button class="hw teal fk" id="fsCapture" type="button">
+          <svg class="ico a-shutter"><use href="#i-shutter"/></svg><span>Capture</span></button>
+        <button class="hw fk" id="fsMuteBtn" type="button">
+          <svg class="ico a-shake"><use href="#i-belloff"/></svg><span>Mute</span></button>
+        <button class="hw teal fk" id="fsUnmuteBtn" type="button" hidden>
+          <svg class="ico a-pop"><use href="#i-bellon"/></svg><span>Unmute</span></button>
+        <button class="sw fk-sw" id="fsAutoBtn" type="button" role="switch" aria-checked="false"
+                title="Mute every new alert automatically"><i></i><span>Auto-mute</span></button>
+      </div>
     </div>
-    <div class="fs-stage" id="fsStage"></div>
-    <div class="mon-bot mute" id="fsMuteBar">
+    <div class="mon-bot mute fs-lcdrow" id="fsMuteBar">
       <span class="lcd"><svg class="ico a-ring"><use href="#i-bell"/></svg>
         <span class="mute-txt" id="fsMuteTxt">No alert to mute</span>
         <i class="prog"><i></i></i></span>
-      <button class="sw" id="fsAutoBtn" type="button" role="switch" aria-checked="false"
-              title="Mute every new alert automatically"><i></i><span>Auto-mute</span></button>
       <label class="mute-pick" for="fsMuteFor"><span>Mute for</span>
         <select id="fsMuteFor">
           <option value="300">5 minutes</option>
@@ -1378,26 +1441,8 @@ a.btn{text-decoration:none}
           <option value="3600">1 hour</option>
           <option value="0">Until I unmute</option>
         </select></label>
-      <button class="hw" id="fsMuteBtn" type="button">
-        <svg class="ico a-shake"><use href="#i-belloff"/></svg>Mute</button>
-      <button class="hw teal" id="fsUnmuteBtn" type="button" hidden>
-        <svg class="ico a-pop"><use href="#i-bellon"/></svg>Unmute now</button>
     </div>
   </div>
-
-  <div class="fs-bot">
-    <span class="fs-state" id="fsState">
-      <svg class="ico"><use href="#i-ok"/></svg><span id="fsStateTxt">Normal</span></span>
-    <span class="fs-sub" id="fsPct">0% of limit · 0 of 20 items</span>
-    <span class="fs-chip"><svg class="ico c-bottle"><use href="#i-bottle"/></svg>
-      Bottle <b id="fsBottle">0</b></span>
-    <span class="fs-chip"><svg class="ico c-bag"><use href="#i-bag"/></svg>
-      Bag <b id="fsBag">0</b></span>
-    <span class="fs-chip"><svg class="ico c-cont"><use href="#i-cont"/></svg>
-      Container <b id="fsCont">0</b></span>
-  </div>
-
-
 </section>
 
 <dialog id="viewer">
@@ -1415,13 +1460,13 @@ a.btn{text-decoration:none}
 </dialog>
 
 <dialog id="zoom" aria-label="Snapshot, full size">
-  <img id="zImg" alt="Saved snapshot, full size">
-  <div class="zbar">
+  <div class="zpic"><img id="zImg" alt="Saved snapshot, full size"></div>
+  <aside class="zbar">
+    <button class="btn ink" id="zClose" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Close</button>
     <span class="ev" id="zEv"></span>
-    <span class="zinfo" id="zInfo"></span>
+    <div class="zinfo" id="zInfo"></div>
     <span class="zhint">Tap anywhere to go back</span>
-    <button class="btn ink" id="zClose" type="button">Close</button>
-  </div>
+  </aside>
 </dialog>
 
 <dialog id="phnDlg" aria-label="Connected phones">
@@ -1711,6 +1756,19 @@ $("fsMuteFor").onchange = () => onPick($("fsMuteFor"));
 /* ---------------- fullscreen ---------------- */
 let fsOn = false;
 
+let feedAr = 16/9;
+function fitFs(){
+  if(!fsOn) return;
+  const row = $("fsRow"), st = $("fsStage");
+  const keys = 2 * 58 + 2 * 7;
+  let h = row.clientHeight, w = Math.round(h * feedAr);
+  const room = row.clientWidth - keys;
+  if(w > room){ w = room; h = Math.round(w / feedAr); }
+  st.style.width = w + "px";
+  st.style.height = h + "px";
+}
+window.addEventListener("resize", fitFs);
+
 function fsMoveScreen(toFs){
   const screen = $("screen");
   if(toFs) $("fsStage").appendChild(screen);
@@ -1723,8 +1781,10 @@ async function openFs(){
   const root = $("fsRoot");
   root.hidden = false;
   fsMoveScreen(true);
-  requestAnimationFrame(() => root.classList.add("on"));
+  fitFs();
+  requestAnimationFrame(() => { root.classList.add("on"); fitFs(); });
   try{ if(root.requestFullscreen) await root.requestFullscreen(); }catch(e){}
+  fitFs();
   refresh();
 }
 
@@ -1767,8 +1827,12 @@ function setFsPanel(s){
   $("fsBag").textContent = c.bag || 0;
   $("fsCont").textContent = c.food_container || 0;
   const p = s.threshold > 0 ? Math.round(s.smoothed / s.threshold * 100) : 0;
-  $("fsPct").textContent = `${p}% of limit · ${s.smoothed} of ${s.threshold} items`;
+  $("fsItems").textContent = s.smoothed;
+  $("fsLimit").textContent = "OF " + s.threshold;
+  $("fsMeterFill").style.height = Math.min(100, p) + "%";
+  $("fsMeter").title = `${p}% of limit · ${s.smoothed} of ${s.threshold} items`;
   const [lvName, label, ico] = levelOf(s, p);
+  $("fsMeter").className = "fk-meter lv-" + lvName;
   $("fsState").className = "fs-state lv-" + lvName;
   $("fsStateTxt").textContent = label;
   $("fsState").querySelector("use").setAttribute("href", "#" + ico);
@@ -1844,11 +1908,11 @@ function openViewer(i){
       <div class="vi-row tm"><svg class="ico"><use href="#i-clock"/></svg><span>Time</span><b>${tm}</b></div>
     </div>`;
   $("zInfo").innerHTML = `
-    <span><svg class="ico"><use href="#i-layers"/></svg>${items} / ${lim} items</span>
-    <span><svg class="ico c-bottle"><use href="#i-bottle"/></svg>${a.n_bottle}</span>
-    <span><svg class="ico c-bag"><use href="#i-bag"/></svg>${a.n_bag}</span>
-    <span><svg class="ico c-cont"><use href="#i-cont"/></svg>${a.n_food_container}</span>
-    <span><svg class="ico"><use href="#i-clock"/></svg>${ts}</span>`;
+    <span title="Items against the limit"><svg class="ico"><use href="#i-layers"/></svg>${items}/${lim}</span>
+    <span title="Bottle"><svg class="ico c-bottle"><use href="#i-bottle"/></svg>${a.n_bottle}</span>
+    <span title="Bag"><svg class="ico c-bag"><use href="#i-bag"/></svg>${a.n_bag}</span>
+    <span title="Container"><svg class="ico c-cont"><use href="#i-cont"/></svg>${a.n_food_container}</span>
+    <span class="zt"><svg class="ico"><use href="#i-clock"/></svg><b>${tm}</b>${day}</span>`;
   $("viewer").showModal();
 }
 $("vClose").onclick = () => $("viewer").close();
@@ -2092,7 +2156,11 @@ function pullFrame(){
   if(pending || (!fsOn && !$("monitor").classList.contains("on"))) return;
   pending = true;
   const img = new Image();
-  img.onload = () => { feed.src = img.src; pending = false; };
+  img.onload = () => {
+    feed.src = img.src; pending = false;
+    const ar = img.naturalWidth / img.naturalHeight;
+    if(ar > 0 && Math.abs(ar - feedAr) > 0.01){ feedAr = ar; fitFs(); }
+  };
   img.onerror = () => { pending = false; };
   img.src = "/frame.jpg?t=" + Date.now();
 }
