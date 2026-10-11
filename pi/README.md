@@ -25,6 +25,9 @@ built against the mock server, so none of the Python here has to run for it.
 | `gg_snapcard.py` | Draws the info card under each saved snapshot (event, time, items vs limit, per-class counts), so the photo itself is never covered. |
 | `test_snapcard.py` | Unit tests for `gg_snapcard.py`. |
 | `test_web.py` | Unit tests for the connected-phone tracking in `gg_web.py`. |
+| `gg_cloud.py` | Firebase sync. Copies state, history, compressed snapshots and a preview still to a Firebase Realtime Database, and runs commands phones leave there. Uses only the Python standard library plus OpenCV, so nothing new to install. |
+| `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
+| `firebase.rules.json` | Security rules to paste into the Firebase console. |
 | `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
 | `start.sh` | The launcher. Checks the camera's reachable, activates the Python environment, opens the dashboard fullscreen (via `/start`), and starts detection. |
@@ -90,9 +93,10 @@ Expect `Ran 5 tests` and `OK`.
 ```bash
 python3 test_snapcard.py
 python3 test_web.py
+python3 test_cloud.py
 ```
 
-Expect `Ran 5 tests` and `Ran 7 tests`, both `OK`.
+Expect `Ran 5 tests`, `Ran 8 tests` and `Ran 10 tests`, all `OK`.
 
 ## Starting at boot, and Wi-Fi setup
 
@@ -167,6 +171,35 @@ accepts the password `goodpass`.
 
 This is not verified on real Pi hardware yet. See the checklist in
 `GarbageGuard_Field_Reference.md`, section 2.
+
+## Firebase (phones away from the Pi's Wi-Fi)
+
+Same Wi-Fi always comes first: phones on the Pi's network talk to the Pi
+directly, with live video and full-size snapshots. Firebase is the fallback
+for phones elsewhere, and the Pi keeps it up to date either way.
+
+1. Set up the Firebase project once, following section 5 of
+   `mobile-app/FIREBASE.md` (database in Singapore, Email/Password sign-in, a
+   user for the Pi and one per phone, the `gg_users` list, and the rules from
+   `firebase.rules.json`).
+2. On the Pi: Dashboard → Wi-Fi button → **Firebase** card. Fill in the
+   database URL, the Web API key, and the **Pi's** email and password. The
+   chips above the keyboard (`https://`, `-default-rtdb`,
+   `.asia-southeast1`, `.firebasedatabase.app`, `AIza`) save typing.
+3. Press **Test** to only check, or **Test and save** to check and save.
+   Saving only happens when the test passes, and that set becomes the
+   **working set**. **Restore working** puts it back after a bad edit.
+4. **Sync on / Off** pauses it without losing the settings.
+
+The settings live in `~/gg/gg_firebase.json` (and the working set in
+`gg_firebase.good.json`), readable only by the Pi user. Both are git-ignored,
+so the password never reaches GitHub. Status shows on the Network screen's
+Firebase card and in the dashboard's phone panel (**Firebase synced** /
+**Firebase error** / **Firebase off**). Phones using Firebase appear in that
+panel with the label **Firebase**.
+
+Live video does not go through Firebase. Phones away from the Wi-Fi get a
+still picture every 3 seconds, and only while they say they are watching.
 
 ## What depends on what
 

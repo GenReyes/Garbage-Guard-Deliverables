@@ -11,7 +11,8 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | `Garbage-Guard v4.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
-| `SYNC_PLAN.md` | Design notes for reaching the Pi from outside its Wi-Fi (Tailscale, Firebase). None of that is built yet. |
+| `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
+| `SYNC_PLAN.md` | Earlier comparison of options for remote access (Tailscale, Firebase, MQTT). Superseded by `FIREBASE.md`. |
 
 ## What the app does
 
@@ -43,15 +44,17 @@ Neumorphism with the hard edges and contrast colours of Neo-Brutalism.
 
 The phone and the Pi must be on the same Wi-Fi or hotspot. On first launch
 the app asks for the Pi's address, for example `192.168.1.101:8080`, tests
-it, and remembers it. There is no login and no cloud service; the app talks
+it, and remembers it. On the same Wi-Fi there is no login and no cloud service; the app talks
 to the Pi directly over plain HTTP on port 8080.
 
 A router with client isolation switched on blocks this even when both
 devices show as connected. The team has hit that once already, so test at
 the venue early.
 
-Reaching the Pi from another network is not built. `SYNC_PLAN.md` sets out
-the options.
+Away from the Pi's Wi-Fi, the app can fall back to Firebase. The Pi side is
+built; the app side is described step by step in **`FIREBASE.md`** (which
+connection to pick, the settings page, the data layout, commands, and why
+there is no live video over Firebase).
 
 ## Installing the app on a phone
 

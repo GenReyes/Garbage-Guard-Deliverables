@@ -27,6 +27,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
+import gg_cloud
 import gg_web
 from gg_snapcard import add_card
 
@@ -746,6 +747,7 @@ def main():
 
     if not args.no_web:
         gg_web.serve(engine, args.port)
+        gg_cloud.start(note=gg_web.note_viewer)
 
     try:
         engine.run(show_window=args.display)

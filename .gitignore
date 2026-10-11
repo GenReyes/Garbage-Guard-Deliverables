@@ -29,3 +29,8 @@ garbageguard_v5_best_ncnn_model/
 
 # Android Studio settings for this folder
 .idea/
+
+# Firebase settings with the Pi account password
+gg_firebase.json
+gg_firebase.good.json
+*.tmp

@@ -114,7 +114,8 @@ Poll about once per second. This drives the whole main screen.
 | `auto_mute` | Auto-mute is switched on. |
 | `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
 | `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
-| `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`, and `via`: `direct` (the IP and MAC are the phone's own), `shared` (several phones arrive from one address, so the IP and MAC belong to a router in between, such as a second Wi-Fi router), or `remote` (Tailscale or the internet; `mac` is null). Show a short note for `shared` and `remote` so the numbers are not mistaken for the phone's own. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
+| `cloud` | Firebase sync status: `{"enabled", "ok", "error", "watchers"}`. `watchers` is how many phones are watching through Firebase. See `FIREBASE.md`. |
+| `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`, and `via`: `direct` (the IP and MAC are the phone's own), `shared` (several phones arrive from one address, so the IP and MAC belong to a router in between, such as a second Wi-Fi router), `remote` (Tailscale or the internet; `mac` is null), or `cloud` (the phone reaches the Pi through Firebase; `ip` is `"Firebase"`, `mac` and `hostname` are null). Show a short note for `shared`, `remote` and `cloud` so the numbers are not mistaken for the phone's own. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
 
 ---
 
@@ -426,7 +427,11 @@ Pi's own screen. The app uses `/api/battery` for its header battery indicator
 and does not call `/api/window`. `/api/battery` is read-only and returns
 `{"ok": false, "error": ...}` when no UPS is attached.
 
-For phone access away from the Pi's own screen, see `SYNC_PLAN.md`.
+`GET /api/cloud`, `POST /api/cloud` and `POST /api/cloud/restore` hold the
+Pi's own Firebase settings (Network → Firebase on the Pi screen). They answer
+only to the Pi itself. The password is never returned, only `has_password`.
+
+For phone access away from the Pi's Wi-Fi, see **`FIREBASE.md`**.
 
 ## Naming, please keep these exact
 

@@ -265,9 +265,28 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .kb .k.sp{max-width:none;flex:4}
 .kb .k.on{background:linear-gradient(162deg,var(--teal-lt) 0%,var(--teal) 62%);color:#fff}
 
+/* ---------- Firebase ---------- */
+.role-cloud .bub{background:#E8590C}
+[data-theme="dark"] .role-cloud .bub{background:#FF8A3D;color:#16130F}
+.cv{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:16px}
+.cf{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.cf .fld{grid-template-columns:128px minmax(0,1fr)}
+.cf .in{font-size:14px;overflow:hidden;white-space:nowrap}
+.cf .in span.v{overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left;unicode-bidi:plaintext}
+.cacts{display:flex;gap:10px;flex-wrap:wrap;flex:none;margin-top:2px}
+.cres{flex:none}
+.tkb{padding:9px;display:flex;flex-direction:column;gap:7px}
+.tkb .kr{display:flex;gap:6px}
+.tkb .k{flex:1;min-height:44px;font-size:17px;padding:0;min-width:0}
+.tkb .k.w{flex:1.5;font-size:13px}
+.tkb .k.sp{flex:3}
+.tkb .k.on{background:linear-gradient(162deg,var(--teal-lt) 0%,var(--teal) 62%);color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips .k{flex:none;padding:0 10px;font-size:12.5px;min-height:36px}
+
 @media (max-width:820px){
   html,body{overflow:auto;height:auto}
-  .split,.det,.ipv{grid-template-columns:1fr}
+  .split,.det,.ipv,.cv{grid-template-columns:1fr}
   .top .lbl{display:none}
 }
 </style>
@@ -304,6 +323,12 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
   <symbol id="i-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.6a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><g class="sun"><circle cx="8.4" cy="12" r="3.3"/><path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g><g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.7 4.7 0 0 0 7 18.5z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.9 12.1 8.6-8.6M16.5 6.5l2.5 2.5M14 9l2 2"/></symbol>
+  <symbol id="i-mailx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.2"/><path d="m3.6 7.2 8.4 6 8.4-6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-test" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.2L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.5 14h9"/></symbol>
   </defs>
 </svg>
 
@@ -411,6 +436,42 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     </div>
   </section>
 
+  <section class="view" id="vCloud">
+    <div class="card hd">
+      <button class="btn sm" id="cfBack" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
+      <h2><svg class="ico"><use href="#i-cloud"/></svg>Firebase</h2>
+      <span class="chip off" id="cfChip">Off</span>
+    </div>
+    <div class="cv">
+      <div class="card cf">
+        <div class="seg" role="radiogroup" aria-label="Firebase sync">
+          <button type="button" id="cfOn" role="radio"><svg class="ico"><use href="#i-cloud"/></svg>Sync on</button>
+          <button type="button" id="cfOff" role="radio"><svg class="ico"><use href="#i-x"/></svg>Off</button>
+        </div>
+        <div id="cfFields">
+          <div class="fld"><label><svg class="ico"><use href="#i-link"/></svg>Database URL</label>
+            <button class="in" type="button" data-c="database_url"></button><span class="msg" data-cm="database_url"></span></div>
+          <div class="fld"><label><svg class="ico"><use href="#i-key"/></svg>Web API key</label>
+            <button class="in" type="button" data-c="api_key"></button><span class="msg" data-cm="api_key"></span></div>
+          <div class="fld"><label><svg class="ico"><use href="#i-mailx"/></svg>Pi account email</label>
+            <button class="in" type="button" data-c="email"></button><span class="msg" data-cm="email"></span></div>
+          <div class="fld"><label><svg class="ico"><use href="#i-lock"/></svg>Pi account password</label>
+            <button class="in" type="button" data-c="password"></button><span class="msg" data-cm="password"></span></div>
+        </div>
+        <div class="banner info cres" id="cfRes"><svg class="ico"><use href="#i-info"/></svg>
+          <span id="cfResTxt">Same Wi-Fi always comes first. Firebase is only for phones away from this network.</span></div>
+        <div class="cacts">
+          <button class="btn" id="cfTest" type="button"><svg class="ico a-pop"><use href="#i-test"/></svg>Test</button>
+          <button class="btn teal" id="cfSave" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Test and save</button>
+          <button class="btn" id="cfRestore" type="button"><svg class="ico a-left"><use href="#i-undo"/></svg>Restore working</button>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card tkb" id="cfKb"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="view" id="vConfirm">
     <div class="card sum">
       <h2><svg class="ico"><use href="#i-warn"/></svg><span id="cTitle">Apply these settings?</span></h2>
@@ -479,7 +540,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
   });
 
   var isStart=location.pathname==='/start';
-  var views=['vStart','vList','vInfo','vIp','vConfirm','vPass','vBusy','vDone'];
+  var views=['vStart','vList','vInfo','vIp','vCloud','vConfirm','vPass','vBusy','vDone'];
   var poll=null;
   function show(v){views.forEach(function(x){$(x).classList.toggle('on',x===v)});
     clearInterval(poll);poll=null;
@@ -538,7 +599,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
   function bars(n){var q=sigQ(n),h='<span class="sig'+(q<=1?' weak':'')+'" aria-hidden="true">';
     for(var i=1;i<=4;i++)h+='<i class="'+(i<=q?'f':'')+'"></i>';return h+'</span>'}
   function loadDetails(){
-    return j('/api/net/details').then(function(d){det=d;local=d.local!==false;renderStatus();return d})
+    return j('/api/net/details').then(function(d){det=d;local=d.local!==false;
+      return (local?loadCloud():Promise.resolve(null)).then(function(){renderStatus();return d})})
       .catch(function(){$('netSum').className='netsum off';$('netSumT').textContent='No contact with Garbage-Guard';
         $('netSumS').textContent='Retrying...'});
   }
@@ -566,7 +628,9 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
         '<span class="chip '+c[0]+'">'+ico(c[1])+c[2]+'</span></span>'+
         '<span class="sub">'+esc(bits.join('  ·  '))+'</span></button>';
     }).join('')||'<div class="empty">No network adapters found.</div>';
-    Array.prototype.forEach.call($('ifs').querySelectorAll('.ifc'),function(b){b.onclick=function(){openInfo(b.getAttribute('data-dev'))}});
+    if(local)$('ifs').insertAdjacentHTML('beforeend',cloudCard());
+    Array.prototype.forEach.call($('ifs').querySelectorAll('.ifc'),function(b){b.onclick=function(){
+      if(b.getAttribute('data-dev')==='cloud')openCloud();else openInfo(b.getAttribute('data-dev'))}});
     var wired=ifs.filter(function(d){return d.role==='wired'&&d.state==='connected'})[0];
     var wifiOn=wifiDev&&wifiDev.state==='connected';
     $('cableNote').hidden=!(wired&&!wifiOn);
@@ -574,6 +638,124 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     $('curLine').textContent=wifiOn?('Wi-Fi: '+(wifiDev.link&&wifiDev.link.ssid||wifiDev.connection)):'Wi-Fi networks';
     $('viewOnly').hidden=local;$('rescan').disabled=!local;$('hiddenBtn').disabled=!local;
   }
+
+  /* ---------- Firebase ---------- */
+  var cloud=null;
+  function cloudChip(c){
+    if(!c||!c.enabled)return ['off','i-x','Off'];
+    var st=c.status||{};
+    if(st.ok)return ['ok','i-check','Syncing'];
+    if(st.error)return ['bad','i-warn','Error'];
+    return ['warn','i-refresh','Connecting'];
+  }
+  function loadCloud(){return j('/api/cloud').then(function(c){cloud=c;return c}).catch(function(){return null})}
+  function cloudCard(){
+    var c=cloudChip(cloud),st=(cloud&&cloud.status)||{};
+    var sub=!cloud||!cloud.configured?'Not set up. Phones still work on the same Wi-Fi.':
+      !cloud.enabled?'Off. Phones still work on the same Wi-Fi.':
+      st.ok?('For phones away from this network'+(st.watchers?' · '+st.watchers+' watching now':'')):(st.error||'Signing in...');
+    return '<button type="button" class="ifc role-cloud'+(c[0]==='off'?' st-off':'')+'" data-dev="cloud">'+
+      '<span class="bub">'+ico('i-cloud')+'</span><span class="nm">Firebase</span>'+
+      '<span><span class="chip '+c[0]+'">'+ico(c[1])+c[2]+'</span></span>'+
+      '<span class="sub">'+esc(sub)+'</span></button>';
+  }
+  var cf={database_url:'',api_key:'',email:'',password:'',enabled:true},cfFocus='database_url',cfErr={},cfShift=false,cfSym=false,cfReveal=false;
+  var CF_FIELDS=['database_url','api_key','email','password'];
+  var CF_PH={database_url:'https://<project>-default-rtdb.<region>.firebasedatabase.app',api_key:'AIza... (39 characters)',
+    email:'the Pi\'s own Firebase user',password:'at least 6 characters'};
+  function cfCheck(){
+    var e={};if(!cf.enabled)return e;
+    if(!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(cf.database_url))e.database_url='Starts with https:// and ends in .firebasedatabase.app or .firebaseio.com';
+    if(!/^AIza[0-9A-Za-z_-]{35}$/.test(cf.api_key))e.api_key='Starts with AIza, 39 characters in total ('+cf.api_key.length+' now).';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cf.email))e.email='Looks like name@example.com';
+    if(!(cf.password||(cloud&&cloud.has_password))||(cf.password&&cf.password.length<6))e.password='At least 6 characters.';
+    return e;
+  }
+  function openCloud(){
+    loadCloud().then(function(c){
+      c=c||{};cf={database_url:c.database_url||'',api_key:c.api_key||'',email:c.email||'',password:'',enabled:c.configured?!!c.enabled:true};
+      cfErr={};cfFocus='database_url';cfShift=false;cfSym=false;cfReveal=false;
+      $('cfRestore').disabled=!c.has_good;
+      setRes('info','Same Wi-Fi always comes first. Firebase is only for phones away from this network.');
+      cfKb();cfPaint();sub('Firebase');show('vCloud');
+    });
+  }
+  function setRes(kind,txt){$('cfRes').className='banner cres '+kind;$('cfResTxt').textContent=txt;
+    $('cfRes').querySelector('use').setAttribute('href',kind==='ok'?'#i-check':kind==='bad'?'#i-warn':'#i-info')}
+  function cfPaint(){
+    var c=cloudChip(cloud);$('cfChip').className='chip '+c[0];$('cfChip').innerHTML=ico(c[1])+c[2];
+    $('cfOn').classList.toggle('on',cf.enabled);$('cfOff').classList.toggle('on',!cf.enabled);
+    $('cfFields').style.opacity=cf.enabled?'1':'.45';
+    var e=cfCheck();Object.keys(cfErr).forEach(function(k){if(!e[k])e[k]=cfErr[k]});
+    Array.prototype.forEach.call(document.querySelectorAll('#cfFields .in'),function(b){
+      var f=b.getAttribute('data-c'),v=cf[f],on=cfFocus===f&&cf.enabled;
+      var shown=f==='password'&&!cfReveal?new Array(v.length+1).join('•'):v;
+      var ph=f==='password'&&cloud&&cloud.has_password?'saved (leave empty to keep it)':CF_PH[f];
+      b.className='in'+(v?'':' ph')+(on?' focus':'')+(e[f]&&v&&!on?' err':'')+(v&&!e[f]?' good':'');
+      b.innerHTML=(v?'<span class="v">'+esc(shown)+'</span>':esc(ph))+(on?'<span class="caret"></span>':'');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#cfFields .msg'),function(m){
+      var f=m.getAttribute('data-cm'),show=e[f]&&(cf[f]||cfErr[f])&&cf.enabled;m.className='msg'+(show?'':' hint');
+      m.textContent=show?e[f]:'';
+    });
+    var ok=!Object.keys(cfCheck()).length;
+    $('cfTest').disabled=!local||!cf.enabled||!ok;$('cfSave').disabled=!local||(cf.enabled&&!ok);
+    $('cfSave').lastChild.textContent=cf.enabled?'Test and save':'Save';
+  }
+  function cfKb(){
+    var L=['qwertyuiop','asdfghjkl','zxcvbnm'],S=['1234567890','-_.:/@#%+=','!?&*()$~\''],rows=cfSym?S:L,up=cfShift&&!cfSym,h='';
+    function key(c,cls,lab){return '<button type="button" class="k '+(cls||'')+'" data-k="'+esc(c)+'">'+(lab||esc(c))+'</button>'}
+    function row(t){return t.split('').map(function(c){return key(up?c.toUpperCase():c)}).join('')}
+    var chips={database_url:['https://','-default-rtdb','.asia-southeast1','.firebasedatabase.app'],api_key:['AIza'],
+      email:['@gmail.com','.com'],password:[]}[cfFocus]||[];
+    if(chips.length)h+='<div class="chips">'+chips.map(function(c){return key(c,'',esc(c))}).join('')+'</div>';
+    h+='<div class="kr">'+row(rows[0])+'</div><div class="kr">'+row(rows[1])+'</div>';
+    h+='<div class="kr">'+(cfSym?'':key('SHIFT','w'+(cfShift?' on':''),'Shift'))+row(rows[2])+key('BACK','w',ico('i-bksp'))+'</div>';
+    h+='<div class="kr">'+key('SYM','w'+(cfSym?' on':''),cfSym?'abc':'123')+key('@','','@')+key('.','','.')+key('-','','-')+
+       (cfFocus==='password'?key('SHOW','w',cfReveal?'Hide':'Show'):key('CLEAR','w','Clear'))+key('NEXT','w on','Next')+'</div>';
+    $('cfKb').innerHTML=h;
+    Array.prototype.forEach.call($('cfKb').querySelectorAll('.k'),function(b){b.onclick=function(){cfKey(b.getAttribute('data-k'))}});
+  }
+  function cfKey(k){
+    if(!cf.enabled)return;
+    var v=cf[cfFocus];
+    if(k==='SHIFT'){cfShift=!cfShift;cfKb();return}
+    if(k==='SYM'){cfSym=!cfSym;cfKb();return}
+    if(k==='SHOW'){cfReveal=!cfReveal;cfKb();cfPaint();return}
+    if(k==='NEXT'){cfFocus=CF_FIELDS[(CF_FIELDS.indexOf(cfFocus)+1)%CF_FIELDS.length];cfKb();cfPaint();return}
+    if(k==='BACK')cf[cfFocus]=v.slice(0,-1);
+    else if(k==='CLEAR')cf[cfFocus]='';
+    else{if(v.length<200)cf[cfFocus]=v+k;if(cfShift&&!cfSym&&k.length===1){cfShift=false;cfKb()}}
+    delete cfErr[cfFocus];cfPaint();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#cfFields .in'),function(b){
+    b.onclick=function(){cfFocus=b.getAttribute('data-c');cfKb();cfPaint()}});
+  document.addEventListener('keydown',function(e){
+    if(!$('vCloud').classList.contains('on')||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.key==='Backspace'){cfKey('BACK');e.preventDefault()}
+    else if(e.key==='Tab'||e.key==='Enter'){cfKey('NEXT');e.preventDefault()}
+    else if(e.key.length===1){cfKey(e.key);e.preventDefault()}
+  });
+  $('cfOn').onclick=function(){cf.enabled=true;cfPaint()};
+  $('cfOff').onclick=function(){cf.enabled=false;cfPaint()};
+  $('cfBack').onclick=function(){listMode()};
+  function cfSend(testOnly){
+    var btn=testOnly?$('cfTest'):$('cfSave');btn.disabled=true;
+    setRes('info',testOnly?'Testing: signing in and checking the database...':'Testing, then saving...');
+    post('/api/cloud',{database_url:cf.database_url,api_key:cf.api_key,email:cf.email,password:cf.password,
+      enabled:cf.enabled,test_only:!!testOnly}).then(function(r){
+      cfErr=r.fields||{};
+      setRes(r.ok?'ok':'bad',(r.message||(r.ok?'Done.':'Could not connect.'))+(r.uid&&!r.ok?' UID: '+r.uid:''));
+      return loadCloud();
+    }).then(function(){cfPaint();if(cloud)$('cfRestore').disabled=!cloud.has_good})
+    .catch(function(){setRes('bad','Lost contact with Garbage-Guard.');cfPaint()});
+  }
+  $('cfTest').onclick=function(){cfSend(true)};
+  $('cfSave').onclick=function(){cfSend(false)};
+  $('cfRestore').onclick=function(){
+    post('/api/cloud/restore').then(function(r){setRes(r.ok?'ok':'bad',r.message);return loadCloud()})
+    .then(function(c){if(c){cf.database_url=c.database_url;cf.api_key=c.api_key;cf.email=c.email;cf.password='';cf.enabled=c.enabled}cfPaint()});
+  };
 
   /* ---------- network list ---------- */
   var sel=null,pw='',reveal=false,hiddenMode=false,scanned=false;

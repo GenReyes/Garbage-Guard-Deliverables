@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import gg_cloud
 import gg_net
 import gg_ups
 import gg_window
@@ -149,12 +150,14 @@ def viewers(now=None):
         shared[row["ip"]] = shared.get(row["ip"], 0) + 1
     for row in rows:
         kind = link_kind(row["ip"])
-        if kind == "remote":
+        if row["ip"] == "Firebase":
+            row["via"], row["mac"] = "cloud", None
+        elif kind == "remote":
             row["via"], row["mac"] = "remote", None
         else:
             row["via"] = "shared" if shared[row["ip"]] > 1 else "direct"
             row["mac"] = mac_for(row["ip"])
-        row["hostname"] = hostname_for(row["ip"])
+        row["hostname"] = None if row["via"] == "cloud" else hostname_for(row["ip"])
     return {"apps": sum(r["kind"] == "app" for r in rows),
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
@@ -223,6 +226,11 @@ def make_handler(engine, net=None, ups=None):
                 d["local"] = self.client_address[0] in LOOPBACK
                 return self._json(d)
 
+            if path == "/api/cloud":
+                if not self._local():
+                    return
+                return self._json(gg_cloud.public_config())
+
             if path == "/api/wifi/scan":
                 if not self._local():
                     return
@@ -243,6 +251,7 @@ def make_handler(engine, net=None, ups=None):
                     note_viewer(ip, client_kind(self.headers), headers=self.headers)
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
+                st["cloud"] = {k: gg_cloud.STATUS.get(k) for k in ("enabled", "ok", "error", "watchers")}
                 return self._json(st)
 
             if path == "/api/alerts":
@@ -278,6 +287,22 @@ def make_handler(engine, net=None, ups=None):
                 if not self._local():
                     return
                 return self._json(net.set_ipv4(str(data.get("connection") or ""), data))
+
+            if path == "/api/cloud":
+                if not self._local():
+                    return
+                return self._json(cloud_settings(data))
+
+            if path == "/api/cloud/restore":
+                if not self._local():
+                    return
+                try:
+                    good = json.loads(gg_cloud.GOOD.read_text())
+                except (OSError, ValueError):
+                    return self._json({"ok": False, "message": "No working settings have been saved yet."})
+                gg_cloud.save_config(good)
+                gg_cloud.start()
+                return self._json({"ok": True, "message": "Restored the last working Firebase settings."})
 
             if path == "/api/wifi/fix_camera":
                 if not self._local():
@@ -402,6 +427,27 @@ class QuietServer(ThreadingHTTPServer):
         if isinstance(err, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
             return
         super().handle_error(request, client_address)
+
+
+def cloud_settings(data):
+    old = gg_cloud.load_config() or {}
+    cfg = {k: str(data.get(k) or "").strip() for k in ("database_url", "api_key", "email")}
+    cfg["password"] = data.get("password") or old.get("password") or ""
+    cfg["enabled"] = bool(data.get("enabled", True))
+    if not cfg["enabled"]:
+        gg_cloud.save_config(dict(old, enabled=False) if old else cfg)
+        gg_cloud.start()
+        return {"ok": True, "message": "Firebase sync is off. The app still works on the same Wi-Fi."}
+    res = gg_cloud.test_config(cfg)
+    if res.get("ok") and not data.get("test_only"):
+        gg_cloud.save_config(cfg, good=True)
+        gg_cloud.start()
+        res["message"] = "Saved and connected. These are now the working settings."
+    elif not res.get("ok") and data.get("save_anyway"):
+        gg_cloud.save_config(cfg)
+        gg_cloud.start()
+        res["saved"] = True
+    return res
 
 
 def restart_process(delay=0.6):

@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "gg_users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "gg": {
+      ".read": "auth != null && root.child('gg_users').child(auth.uid).exists()",
+      "state":   { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "pi":      { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "alerts":  { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "snaps":   { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "preview": { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "results": { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "commands": {
+        "$c": {
+          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('gg_users').child(auth.uid).exists()) || (!newData.exists() && root.child('gg_users').child(auth.uid).val() === 'pi'))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['cmd', 'ts']) && newData.child('cmd').isString())"
+        }
+      },
+      "watchers": {
+        "$w": {
+          ".write": "auth != null && root.child('gg_users').child(auth.uid).exists()"
+        }
+      }
+    }
+  }
+}

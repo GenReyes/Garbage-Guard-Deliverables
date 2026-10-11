@@ -1,6 +1,6 @@
 # Garbage-Guard: Phone Sync Plan (Firebase and alternatives)
 
-Status: **design only, nothing here is built yet.** The goal is a portable version of the touchscreen dashboard that lives on a phone and stays in sync with the mobile app, without exposing the Pi to the internet.
+Status: **superseded.** The Pi side is now built with Firebase **Realtime Database** (not Firestore), see `FIREBASE.md`. Realtime Database was picked because Spark has no per-operation limits on it, while Firestore allows 20,000 writes a day. This file is kept for the comparison of options. The goal is a portable version of the touchscreen dashboard that lives on a phone and stays in sync with the mobile app, without exposing the Pi to the internet.
 
 Facts about Firebase limits were checked on 2026-10-10. Re-check the pricing page before committing, because plans change.
 
