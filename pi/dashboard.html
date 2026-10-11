@@ -1972,9 +1972,10 @@ function paintPhones(){
   const d = $("phnDlg");
   if(!d.open) return;
   const v = viewers || {apps:0, browsers:0, list:[]};
-  $("phnSum").textContent = v.list.length
-    ? `${v.apps} app${v.apps===1?"":"s"} · ${v.browsers} browser${v.browsers===1?"":"s"}`
-    : "Nothing connected";
+  const parts = [];
+  if(v.apps) parts.push(`${v.apps} app${v.apps===1?"":"s"}`);
+  if(v.browsers) parts.push(`${v.browsers} browser${v.browsers===1?"":"s"}`);
+  $("phnSum").textContent = parts.join(" · ") || "Nothing connected";
   if(!v.list.length){
     $("phnList").innerHTML = `<div class="empty" style="display:flex"><svg class="ico"><use href="#i-phoneoff"/></svg>
       <span>No phone is polling the Pi right now. A phone counts as gone 4 seconds after it stops.</span></div>`;
