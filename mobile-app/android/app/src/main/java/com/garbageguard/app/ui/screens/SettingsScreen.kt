@@ -15,7 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.garbageguard.app.data.CloudUsage
 import com.garbageguard.app.data.ConnState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.data.LiveState
 import com.garbageguard.app.data.rearmFor
 import com.garbageguard.app.ui.AppViewModel
@@ -146,7 +154,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
 
         GgCard {
             Hd(GgIcons.Link, "Connection")
-            SettingRow("Pi address", if (vm.demo) "Demo data, no Pi" else vm.address, GgIcons.Link) {
+            SettingRow("Pi address", if (vm.demo) "Demo data, no Pi" else vm.address.ifEmpty { "Not set, using Firebase" }, GgIcons.Link) {
                 GgButton("Change", vm::changeAddress, small = true)
             }
             SettingRow(
@@ -163,12 +171,12 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                     icon = GgIcons.Refresh, enabled = state.conn != ConnState.NO_PI && !vm.reconnecting,
                 )
             }
-            SettingRow("Network", "Wi-Fi, cables and addresses on the Pi", GgIcons.Signal) {
-                GgButton("Details", vm::openNetwork, small = true, enabled = state.conn != ConnState.NO_PI)
+            SettingRow("Network", if (vm.remote) "Only on the Pi's Wi-Fi" else "Wi-Fi, cables and addresses on the Pi", GgIcons.Signal) {
+                GgButton("Details", vm::openNetwork, small = true, enabled = state.conn != ConnState.NO_PI && !vm.remote)
             }
             SettingRow(
                 "Watching now",
-                buildString {
+                if (vm.remote) "Only on the Pi's Wi-Fi" else buildString {
                     append(plural(state.viewerApps, "phone"))
                     if (state.viewerBrowsers > 0) append(", ").append(plural(state.viewerBrowsers, "browser"))
                     if (state.reconnects > 0) append(" \u00B7 camera restarted ").append(plural(state.reconnects, "time"))
@@ -177,21 +185,87 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             ) {
                 GgButton(
                     "Details", { vm.overlay = Overlay.Viewers }, small = true, icon = GgIcons.Phone,
-                    enabled = state.conn != ConnState.NO_PI,
+                    enabled = state.conn != ConnState.NO_PI && !vm.remote,
                 )
             }
-            SettingRow("Garbage-Guard on the Pi", "Restarts detection, camera and server", GgIcons.Refresh) {
+            SettingRow(
+                "Garbage-Guard on the Pi",
+                if (vm.remote) "Restart only on the Pi's Wi-Fi" else "Restarts detection, camera and server",
+                GgIcons.Refresh,
+            ) {
                 GgButton(
                     "Restart", { vm.overlay = Overlay.Restart }, small = true, kind = BtnKind.DANGER,
-                    enabled = state.conn != ConnState.NO_PI,
+                    enabled = state.conn != ConnState.NO_PI && !vm.remote,
                 )
             }
             Hint("Garbage-Guard app ${vm.appVersion.ifEmpty { "2.0" }}")
+        }
+
+        // Firebase: the fallback for when the phone is away from the Pi's Wi-Fi.
+        GgCard {
+            val usageNow by vm.cloudUsage.collectAsState()
+            val usage = state.cloudUsage ?: usageNow
+            Hd(GgIcons.Cloud, "Firebase") {
+                when {
+                    vm.demo -> Tag("Demo", Tone.WARN)
+                    vm.remote -> Tag("In use", Tone.WARN, GgIcons.Cloud)
+                    vm.cloudReady -> Tag("Standby", Tone.OK)
+                    else -> Tag("Not set up", Tone.WARN)
+                }
+            }
+            SettingRow(
+                "Link now",
+                if (vm.demo) "Demo data, no Pi" else if (vm.remote) "Through Firebase, away from the Pi" else "Same Wi-Fi as the Pi",
+                if (vm.remote) GgIcons.Cloud else GgIcons.Signal,
+            ) {}
+            SettingRow("Account", if (vm.cloudReady) "Database and account saved" else "Needed to use the app away", GgIcons.Key) {
+                GgButton(if (vm.cloudReady) "Edit" else "Set up", vm::openFirebase, small = true, icon = GgIcons.Gear)
+            }
+            if (!vm.remote && state.cloudEnabled) {
+                SettingRow(
+                    "Pi sync",
+                    if (state.cloudOk) "Synced, ${plural(state.cloudWatchers, "phone")} through Firebase" else "The Pi is not syncing",
+                    GgIcons.Refresh,
+                ) { Tag(if (state.cloudOk) "Synced" else "Off", if (state.cloudOk) Tone.OK else Tone.WARN) }
+            }
+            if (usage != null) UsageBar(usage)
+            Hint("Wi-Fi comes first. Firebase gives a still, not video.", icon = GgIcons.Ok)
         }
     }
 }
 
 private fun plural(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"
+
+/**
+ * The free monthly Firebase allowance, as the Pi estimates it. Green, amber,
+ * orange and red follow the Pi's own levels, and the figure is labelled
+ * "about" because it can be off by a third.
+ */
+@Composable
+private fun UsageBar(u: CloudUsage) {
+    val c = Gg.colors
+    val tint = when (u.level) { "warn" -> c.warn; "near" -> c.cloud; "bad" -> c.bad; else -> c.ok }
+    val gb = 1024f * 1024f * 1024f
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Ico(GgIcons.Gauge, size = 14.dp, tint = tint)
+            T(
+                "ABOUT %.2f GB OF %.2f GB THIS MONTH".format(u.downBytes / gb, u.limitBytes / gb),
+                Modifier.weight(1f), size = 0.7f, color = c.text, tnum = true, spacing = 0.04f, fit = true,
+            )
+        }
+        val frac = u.fraction.coerceIn(0f, 1f)
+        Row(Modifier.fillMaxWidth().height(14.dp).neuWell(c, 7.dp)) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(frac.coerceAtLeast(0.02f))
+                    .background(tint),
+            )
+        }
+        if (u.note != null) Hint(u.note, icon = GgIcons.Warn, wrap = true)
+    }
+}
 
 /** .field */
 @Composable

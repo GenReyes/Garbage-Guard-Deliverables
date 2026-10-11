@@ -21,12 +21,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        AppGraph.pi.foreground = true
+        AppGraph.foreground = true
     }
 
     override fun onStop() {
         // Still polling through the watch service, but no longer on screen.
-        AppGraph.pi.foreground = false
+        AppGraph.foreground = false
         super.onStop()
     }
 

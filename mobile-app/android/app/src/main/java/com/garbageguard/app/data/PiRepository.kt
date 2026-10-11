@@ -112,6 +112,18 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         job = null
     }
 
+    /** Does a Garbage-Guard server answer at [address] within 1.5 s? Used to choose between Wi-Fi and Firebase. */
+    suspend fun probe(address: String): Boolean {
+        val base = toBaseUrl(address) ?: return false
+        return try {
+            JSONObject(request("GET", "/api/state", base = base, timeout = 1500)).has("smoothed")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     /** One immediate poll, for the Retry button. Returns true when the Pi answered. */
     suspend fun refreshNow(): Boolean {
         pollState()
@@ -142,7 +154,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         }
     }
 
-    private fun parseBattery(o: JSONObject): Battery {
+    internal fun parseBattery(o: JSONObject): Battery {
         if (!o.optBoolean("ok", false)) return Battery()
         val cells = o.optJSONArray("cells_v")
         fun f(key: String): Float? = if (o.isNull(key)) null else o.optDouble(key).toFloat()
@@ -285,7 +297,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         return if (o.isNull(key)) emptyList() else listOf(o.optString(key)).filter { it.isNotBlank() }
     }
 
-    private fun text(o: JSONObject, key: String): String = if (o.isNull(key)) "" else o.optString(key)
+    internal fun text(o: JSONObject, key: String): String = if (o.isNull(key)) "" else o.optString(key)
 
     private fun parseNet(o: JSONObject): NetDetails {
         val list = o.optJSONArray("interfaces") ?: JSONArray()
@@ -336,6 +348,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         path: String,
         body: JSONObject? = null,
         base: String = baseUrl,
+        timeout: Int = 0,
     ): String = withContext(Dispatchers.IO) {
         val conn = URL(base + path).openConnection() as HttpURLConnection
         try {
@@ -344,8 +357,8 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             conn.setRequestProperty("X-GG-Client", "android")
             identity.forEach { (name, value) -> conn.setRequestProperty(name, value) }
             conn.setRequestProperty("X-GG-Mode", if (foreground) "foreground" else "background")
-            conn.connectTimeout = 2500
-            conn.readTimeout = 4000
+            conn.connectTimeout = if (timeout > 0) timeout else 2500
+            conn.readTimeout = if (timeout > 0) timeout else 4000
             if (body != null) {
                 val bytes = body.toString().toByteArray()
                 conn.doOutput = true
@@ -362,7 +375,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     // ---------- JSON, field names as in GarbageGuard_API.md ----------
 
-    private fun parseState(o: JSONObject): LiveState {
+    internal fun parseState(o: JSONObject): LiveState {
         val counts = o.optJSONObject("counts") ?: JSONObject()
         val roi = o.optJSONArray("roi") ?: JSONArray()
         val points = (0 until roi.length()).mapNotNull { i ->
@@ -387,6 +400,10 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             viewerApps = o.optJSONObject("viewers")?.optInt("apps") ?: 0,
             viewerBrowsers = o.optJSONObject("viewers")?.optInt("browsers") ?: 0,
             viewers = parseViewers(o.optJSONObject("viewers")?.optJSONArray("list")),
+            cloudEnabled = o.optJSONObject("cloud")?.optBoolean("enabled", false) ?: false,
+            cloudOk = o.optJSONObject("cloud")?.optBoolean("ok", false) ?: false,
+            cloudWatchers = o.optJSONObject("cloud")?.optInt("watchers") ?: 0,
+            cloudUsage = parseUsage(o.optJSONObject("cloud")?.optJSONObject("usage")),
             fps = o.optDouble("fps", 0.0).toFloat(),
             camFps = o.optDouble("cam_fps", 0.0).toFloat(),
             alertActive = o.optBoolean("alert_active", false),
@@ -396,6 +413,17 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             autoMute = o.optBoolean("auto_mute", false),
             autoMuteS = o.optInt("auto_mute_s", 900),
             autoMuted = o.optBoolean("auto_muted", false),
+        )
+    }
+
+    internal fun parseUsage(o: JSONObject?): CloudUsage? {
+        if (o == null) return null
+        return CloudUsage(
+            downBytes = o.optLong("down_bytes"),
+            limitBytes = o.optLong("limit_bytes", 10L * 1024 * 1024 * 1024),
+            fraction = o.optDouble("fraction", 0.0).toFloat(),
+            level = text(o, "level").ifEmpty { "ok" },
+            note = text(o, "note").ifEmpty { null },
         )
     }
 
@@ -412,7 +440,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         }
     }
 
-    private fun parseAlerts(rows: JSONArray): List<AlertRow> =
+    internal fun parseAlerts(rows: JSONArray): List<AlertRow> =
         (0 until rows.length()).mapNotNull { i ->
             val o = rows.optJSONObject(i) ?: return@mapNotNull null
             AlertRow(

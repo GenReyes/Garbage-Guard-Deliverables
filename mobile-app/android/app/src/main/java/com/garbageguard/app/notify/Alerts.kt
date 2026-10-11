@@ -189,7 +189,15 @@ object Alerts {
         }
     }
 
-    private suspend fun fetch(url: String): Bitmap? = withContext(Dispatchers.IO) {
+    private suspend fun fetch(url: String): Bitmap? {
+        val cloudScheme = com.garbageguard.app.ui.components.RemoteImages.CLOUD
+        if (url.startsWith(cloudScheme)) {
+            return com.garbageguard.app.ui.components.RemoteImages.cloud?.invoke(url.removePrefix(cloudScheme))
+        }
+        return fetchHttp(url)
+    }
+
+    private suspend fun fetchHttp(url: String): Bitmap? = withContext(Dispatchers.IO) {
         runCatching {
             val conn = URL(url).openConnection() as HttpURLConnection
             try {

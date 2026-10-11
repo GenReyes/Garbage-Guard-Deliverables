@@ -8,6 +8,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.garbageguard.app.data.AlertRow
 import com.garbageguard.app.data.Battery
+import com.garbageguard.app.data.CloudRepository
+import com.garbageguard.app.data.CloudUsage
+import com.garbageguard.app.data.FirebaseConfig
+import com.garbageguard.app.data.LinkMode
+import com.garbageguard.app.notify.CloudStore
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.EventType
 import com.garbageguard.app.data.FakeRepository
@@ -78,6 +83,8 @@ sealed interface Overlay {
     data object Restart : Overlay
     /** Who is connected to the Pi right now. */
     data object Viewers : Overlay
+    /** The Firebase settings page. */
+    data object Firebase : Overlay
     data object NotifPrompt : Overlay
 }
 
@@ -111,6 +118,94 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** True while the app runs on invented data. */
     var demo by mutableStateOf(false)
         private set
+
+    /** Same Wi-Fi or Firebase. Wi-Fi always comes first; see AppGraph. */
+    var linkMode by mutableStateOf(LinkMode.LOCAL)
+        private set
+
+    /** True when the picture and data are coming through Firebase rather than the Pi's own Wi-Fi. */
+    val remote: Boolean get() = !demo && linkMode == LinkMode.CLOUD
+
+    /** The Pi's estimate of the free Firebase allowance, when reached through Firebase. */
+    val cloudUsage: StateFlow<CloudUsage?> = AppGraph.cloud.usage
+
+    var cloudReady by mutableStateOf(false)
+        private set
+
+    // The Firebase settings page.
+    var fbUrl by mutableStateOf("")
+    var fbKey by mutableStateOf("")
+    var fbEmail by mutableStateOf("")
+    var fbPassword by mutableStateOf("")
+    var fbBusy by mutableStateOf(false)
+        private set
+    var fbMessage by mutableStateOf("")
+        private set
+    var fbPassed by mutableStateOf(false)
+        private set
+
+    fun openFirebase() {
+        val cfg = AppGraph.cloud.config
+        fbUrl = cfg.url; fbKey = cfg.key; fbEmail = cfg.email; fbPassword = cfg.password
+        fbMessage = ""
+        fbPassed = false
+        overlay = Overlay.Firebase
+    }
+
+    /** Test signs in and checks the account is allowed. With [save], a passing set is kept and used at once. */
+    fun testFirebase(save: Boolean) {
+        if (fbBusy) return
+        val cfg = FirebaseConfig(fbUrl.trim(), fbKey.trim(), fbEmail.trim(), fbPassword)
+        CloudRepository.problemWith(cfg)?.let {
+            fbPassed = false
+            fbMessage = it
+            return
+        }
+        fbBusy = true
+        fbMessage = "Signing in"
+        viewModelScope.launch {
+            val result = AppGraph.cloud.test(cfg)
+            fbBusy = false
+            fbPassed = result.isSuccess
+            fbMessage = result.fold(
+                onSuccess = {
+                    if (save) {
+                        AppGraph.useCloudConfig(cfg, passedTest = true)
+                        cloudReady = true
+                        "Signed in and saved. Firebase is ready."
+                    } else "Signed in. This account is allowed."
+                },
+                onFailure = { (it.message ?: "Could not sign in.") + if (save) " Nothing was saved." else "" },
+            )
+        }
+    }
+
+    /** Puts back the last set that passed a test. */
+    fun restoreFirebase() {
+        val good = CloudStore.working(appContext)
+        if (good == null) {
+            fbPassed = false
+            fbMessage = "No working set has been saved yet."
+            return
+        }
+        fbUrl = good.url; fbKey = good.key; fbEmail = good.email; fbPassword = good.password
+        AppGraph.useCloudConfig(good, passedTest = true)
+        cloudReady = true
+        fbPassed = true
+        fbMessage = "Working set restored."
+    }
+
+    /** From the first screen, when the phone is not on the Pi's Wi-Fi. */
+    fun useFirebaseOnly() {
+        if (!AppGraph.cloudReady) {
+            openFirebase()
+            fbMessage = "Fill these in first, then press Test and save."
+            return
+        }
+        address = ""
+        prefs.edit().putBoolean(KEY_CLOUD_ONLY, true).apply()
+        finishSetup(firstTime = false)
+    }
 
     /** Where the live picture comes from. Null in demo mode, which draws its own. */
     val frameUrl: String? get() = if (setupDone) repo.frameUrl else null
@@ -203,12 +298,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Demo data raises notifications too, while the app is running.
         viewModelScope.launch {
             alerts.collect { rows ->
-                if (demo) Alerts.onRows(appContext, "demo", rows, viewModelScope, AppGraph.pi.foreground) { null }
+                if (demo) Alerts.onRows(appContext, "demo", rows, viewModelScope, AppGraph.foreground) { null }
             }
         }
+        cloudReady = AppGraph.cloudReady
+        // Follow whichever connection is in use, and show its messages.
+        viewModelScope.launch {
+            AppGraph.mode.collect { mode ->
+                linkMode = mode
+                if (!demo) active.value = if (mode == LinkMode.CLOUD) AppGraph.cloud else pi
+            }
+        }
+        viewModelScope.launch { AppGraph.notices.collect { showToast(it) } }
         refreshSystemState()
-        // A remembered address means the app goes straight back to its Pi.
-        if (address.isNotEmpty()) finishSetup(firstTime = false)
+        // A remembered address (or a Firebase-only setup) means the app goes straight back to its Pi.
+        if (address.isNotEmpty() || (prefs.getBoolean(KEY_CLOUD_ONLY, false) && AppGraph.cloudReady)) {
+            finishSetup(firstTime = false)
+        }
     }
 
     /** Reads the two Android settings the Alerts card reports. Called whenever the app returns to the screen. */
@@ -289,19 +395,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Continue after a successful test: start following the real Pi. */
     fun finishSetup(firstTime: Boolean = true) {
         demo = false
-        active.value = pi
-        AppGraph.mute = { pi.mute(it) }
-        pi.start(address)
-        prefs.edit().putString(AppGraph.KEY_ADDRESS, address).apply()
+        AppGraph.mute = { repo.mute(it) }
+        AppGraph.connect(address)
+        active.value = if (AppGraph.mode.value == LinkMode.CLOUD) AppGraph.cloud else pi
+        if (address.isNotEmpty()) prefs.edit().putString(AppGraph.KEY_ADDRESS, address).putBoolean(KEY_CLOUD_ONLY, false).apply()
         if (notifications == PermState.ON) WatchService.start(appContext)
         enterApp()
     }
 
     /** Skip the Pi and run on invented data. */
     fun useDemo() {
-        pi.stop()
+        AppGraph.disconnect()
         WatchService.stop(appContext)
-        prefs.edit().remove(AppGraph.KEY_ADDRESS).apply()
+        prefs.edit().remove(AppGraph.KEY_ADDRESS).putBoolean(KEY_CLOUD_ONLY, false).apply()
         demo = true
         active.value = fake
         AppGraph.mute = { fake.mute(it) }
@@ -368,6 +474,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (demo) {
             fake.demoSetConn(ConnState.ONLINE)
             showToast("Connected")
+        } else if (remote) {
+            showToast("Waiting for the Pi to come back online")
         } else viewModelScope.launch {
             showToast(if (pi.refreshNow()) "Connected" else "Still cannot reach the Pi")
         }
@@ -523,6 +631,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
         private const val KEY_ASKED = "asked_alerts"
+        private const val KEY_CLOUD_ONLY = "cloud_only"
         private const val KEY_SOUNDS = "ui_sounds"
         private const val KEY_HAPTICS = "haptics"
         private const val KEY_AWAKE = "keep_screen_on"

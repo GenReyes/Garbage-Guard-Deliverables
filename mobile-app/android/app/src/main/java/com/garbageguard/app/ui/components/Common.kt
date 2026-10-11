@@ -72,6 +72,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -332,7 +335,8 @@ fun accentOf(icon: ImageVector): Color {
         "eyeoff", "bellauto", "wrench", "undo", "sun", "bolt", "gauge", "poly" -> c.warnText
         "shutter", "cam", "eye", "check", "ok", "refresh", "gear", "pen", "save", "shield", "target" -> c.teal
         "link", "edit", "signal", "filter", "layers", "bottle", "expand", "shrink" -> c.bottle
-        "clock", "moon", "sunmoon", "phone", "cal", "bag", "activity" -> c.bag
+        "clock", "moon", "sunmoon", "phone", "cal", "bag", "activity", "mail" -> c.bag
+        "cloud", "key" -> c.cloud
         "battery", "plug", "container", "up" -> c.container
         else -> c.text
     }
@@ -540,6 +544,8 @@ fun GgInput(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboard: KeyboardType = KeyboardType.Text,
+    /** Shows dots instead of the characters. */
+    secret: Boolean = false,
 ) {
     val c = Gg.colors
     Box(
@@ -557,7 +563,8 @@ fun GgInput(
             singleLine = true,
             textStyle = TextStyle(color = c.text, fontSize = em(1.05f), fontWeight = FontWeight.ExtraBold),
             cursorBrush = SolidColor(c.teal),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+            keyboardOptions = KeyboardOptions(keyboardType = if (secret) KeyboardType.Password else keyboard),
+            visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -629,7 +636,7 @@ fun RollingText(
 
 /** .pillc, the connection pill. */
 @Composable
-fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String = "Online") {
+fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String = "Online", cloud: Boolean = false) {
     val c = Gg.colors
     val online = conn == ConnState.ONLINE
     Row(
@@ -641,7 +648,11 @@ fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        if (online) {
+        if (online && cloud) {
+            // Through Firebase: the cloud, in the same orange the Pi's screen uses.
+            Ico(GgIcons.Cloud, Modifier.pulse(), size = 15.dp, tint = c.cloud)
+            T("Cloud", size = 0.82f, color = c.cloud, maxLines = 1)
+        } else if (online) {
             Ico(GgIcons.Signal, Modifier.pulse(), size = 14.dp, tint = c.ok)
             T(onlineLabel, size = 0.82f, color = c.onlineText, maxLines = 1)
         } else {
@@ -653,7 +664,7 @@ fun ConnPill(conn: ConnState, modifier: Modifier = Modifier, onlineLabel: String
 
 /** .apph */
 @Composable
-fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit, onLogoHold: () -> Unit = {}) {
+fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggleTheme: () -> Unit, onPillLongPress: () -> Unit, onLogoHold: () -> Unit = {}, cloud: Boolean = false) {
     val c = Gg.colors
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
@@ -663,7 +674,7 @@ fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggle
         BrandLogo(58.dp, onLongHold = onLogoHold)
         BatteryChip(battery, onBattery)
         Spacer(Modifier.weight(1f))
-        ConnPill(conn, Modifier.longPress(onPillLongPress))
+        ConnPill(conn, Modifier.longPress(onPillLongPress), cloud = cloud)
         GgButton(
             null, onToggleTheme, icon = if (c.isDark) GgIcons.Sun else GgIcons.Moon,
             small = true, square = true,
@@ -772,6 +783,7 @@ fun GgSheet(onDismiss: () -> Unit, dismissable: Boolean = true, content: @Compos
                     indication = null,
                 ) {}
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

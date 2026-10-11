@@ -40,6 +40,13 @@ data class LiveState(
     val viewerApps: Int = 0,
     val viewerBrowsers: Int = 0,
     val viewers: List<Viewer> = emptyList(),
+    /** Whether the Pi itself is syncing to Firebase, and how many phones watch through it. */
+    val cloudEnabled: Boolean = false,
+    val cloudOk: Boolean = false,
+    val cloudWatchers: Int = 0,
+    val cloudUsage: CloudUsage? = null,
+    /** Set in Firebase mode when the Pi's heartbeat has stopped: the clock time it was last seen. */
+    val piOfflineSince: String? = null,
 )
 
 /** One phone or browser from the "viewers" list in GET /api/state. */
@@ -149,4 +156,31 @@ data class NetDetails(
     val internet: Boolean,
     val cameraIp: String,
     val interfaces: List<NetInterface>,
+)
+/** How the app is reaching the Pi right now. Same Wi-Fi always comes first. */
+enum class LinkMode { LOCAL, CLOUD }
+
+/** The four Firebase settings the user can type in. */
+data class FirebaseConfig(
+    val url: String = "",
+    val key: String = "",
+    val email: String = "",
+    val password: String = "",
+) {
+    val complete: Boolean get() = url.isNotBlank() && key.isNotBlank() && email.isNotBlank() && password.isNotBlank()
+}
+
+/**
+ * The Pi's estimate of the free monthly Firebase allowance, from /gg/usage
+ * (or the "cloud" field of /api/state on the same Wi-Fi). Always an
+ * estimate; the exact figure is only in the Firebase console.
+ */
+data class CloudUsage(
+    val downBytes: Long,
+    val limitBytes: Long,
+    val fraction: Float,
+    /** "ok", "warn", "near" or "bad". */
+    val level: String,
+    /** A sentence to show beside the picture when the Pi has slowed or stopped the preview. */
+    val note: String?,
 )

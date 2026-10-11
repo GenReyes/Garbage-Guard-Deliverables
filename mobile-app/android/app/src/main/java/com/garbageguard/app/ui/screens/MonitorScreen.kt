@@ -26,6 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -173,7 +174,7 @@ private fun Hero(s: LiveState) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Ico(if (noPi) GgIcons.Clock else GgIcons.Gauge, size = 12.dp, tint = c.muted)
                 T(
-                    if (noPi) "LAST UPDATE $lastUpdate" else "$p% OF LIMIT",
+                    if (noPi && s.piOfflineSince != null) "PI OFFLINE SINCE ${s.piOfflineSince}" else if (noPi) "LAST UPDATE $lastUpdate" else "$p% OF LIMIT",
                     size = 0.68f, color = c.muted, spacing = 0.06f,
                 )
             }
@@ -349,14 +350,22 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
 private fun FeedCard(vm: AppViewModel, s: LiveState) {
     val online = s.conn == ConnState.ONLINE
     val noPi = s.conn == ConnState.NO_PI
+    val usageNow by vm.cloudUsage.collectAsState()
+    val note = usageNow?.note
     TvFeed(
         frame = frameOf(s),
         online = online,
         noPi = noPi,
         fpsLabel = fpsLabel(s),
         latencyLabel = if (noPi) "-- MS" else "${s.latencyMs.roundToInt()} MS \u00B7 AVG ${s.avgLatencyMs.roundToInt()}",
-        caption = if (s.roi.size >= 3) "Grey boxes fall outside the monitored area and are not counted."
-        else "Whole frame is monitored. Draw an area in Settings.",
+        caption = when {
+            // The Pi's own words when it has slowed or stopped the remote picture to save the allowance.
+            vm.remote && note != null -> note
+            vm.remote -> "A still every 3 seconds. Join the Pi's Wi-Fi for live video."
+            s.roi.size >= 3 -> "Grey boxes fall outside the monitored area and are not counted."
+            else -> "Whole frame is monitored. Draw an area in Settings."
+        },
+        remote = vm.remote,
         showFlag = s.alertActive && !s.muted && online,
         onCapture = vm::capture,
         onReconnect = vm::reconnectCamera,

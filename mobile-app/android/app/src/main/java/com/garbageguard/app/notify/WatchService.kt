@@ -28,12 +28,12 @@ class WatchService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         AppGraph.init(this)
         val address = AppGraph.prefs(this).getString(AppGraph.KEY_ADDRESS, "").orEmpty()
-        if (address.isEmpty()) {
+        if (address.isEmpty() && !AppGraph.cloudReady) {
             stopSelf()
             return START_NOT_STICKY
         }
-        // After Android restarts the service on its own, the poll loop is gone too.
-        if (!AppGraph.pi.running) AppGraph.pi.start(address)
+        // After Android restarts the service on its own, the connection is gone too.
+        if (!AppGraph.linked) AppGraph.connect(address)
 
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
@@ -43,7 +43,7 @@ class WatchService : Service() {
             .setSmallIcon(R.drawable.ic_stat_gg)
             .setColor(0xFF128C84.toInt())
             .setContentTitle("Watching the Pi for alerts")
-            .setContentText(address)
+            .setContentText(address.ifEmpty { "Through Firebase" })
             .setOngoing(true)
             .setContentIntent(open)
             .build()

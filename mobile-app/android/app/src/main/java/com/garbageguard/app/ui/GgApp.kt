@@ -97,6 +97,7 @@ fun GgApp(vm: AppViewModel) {
                                 onToggleTheme = { vm.toggleTheme(c.isDark) },
                                 onPillLongPress = { if (vm.demo) vm.demoCycleConn() },
                                 onLogoHold = vm::openGame,
+                                cloud = vm.remote,
                             )
                             Box(Modifier.weight(1f)) {
                                 // Tabs slide a short way in the direction of travel.

@@ -120,7 +120,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 GgButton(null, vm::closeFullscreen, icon = GgIcons.X, small = true, square = true)
             } else {
                 BrandLogo(38.dp, onLongHold = vm::openGame)
-                ConnPill(state.conn, onlineLabel = "Camera online")
+                ConnPill(state.conn, onlineLabel = "Camera online", cloud = vm.remote)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)
                     T("LATENCY ${state.latencyMs.roundToInt()} MS", size = 0.74f, color = c.muted, tnum = true, spacing = 0.05f, maxLines = 1)

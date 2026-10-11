@@ -464,6 +464,8 @@ fun TvFeed(
     image: ImageBitmap? = null,
     onReconnect: () -> Unit = {},
     reconnecting: Boolean = false,
+    /** Through Firebase: a still picture every few seconds, not video. */
+    remote: Boolean = false,
 ) {
     val c = Gg.colors
     val k = casing()
@@ -494,7 +496,8 @@ fun TvFeed(
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Led(online)
-            T("LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = k.engraved, spacing = 0.1f, maxLines = 1)
+            if (remote) Ico(GgIcons.Cloud, size = 13.dp, tint = c.cloud)
+            T(if (remote) "REMOTE VIEW" else "LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = k.engraved, spacing = 0.1f, maxLines = 1)
             T("CAM 01", size = 0.66f, color = k.hint, spacing = 0.1f, maxLines = 1)
             Box(Modifier.weight(1f))
             Lcd(fpsLabel, k.rim)

@@ -509,7 +509,12 @@ model folder, or the camera.
 
 ## What the Android app uses today
 
-As of app version 4.0 the app calls: `/api/state`, `/frame.jpg`,
+As of app version 5.0, when the Pi is out of reach the app uses Firebase as
+`FIREBASE.md` describes: it reads `/gg/state`, `/gg/alerts`, `/gg/snaps`,
+`/gg/preview`, `/gg/usage` and `/gg/pi`, writes `/gg/watchers/<clientId>`,
+and sends commands through `/gg/commands` and `/gg/results`.
+
+On local Wi-Fi the app calls: `/api/state`, `/frame.jpg`,
 `/api/alerts`, `/snapshots/<name>`, `/api/settings`, `/api/roi`,
 `/api/test_alert`, `/api/capture`, `/api/mute`, `/api/auto_mute`,
 `/api/alerts/read`, `/api/alerts/delete`, `/api/battery`,

@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v4.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
+| `Garbage-Guard v5.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
@@ -35,6 +35,8 @@ few seconds.
   channels, so each can be changed or silenced in Android's settings.
 - **Sound and feel:** button sounds, vibration and keep-screen-on, each
   with a switch in Settings.
+- **Firebase:** remote view when the phone is away from the Pi's Wi-Fi,
+  with the month's data use shown in Settings.
 - **Demo mode:** runs on invented data with no Pi, for showing the app.
 
 The look is the project's own "Brutal-Morph" style: the soft depth of
@@ -51,14 +53,30 @@ A router with client isolation switched on blocks this even when both
 devices show as connected. The team has hit that once already, so test at
 the venue early.
 
-Away from the Pi's Wi-Fi, the app can fall back to Firebase. The Pi side is
-built; the app side is described step by step in **`FIREBASE.md`** (which
-connection to pick, the settings page, the data layout, commands, and why
-there is no live video over Firebase).
+Away from the Pi's Wi-Fi, the app falls back to Firebase. Local Wi-Fi is
+always tried first; Firebase is the second choice, and the app returns to
+local Wi-Fi by itself when the Pi is in reach again. The header pill shows
+"Cloud" in orange while Firebase is in use. Over Firebase the app shows a
+still every 3 seconds in place of live video, and restarting the Pi is not
+available. The details are in **`FIREBASE.md`**.
+
+Firebase needs four values, entered once in Settings, Firebase, Account:
+the database URL, the Web API key, and the email and password of one phone
+account. "Test and save" checks them before they are kept, and the password
+is stored encrypted on the phone. To build an APK with the values already
+filled in, add these lines to `android/local.properties`, which is never
+committed:
+
+```
+gg.fb.url=https://<project>-default-rtdb.<region>.firebasedatabase.app
+gg.fb.key=<Web API key>
+gg.fb.email=<phone account email>
+gg.fb.password=<phone account password>
+```
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v4.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v5.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 

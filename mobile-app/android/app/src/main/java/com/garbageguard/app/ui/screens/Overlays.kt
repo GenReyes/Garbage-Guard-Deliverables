@@ -74,6 +74,8 @@ import com.garbageguard.app.ui.components.SheetTitle
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.ggBackground
 import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.spin
+import androidx.compose.ui.text.input.KeyboardType
 import com.garbageguard.app.ui.components.pressable
 import com.garbageguard.app.ui.components.blockTouches
 import com.garbageguard.app.ui.components.rememberSnapshot
@@ -98,6 +100,7 @@ fun OverlayHost(
         Overlay.PiBattery -> PiBatterySheet(battery, close)
         Overlay.Network -> NetworkSheet(vm, close)
         Overlay.Viewers -> ViewersSheet(viewers, vm.clientId, close)
+        Overlay.Firebase -> FirebaseSheet(vm, close)
         Overlay.Restart -> GgSheet(close) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Ico(GgIcons.Warn, size = 30.dp, tint = Gg.colors.bad)
@@ -149,6 +152,76 @@ fun OverlayHost(
     }
 }
 
+/**
+ * The Firebase settings page, the phone's twin of the Pi's Network, Firebase
+ * screen: four fields, Test, Test and save, and Restore working.
+ */
+@Composable
+private fun FirebaseSheet(vm: AppViewModel, close: () -> Unit) {
+    val c = Gg.colors
+    GgSheet(close) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Ico(GgIcons.Cloud, size = 18.dp, tint = c.cloud)
+            T("FIREBASE", Modifier.weight(1f), size = 1.02f, weight = FontWeight.Black, color = c.text, spacing = 0.03f)
+            Tag(if (vm.cloudReady) "Ready" else "Not set up", if (vm.cloudReady) Tone.OK else Tone.WARN)
+        }
+        Column(
+            Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()).padding(end = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FirebaseField(GgIcons.Link, "Database URL", vm.fbUrl, { vm.fbUrl = it }, "https://\u2026firebasedatabase.app", KeyboardType.Uri)
+            FirebaseField(GgIcons.Key, "Web API key", vm.fbKey, { vm.fbKey = it }, "AIza\u2026", KeyboardType.Ascii)
+            FirebaseField(GgIcons.Mail, "Email", vm.fbEmail, { vm.fbEmail = it }, "phone account", KeyboardType.Email)
+            FirebaseField(GgIcons.Shield, "Password", vm.fbPassword, { vm.fbPassword = it }, "at least 6 characters", KeyboardType.Password, secret = true)
+        }
+        if (vm.fbMessage.isNotEmpty()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .neuRaised(c, 12.dp, hard = 2.dp, fillColor = if (vm.fbBusy) c.tealTint else if (vm.fbPassed) c.okTint else c.badTint)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Ico(
+                    if (vm.fbBusy) GgIcons.Refresh else if (vm.fbPassed) GgIcons.Ok else GgIcons.Warn,
+                    if (vm.fbBusy) Modifier.spin() else Modifier,
+                    size = 16.dp, tint = if (vm.fbBusy) c.teal else if (vm.fbPassed) c.onlineText else c.bad,
+                )
+                T(vm.fbMessage, Modifier.weight(1f), size = 0.82f, weight = FontWeight.Bold, color = c.text, lineHeight = 1.3f)
+            }
+        }
+        Acts {
+            GgButton("Test", { vm.testFirebase(save = false) }, Modifier.weight(1f), icon = GgIcons.Signal, enabled = !vm.fbBusy)
+            GgButton("Test and save", { vm.testFirebase(save = true) }, Modifier.weight(1f), icon = GgIcons.Save, kind = BtnKind.TEAL, enabled = !vm.fbBusy)
+        }
+        Acts {
+            GgButton("Restore working", vm::restoreFirebase, Modifier.weight(1f), icon = GgIcons.Undo, enabled = !vm.fbBusy)
+            GgButton("Close", close, Modifier.weight(1f))
+        }
+        Hint("The password stays encrypted on this phone.", icon = GgIcons.Shield)
+    }
+}
+
+@Composable
+private fun FirebaseField(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    keyboard: KeyboardType,
+    secret: Boolean = false,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Ico(icon, size = 13.dp, tint = accentOf(icon))
+            T(label.uppercase(), size = 0.72f, spacing = 0.05f, color = Gg.colors.text)
+        }
+        GgInput(value, onChange, placeholder, keyboard = keyboard, secret = secret)
+    }
+}
+
 private fun duration(seconds: Int): String = when {
     seconds >= 3600 -> "${seconds / 3600} h ${(seconds % 3600) / 60} m"
     seconds >= 60 -> "${seconds / 60} m ${seconds % 60} s"
@@ -191,13 +264,14 @@ private fun ViewersSheet(viewers: List<Viewer>, myId: String, close: () -> Unit)
                         val lines = buildList {
                             add("Type" to if (app) "Garbage-Guard app" + (if (v.appVersion.isNotEmpty()) " ${v.appVersion}" else "") else v.browser.ifEmpty { "Browser" })
                             if (v.os.isNotEmpty()) add("System" to v.os)
-                            add("Address" to v.ip + if (v.hostname.isNotEmpty()) " (${v.hostname})" else "")
+                            if (v.ip.isNotEmpty()) add("Address" to v.ip + if (v.hostname.isNotEmpty()) " (${v.hostname})" else "")
                             if (v.mac.isNotEmpty()) add((if (v.via == "shared") "Router MAC" else "MAC") to v.mac)
                             add("Connected" to duration(v.connectedSeconds))
                             when (v.via) {
                                 "direct" -> add("Link" to "Direct")
                                 "shared" -> add("Link" to "Shared address")
                                 "remote" -> add("Link" to "Remote")
+                                "cloud" -> add("Link" to "Firebase")
                             }
                         }
                         lines.forEach { (label, value) ->
@@ -209,6 +283,7 @@ private fun ViewersSheet(viewers: List<Viewer>, myId: String, close: () -> Unit)
                         // The dashboard's note, so a router's address is not mistaken for the phone's own.
                         if (v.via == "shared") Hint("Behind a shared router, so the address is the router's.", icon = GgIcons.Signal)
                         if (v.via == "remote") Hint("Reaching the Pi from outside its network.", icon = GgIcons.Signal)
+                        if (v.via == "cloud") Hint("Through Firebase, so there is no address or MAC.", icon = GgIcons.Cloud)
                     }
                 }
             }

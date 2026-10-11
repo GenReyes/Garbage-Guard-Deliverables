@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,10 +15,21 @@ android {
         applicationId = "com.garbageguard.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "4.0"
+        versionCode = 5
+        versionName = "5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // The team's tested Firebase set, read from local.properties (git-ignored) so the
+        // password never reaches the public repository. Missing values become empty.
+        val local = Properties().apply {
+            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+        }
+        fun prop(key: String) = "\"" + (local.getProperty(key) ?: "").replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+        buildConfigField("String", "FB_URL", prop("gg.fb.url"))
+        buildConfigField("String", "FB_KEY", prop("gg.fb.key"))
+        buildConfigField("String", "FB_EMAIL", prop("gg.fb.email"))
+        buildConfigField("String", "FB_PASSWORD", prop("gg.fb.password"))
     }
 
     buildTypes {
@@ -33,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

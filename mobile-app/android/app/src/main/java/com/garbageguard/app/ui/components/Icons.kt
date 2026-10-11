@@ -285,6 +285,19 @@ object GgIcons {
     val Activity by lazy {
         icon("activity") { p("M2.6 12h4.2l2.6-6.6 4.4 13.2 2.8-6.6h4.8") }
     }
+    val Cloud by lazy { icon("cloud") { p("M7 18.6h10.2a4.3 4.3 0 0 0 .7-8.54A6 6 0 0 0 6.3 8.9 4.9 4.9 0 0 0 7 18.6z") } }
+    val Key by lazy {
+        icon("key") {
+            circle(8f, 15.5f, 4.2f)
+            p("M11 12.5 20.5 3M16.5 7l2.6 2.6M14 9.5l1.8 1.8")
+        }
+    }
+    val Mail by lazy {
+        icon("mail") {
+            rect(3f, 5.5f, 18f, 13f, 2.2f)
+            p("M3.6 7.4 12 13.2l8.4-5.8")
+        }
+    }
     val Plug by lazy {
         icon("plug") {
             p("M9 3v4M15 3v4")

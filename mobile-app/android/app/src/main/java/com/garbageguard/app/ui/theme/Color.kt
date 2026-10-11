@@ -40,6 +40,8 @@ data class GgColors(
     val bottle: Color,
     val bag: Color,
     val container: Color,
+    /** The Firebase link, orange as on the Pi's screen. */
+    val cloud: Color,
     val isDark: Boolean,
 )
 
@@ -72,6 +74,7 @@ val LightGg = GgColors(
     bottle = Color(0xFF0F7BD4),
     bag = Color(0xFFA32BC9),
     container = Color(0xFF1E9E4A),
+    cloud = Color(0xFFD9660B),
     isDark = false,
 )
 
@@ -104,6 +107,7 @@ val DarkGg = GgColors(
     bottle = Color(0xFF4DA3F0),
     bag = Color(0xFFD17DF0),
     container = Color(0xFF4ECB71),
+    cloud = Color(0xFFFF9F45),
     isDark = true,
 )
 

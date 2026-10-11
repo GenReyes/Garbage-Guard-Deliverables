@@ -1,5 +1,6 @@
 package com.garbageguard.app.ui.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
 import androidx.compose.runtime.Composable
@@ -16,11 +17,27 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
+/** How pictures that live in the Firebase database are fetched. Set once at start-up. */
+object RemoteImages {
+    const val CLOUD = "gg-cloud://"
+
+    /** Takes "preview" or "snaps/<id>" and returns the decoded picture. */
+    @Volatile
+    var cloud: (suspend (String) -> Bitmap?)? = null
+}
+
 /** Pictures from the Pi: the live frame and the saved snapshots. */
 private object PiImages {
     val snapshots = LruCache<String, ImageBitmap>(40)
 
-    suspend fun fetch(url: String): ImageBitmap? = withContext(Dispatchers.IO) {
+    suspend fun fetch(url: String): ImageBitmap? {
+        if (url.startsWith(RemoteImages.CLOUD)) {
+            return RemoteImages.cloud?.invoke(url.removePrefix(RemoteImages.CLOUD))?.asImageBitmap()
+        }
+        return fetchHttp(url)
+    }
+
+    private suspend fun fetchHttp(url: String): ImageBitmap? = withContext(Dispatchers.IO) {
         runCatching {
             val conn = URL(url).openConnection() as HttpURLConnection
             try {
@@ -45,10 +62,12 @@ fun rememberLiveFrame(url: String?): ImageBitmap? {
     var frame by remember(url) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(url) {
         if (url == null) return@LaunchedEffect
+        val remote = url.startsWith(RemoteImages.CLOUD)
         while (true) {
-            // The changing query defeats caching, as the API reference advises.
-            PiImages.fetch("$url?t=${System.currentTimeMillis()}")?.let { frame = it }
-            delay(120)
+            // Over Firebase the Pi posts a still every 3 s, and each download costs allowance, so no faster.
+            // Locally the changing query defeats caching, as the API reference advises.
+            PiImages.fetch(if (remote) url else "$url?t=${System.currentTimeMillis()}")?.let { frame = it }
+            delay(if (remote) 3000 else 120)
         }
     }
     return frame

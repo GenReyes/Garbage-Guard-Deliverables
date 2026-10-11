@@ -97,6 +97,9 @@ fun SetupScreen(vm: AppViewModel) {
             )
         }
 
+        // Away from the Pi's Wi-Fi: the Firebase copy of the same data.
+        GgButton("Away from the Pi? Use Firebase", vm::useFirebaseOnly, Modifier.fillMaxWidth(), icon = GgIcons.Cloud)
+
         // Not in the mockup: lets the app be shown with no Pi nearby.
         GgButton("Try with demo data", vm::useDemo, Modifier.fillMaxWidth(), icon = GgIcons.Eye)
         Hint("Invented data on the phone. No Pi needed.", center = true, modifier = Modifier.fillMaxWidth())

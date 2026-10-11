@@ -53,6 +53,7 @@ import com.garbageguard.app.ui.HistFilter
 import com.garbageguard.app.ui.Overlay
 import com.garbageguard.app.ui.components.DEFAULT_ROI
 import com.garbageguard.app.ui.components.FEED_BLACK
+import com.garbageguard.app.ui.components.GLASS_EDGE
 import com.garbageguard.app.ui.components.FeedCanvas
 import com.garbageguard.app.ui.components.FeedFrame
 import com.garbageguard.app.ui.components.GgButton
@@ -318,7 +319,12 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = rememberSnapshot(vm.snapshotUrl(row.snapshot)), alignTop = true)
+                if (row.snapshot != null) {
+                    val picture = rememberSnapshot(vm.snapshotUrl(row.snapshot))
+                    // Demo data draws its own picture. A real record waits for the real one.
+                    if (vm.demo || picture != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = picture, alignTop = true)
+                    else T(if (vm.remote) "LOADING" else "\u2026", size = 0.5f, color = GLASS_EDGE, maxLines = 1)
+                }
                 else T("NO IMAGE", size = 0.5f, color = c.muted, maxLines = 1)
             }
         }
