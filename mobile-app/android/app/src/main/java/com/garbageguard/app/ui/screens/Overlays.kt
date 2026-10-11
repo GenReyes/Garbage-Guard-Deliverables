@@ -591,38 +591,41 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             GgButton("Close", close, kind = BtnKind.INK, small = true)
         }
     }
-    // The readings share out whatever room they are given, so the space
-    // beside or under the picture is used in full on any size of screen.
+    // Every reading sits in one card, set out as a table with fine rules
+    // between the rows, so the page reads as one calm sheet and still uses
+    // all the room it is given.
     val readings: @Composable (Modifier) -> Unit = { place ->
-        Column(place.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(place.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(
-                Modifier.fillMaxWidth().weight(1.25f).neuRaised(c, 16.dp, hard = 4.dp).padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.SpaceEvenly,
+                Modifier.fillMaxWidth().weight(1f).neuRaised(c, 16.dp, hard = 4.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Ico(GgIcons.Layers, size = 14.dp, tint = accentOf(GgIcons.Layers))
-                    T("ITEMS IN THE AREA", Modifier.weight(1f), size = 0.72f, color = c.muted, spacing = 0.06f, fit = true)
+                    T("ITEMS IN THE AREA", Modifier.weight(1f), size = 0.7f, color = c.muted, spacing = 0.06f, fit = true)
                     Ico(GgIcons.Gauge, size = 14.dp, tint = tone)
-                    T("$pct% OF LIMIT", size = 0.72f, weight = FontWeight.Black, color = tone, tnum = true, spacing = 0.05f, maxLines = 1)
+                    T("$pct% OF LIMIT", size = 0.7f, weight = FontWeight.Black, color = tone, tnum = true, spacing = 0.05f, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    T("${row.smoothedCount}", size = 3.4f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f)
-                    T("OF $limit ITEMS", Modifier.padding(bottom = 7.dp), size = 0.95f, color = c.muted, spacing = 0.04f, maxLines = 1)
+                    T("${row.smoothedCount}", size = 2.9f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f)
+                    T("OF $limit ITEMS", Modifier.padding(bottom = 6.dp), size = 0.9f, color = c.muted, spacing = 0.04f, maxLines = 1)
                 }
-                Row(Modifier.fillMaxWidth().height(16.dp).neuWell(c, 8.dp)) {
+                Row(Modifier.fillMaxWidth().height(12.dp).neuWell(c, 6.dp)) {
                     val f = (pct / 100f).coerceIn(0f, 1f)
                     if (f > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(tone))
                 }
-            }
-            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatTile("${row.nBottle}", "Bottle", GgIcons.Bottle, c.bottle, Modifier.weight(1f))
-                StatTile("${row.nBag}", "Bag", GgIcons.Bag, c.bag, Modifier.weight(1f))
-                StatTile("${row.nFoodContainer}", "Container", GgIcons.Container, c.container, Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatTile(conf, "Confidence", GgIcons.Target, accentOf(GgIcons.Target), Modifier.weight(1f))
-                StatTile(row.timestamp.drop(11).take(5), "Time", GgIcons.Clock, accentOf(GgIcons.Clock), Modifier.weight(1f))
-                StatTile(row.timestamp.take(10).drop(5), "Date", GgIcons.Calendar, accentOf(GgIcons.Calendar), Modifier.weight(1f))
+                Box(Modifier.fillMaxWidth().height(1.5.dp).background(c.edge.copy(alpha = 0.22f)))
+                Row(Modifier.fillMaxWidth()) {
+                    StatCell("${row.nBottle}", "Bottle", GgIcons.Bottle, c.bottle, Modifier.weight(1f))
+                    StatCell("${row.nBag}", "Bag", GgIcons.Bag, c.bag, Modifier.weight(1f))
+                    StatCell("${row.nFoodContainer}", "Container", GgIcons.Container, c.container, Modifier.weight(1f))
+                }
+                Box(Modifier.fillMaxWidth().height(1.5.dp).background(c.edge.copy(alpha = 0.22f)))
+                Row(Modifier.fillMaxWidth()) {
+                    StatCell(conf, "Confidence", GgIcons.Target, accentOf(GgIcons.Target), Modifier.weight(1f))
+                    StatCell(row.timestamp.drop(11).take(5), "Time", GgIcons.Clock, accentOf(GgIcons.Clock), Modifier.weight(1f))
+                    StatCell(row.timestamp.take(10).drop(5), "Date", GgIcons.Calendar, accentOf(GgIcons.Calendar), Modifier.weight(1f))
+                }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GgButton("Delete", onDelete, Modifier.weight(1f), icon = GgIcons.Trash, kind = BtnKind.DANGER)
@@ -655,35 +658,35 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
                 }
             }
         } else {
-            val shape = feedAspect(image)
-            // On a short screen the picture gives up a little height so the readings still fit.
-            val pictureHeight = minOf(wide / shape, tall * 0.45f)
+            // The readings keep a fixed, comfortable height. Everything above
+            // them is the viewing pane: the whole snapshot, centred on black,
+            // as large as the width allows and never cropped.
+            // On a tall phone the readings grow a little, so the black above and
+            // below the picture stays a slim margin, not an empty band.
+            val spare = tall - 60.dp - wide / feedAspect(image) - 28.dp
+            val sheet = spare.coerceIn(minOf(tall * 0.4f, 330.dp), 440.dp)
             Column(Modifier.fillMaxSize()) {
                 header()
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-                // A real snapshot is evidence, so the whole of it shows, with nothing cropped.
-                Box(Modifier.fillMaxWidth().height(pictureHeight).background(FEED_BLACK).pressable { fullSize = true }) {
+                Box(Modifier.fillMaxWidth().weight(1f).background(FEED_BLACK).pressable { fullSize = true }) {
                     FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image)
                 }
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-                readings(Modifier.weight(1f))
+                readings(Modifier.height(sheet))
             }
         }
     }
 }
 
-/** One reading on the snapshot page: its symbol and name, and the figure as large as the tile allows. */
+/** One reading in the snapshot table: its symbol and name above the figure. */
 @Composable
-private fun StatTile(value: String, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier) {
+private fun StatCell(value: String, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier) {
     val c = Gg.colors
-    Column(
-        modifier.fillMaxHeight().neuRaised(c, 14.dp).padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.SpaceEvenly,
-    ) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Ico(icon, size = 15.dp, tint = tint)
-            T(label.uppercase(), Modifier.weight(1f), size = 0.64f, color = c.muted, spacing = 0.05f, fit = true)
+            Ico(icon, size = 13.dp, tint = tint)
+            T(label.uppercase(), Modifier.weight(1f), size = 0.6f, color = c.muted, spacing = 0.05f, fit = true)
         }
-        T(value, Modifier.fillMaxWidth(), size = 2.6f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f, fit = true)
+        T(value, Modifier.fillMaxWidth(), size = 1.55f, weight = FontWeight.Black, color = c.text, tnum = true, lineHeight = 1f, fit = true)
     }
 }

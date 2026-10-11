@@ -8,8 +8,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -18,7 +18,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -38,10 +37,10 @@ import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.Led
 import com.garbageguard.app.ui.components.OfflinePanel
 import com.garbageguard.app.ui.components.RailChip
-import com.garbageguard.app.ui.components.RailFigure
+import com.garbageguard.app.ui.components.RailGauge
+import com.garbageguard.app.ui.components.RailGroup
 import com.garbageguard.app.ui.components.RailKey
 import com.garbageguard.app.ui.components.RailLabel
-import com.garbageguard.app.ui.components.RailMeter
 import com.garbageguard.app.ui.components.RailNote
 import com.garbageguard.app.ui.components.RailReadout
 import com.garbageguard.app.ui.components.RailState
@@ -81,10 +80,10 @@ fun LandscapeImmersive() {
 /**
  * The feed turned sideways, with the picture as large as the phone allows.
  * There is no bar above or below it: the picture takes the full height at
- * the camera's own shape, and the readouts (left) and keys (right) stand
- * beside it. Only the monitor is reversed against the theme, as on the Pi's
- * dashboard; the readouts and keys follow the page. Tapping the picture hides them.
- * The same screen is used to draw the monitored area.
+ * the camera's own shape, with one panel either side of it, readings on the
+ * left and keys on the right. Only the monitor is reversed against the
+ * theme, as on the Pi's dashboard; the panels follow the page. Tapping the
+ * picture hides them. The same screen is used to draw the monitored area.
  */
 @Composable
 fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
@@ -105,54 +104,67 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
         rails = rails || vm.drawing,
         modifier = Modifier.fillMaxSize(),
         left = {
-            BrandLogo(34.dp, onLongHold = vm::openGame)
-            if (vm.drawing) {
-                RailLabel("DRAW AREA", GgIcons.Target, c.cloud)
-                RailReadout("${vm.drawPoints.size}", "POINTS")
-                RailNote("Tap the picture to outline the water. Apply when the shape is closed.")
-            } else {
+            RailGroup {
+                BrandLogo(36.dp, onLongHold = vm::openGame)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Led(online)
-                    if (vm.remote) Ico(GgIcons.Cloud, size = 12.dp, tint = c.cloud)
+                    if (vm.remote) Ico(GgIcons.Cloud, size = 11.dp, tint = c.cloud)
                     RailLabel(if (vm.remote) "REMOTE" else "CAM 01")
                 }
-                RailReadout(if (online) "%.1f".format(state.fps) else "--", "FPS", GgIcons.Activity, c.container)
-                RailState(
-                    icon = level.icon,
-                    label = level.label,
-                    sub = if (state.alertActive && state.muted) muteLeftLabel(state.muteLeft) else null,
-                    fill = when (level.lv) { Lv.OK -> c.okTint; Lv.WARN -> c.warnTint; Lv.BAD -> c.bad; Lv.GRAY -> c.base2 },
-                    ink = when (level.lv) { Lv.BAD -> c.onBad; else -> c.text },
-                    pulse = state.alertActive && !state.muted,
-                )
-                RailLabel("ITEMS", GgIcons.Gauge, c.warn)
-                RailMeter(p / 100f, tone)
-                RailFigure("${state.smoothed}", if (level.lv == Lv.BAD) c.bad else null)
-                RailLabel("OF ${state.threshold} · $p%")
-                RailChip(GgIcons.Bottle, c.bottle, "${state.bottle}")
-                RailChip(GgIcons.Bag, c.bag, "${state.bag}")
-                RailChip(GgIcons.Container, c.container, "${state.foodContainer}")
+            }
+            if (vm.drawing) {
+                RailGroup {
+                    RailLabel("DRAW AREA", GgIcons.Target, c.cloud)
+                    RailReadout("${vm.drawPoints.size}", "POINTS", GgIcons.Layers, c.bottle)
+                }
+                RailGroup { RailNote("Tap the picture to outline the water. Apply when the shape is closed.") }
+            } else {
+                RailGauge(p / 100f, tone, "${state.smoothed}", "OF ${state.threshold}")
+                RailGroup {
+                    RailState(
+                        icon = level.icon,
+                        label = level.label,
+                        sub = if (state.alertActive && state.muted) muteLeftLabel(state.muteLeft) else null,
+                        fill = when (level.lv) { Lv.OK -> c.okTint; Lv.WARN -> c.warnTint; Lv.BAD -> c.bad; Lv.GRAY -> c.base2 },
+                        ink = when (level.lv) { Lv.BAD -> c.onBad; else -> c.text },
+                        pulse = state.alertActive && !state.muted,
+                    )
+                }
+                RailGroup {
+                    RailChip(GgIcons.Bottle, c.bottle, "${state.bottle}")
+                    RailChip(GgIcons.Bag, c.bag, "${state.bag}")
+                    RailChip(GgIcons.Container, c.container, "${state.foodContainer}")
+                }
             }
         },
         right = {
             if (vm.drawing) {
-                RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen)
-                Spacer(Modifier.weight(1f))
-                RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) })
-                RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() })
-                RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true)
-            } else {
-                RailKey(GgIcons.Shrink, "EXIT", vm::closeFullscreen)
-                RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, if (c.isDark) "LIGHT" else "DARK", { vm.toggleTheme(c.isDark) })
-                Spacer(Modifier.weight(1f))
-                RailNote("Tap the picture to hide the keys.")
-                RailReadout(if (state.conn == ConnState.NO_PI) "-- MS" else "${state.latencyMs.roundToInt()} MS", "LATENCY", GgIcons.Clock, c.bag)
-                RailKey(GgIcons.BellAuto, if (state.autoMute) "AUTO ON" else "AUTO OFF", vm::toggleAutoMute, lit = state.autoMute, toggle = true)
-                if (state.alertActive) {
-                    if (state.muted) RailKey(GgIcons.Bell, "UNMUTE", vm::unmute, lit = true)
-                    else RailKey(GgIcons.EyeOff, "MUTE", { vm.overlay = Overlay.Mute })
+                RailGroup { RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen) }
+                RailGroup {
+                    RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) })
+                    RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() })
+                    RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true)
                 }
-                RailKey(GgIcons.Shutter, "CAPTURE", vm::capture, lit = true, enabled = online)
+            } else {
+                RailGroup {
+                    // Two small keys share the top row: leave fullscreen, and switch the theme.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, null, { vm.toggleTheme(c.isDark) }, Modifier.weight(1f))
+                        RailKey(GgIcons.Shrink, null, vm::closeFullscreen, Modifier.weight(1f))
+                    }
+                }
+                RailGroup {
+                    RailReadout(if (online) "%.1f".format(state.fps) else "--", "FPS", GgIcons.Activity, c.container)
+                    RailReadout(if (state.conn == ConnState.NO_PI) "--" else "${state.latencyMs.roundToInt()}", "MS", GgIcons.Clock, c.bag)
+                }
+                RailGroup {
+                    RailKey(GgIcons.BellAuto, if (state.autoMute) "AUTO ON" else "AUTO OFF", vm::toggleAutoMute, lit = state.autoMute, toggle = true)
+                    if (state.alertActive) {
+                        if (state.muted) RailKey(GgIcons.Bell, "UNMUTE", vm::unmute, lit = true)
+                        else RailKey(GgIcons.EyeOff, "MUTE", { vm.overlay = Overlay.Mute })
+                    }
+                    RailKey(GgIcons.Shutter, "CAPTURE", vm::capture, lit = true, enabled = online)
+                }
             }
         },
     ) {
@@ -168,7 +180,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
             },
         )
         Box(Modifier.fillMaxSize().scanLines())
-        // A tap on the picture clears the bezel, and a second tap brings it back.
+        // A tap on the picture hides the panels, and a second tap brings them back.
         if (!vm.drawing) Box(Modifier.fillMaxSize().pressable { rails = !rails })
         if (state.alertActive && !state.muted && online && !vm.drawing) AlertFlag()
         if (!online) OfflinePanel(state.conn == ConnState.NO_PI)

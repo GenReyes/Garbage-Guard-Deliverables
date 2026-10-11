@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -525,7 +527,8 @@ fun TvFeed(
                 .clip(RoundedCornerShape(9.dp))
                 .background(FEED_BLACK),
         ) {
-            FeedCanvas(frame, Modifier.fillMaxSize(), cover = image == null, image = image)
+            // Set inside the glass outline, so the outline never covers the edge of the frame.
+            FeedCanvas(frame, Modifier.fillMaxSize().padding(GLASS_RIM), cover = image == null, image = image)
             Box(Modifier.fillMaxSize().scanLines())
             Box(
                 Modifier.fillMaxSize().drawBehind {
@@ -574,16 +577,11 @@ fun feedAspect(image: ImageBitmap?): Float =
     if (image != null && image.width > 0 && image.height > 0) (image.width.toFloat() / image.height).coerceIn(1f, 2.4f)
     else 16f / 10f
 
-// Bright colours for readouts on the black glass, where the page's own would be too dark.
-val GLASS_BOTTLE = COL_BOTTLE
-val GLASS_BAG = COL_BAG
-val GLASS_CONTAINER = COL_CONT
-val GLASS_TEAL = Color(0xFF8FE0CF)
-private val GLASS = Color(0xFF14201A)
-private val GLASS_INK = Color(0xFFEDE6DC)
+/** The glass outline is this thick; pictures are set inside it so their edges are never covered. */
+val GLASS_RIM = 3.dp
 
-private val RAIL_MIN = 80.dp
-private val RAIL_ITEM = 94.dp
+private val RAIL_MIN = 78.dp
+private val RAIL_ITEM = 96.dp
 
 /**
  * The colours of the keys and readouts beside the monitor. They belong to
@@ -598,10 +596,10 @@ private fun railCasing(): Casing {
 
 /**
  * The fullscreen monitor. The picture keeps the camera's own shape and takes
- * the full height of the phone. The keys and readouts sit on the bezel either
- * side of it, so nothing is stacked above or below the picture and nothing is
- * laid over it. With [rails] off the bezel is bare and the picture has all
- * the room there is.
+ * the full height of the phone, inside a slim reversed casing. Either side
+ * of it stands one panel in the page's theme, the same width and height as
+ * its twin: readings on the left, keys on the right. With [rails] off the
+ * panels go and the picture has all the room there is.
  */
 @Composable
 fun WideMonitor(
@@ -613,8 +611,8 @@ fun WideMonitor(
     screen: @Composable BoxScope.() -> Unit,
 ) {
     val k = casing()
-    val glass = RoundedCornerShape(9.dp)
     val c = Gg.colors
+    val glass = RoundedCornerShape(9.dp)
     val set = RoundedCornerShape(13.dp)
     // The monitor itself: the reversed casing as a slim bezel round the glass.
     val monitor: @Composable (Modifier) -> Unit = { place ->
@@ -626,78 +624,94 @@ fun WideMonitor(
                 .border(2.dp, c.edge, set)
                 .padding(5.dp),
         ) {
-            Box(
-                Modifier.fillMaxSize().clip(glass).background(FEED_BLACK).border(2.dp, Color.Black, glass),
-                content = screen,
-            )
+            Box(Modifier.fillMaxSize().clip(glass).background(FEED_BLACK).border(2.dp, Color.Black, glass).padding(GLASS_RIM), content = screen)
         }
     }
-    run {
-        BoxWithConstraints(
-            modifier
-                .ggBackground(c)
-                .windowInsetsPadding(WindowInsets.displayCutout)
-                .padding(5.dp),
-        ) {
-            if (maxHeight > maxWidth) {
-                // An upright window, such as a tablet that does not turn: the
-                // picture takes the full width, and the readouts and keys
-                // share the space beneath it.
-                val across = maxWidth
-                Column(
-                    Modifier.fillMaxSize(),
-                    verticalArrangement = if (rails) Arrangement.spacedBy(8.dp) else Arrangement.Center,
-                ) {
-                    monitor(Modifier.size(across, across / aspect))
-                    if (rails) Row(Modifier.weight(1f).fillMaxWidth()) {
-                        Column(
-                            Modifier.weight(1f).fillMaxHeight(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                            content = left,
-                        )
-                        Column(
-                            Modifier.weight(1f).fillMaxHeight(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                            content = right,
-                        )
-                    }
+    // A camera cut-out on one side is matched by the same margin on the
+    // other, so the picture stays in the middle and the panels stay twins.
+    val cut = WindowInsets.displayCutout
+    val density = LocalDensity.current
+    val dir = LocalLayoutDirection.current
+    val cutLeft = with(density) { cut.getLeft(this, dir).toDp() }
+    val cutRight = with(density) { cut.getRight(this, dir).toDp() }
+    val even = maxOf(cutLeft, cutRight)
+
+    BoxWithConstraints(
+        modifier
+            .ggBackground(c)
+            .windowInsetsPadding(cut)
+            .padding(start = even - cutLeft + 6.dp, end = even - cutRight + 6.dp, top = 6.dp, bottom = 8.dp),
+    ) {
+        if (maxHeight > maxWidth) {
+            // An upright window, such as a tablet that does not turn: the
+            // picture takes the full width and the two panels share the space beneath it.
+            val across = maxWidth
+            Column(
+                Modifier.fillMaxSize(),
+                verticalArrangement = if (rails) Arrangement.spacedBy(8.dp) else Arrangement.Center,
+            ) {
+                monitor(Modifier.size(across, (across - (5.dp + GLASS_RIM) * 2) / aspect + (5.dp + GLASS_RIM) * 2))
+                if (rails) Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RailPanel(Modifier.weight(1f).fillMaxHeight(), left)
+                    RailPanel(Modifier.weight(1f).fillMaxHeight(), right)
                 }
-                return@BoxWithConstraints
             }
-            var h = maxHeight
-            var w = h * aspect
-            val room = maxWidth - if (rails) RAIL_MIN * 2 else 0.dp
-            if (w > room) {
-                w = room
-                h = w / aspect
-            }
-            val pw by animateDpAsState(w, tween(220), label = "pw")
-            val ph by animateDpAsState(h, tween(220), label = "ph")
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().padding(horizontal = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) { if (rails) left() }
-                monitor(Modifier.size(pw, ph))
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().padding(horizontal = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) { if (rails) right() }
-            }
+            return@BoxWithConstraints
+        }
+        val gap = 7.dp
+        // The casing and the glass rim take a fixed margin round the picture,
+        // so the set is sized from the picture inward and no black bars are left.
+        val frame = (5.dp + GLASS_RIM) * 2
+        var h = maxHeight
+        var w = (h - frame) * aspect + frame
+        val room = maxWidth - if (rails) (RAIL_MIN + gap) * 2 else 0.dp
+        if (w > room) {
+            w = room
+            h = (w - frame) / aspect + frame
+        }
+        val pw by animateDpAsState(w, tween(220), label = "pw")
+        val ph by animateDpAsState(h, tween(220), label = "ph")
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            if (rails) RailPanel(Modifier.weight(1f).height(ph).padding(end = gap), left) else Box(Modifier.weight(1f))
+            monitor(Modifier.size(pw, ph))
+            if (rails) RailPanel(Modifier.weight(1f).height(ph).padding(start = gap), right) else Box(Modifier.weight(1f))
         }
     }
 }
 
-/** A key beside the monitor: symbol over its name, hard black drop, pushes in when pressed. */
+/**
+ * One of the two panels beside the monitor: a raised card as tall as the
+ * picture, with its groups spread evenly from top to bottom.
+ */
+@Composable
+private fun RailPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val c = Gg.colors
+    Column(
+        modifier.neuRaised(c, 13.dp, hard = 3.dp).padding(horizontal = 6.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+        content = content,
+    )
+}
+
+/** Things that belong together in a panel, kept close while the groups spread apart. */
+@Composable
+fun RailGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.widthIn(max = RAIL_ITEM).fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        content = content,
+    )
+}
+
+/** A key beside the monitor: symbol over its name, hard drop, pushes in when pressed. Without a name it is a square symbol key. */
 @Composable
 fun RailKey(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
+    label: String?,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     lit: Boolean = false,
     enabled: Boolean = true,
     toggle: Boolean = false,
@@ -713,70 +727,53 @@ fun RailKey(
     else Brush.verticalGradient(listOf(k.keyTop, k.keyBottom))
     val ink = if (lit) Color.White else k.keyInk
     Column(
-        Modifier
-            .widthIn(max = RAIL_ITEM)
+        modifier
             .fillMaxWidth()
             .alpha(if (enabled) 1f else 0.4f)
-            .offset { if (down) IntOffset(3.dp.roundToPx(), 3.dp.roundToPx()) else IntOffset.Zero }
-            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 3.dp, Soft.NONE, hardColor = c.edge).casingRim(k.rim, 10.dp))
+            .offset { if (down) IntOffset(2.dp.roundToPx(), 2.dp.roundToPx()) else IntOffset.Zero }
+            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 2.dp, Soft.NONE, hardColor = c.edge))
             .clip(shape)
             .background(fill)
-            .border(2.dp, Gg.colors.edge, shape)
+            .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 if (toggle) Feel.toggle(view) else Feel.tap(view)
                 onClick()
             }
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(horizontal = 3.dp, vertical = if (label == null) 8.dp else 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Ico(icon, size = 19.dp, tint = ink)
-        T(label, Modifier.fillMaxWidth(), size = 0.6f, color = ink, spacing = 0.04f, align = TextAlign.Center, fit = true)
+        Ico(icon, size = 18.dp, tint = ink)
+        if (label != null) T(label, Modifier.fillMaxWidth(), size = 0.58f, color = ink, spacing = 0.04f, align = TextAlign.Center, fit = true)
     }
 }
 
-/** Small engraved lettering beside the monitor, with an optional symbol. */
+/** Small lettering in a panel, with an optional symbol. */
 @Composable
 fun RailLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, tint: Color? = null) {
     val k = railCasing()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         if (icon != null) Ico(icon, size = 10.dp, tint = tint ?: k.hint)
-        T(text, size = 0.56f, color = k.engraved, spacing = 0.1f, maxLines = 1)
+        T(text, size = 0.54f, color = k.hint, spacing = 0.1f, maxLines = 1)
     }
 }
 
-/** A line or two of small print beside the monitor. */
+/** A line or two of small print in a panel. */
 @Composable
 fun RailNote(text: String) {
-    T(
-        text, Modifier.widthIn(max = RAIL_ITEM).fillMaxWidth(), size = 0.56f, weight = FontWeight.Bold,
-        color = railCasing().hint, align = TextAlign.Center, lineHeight = 1.2f,
-    )
+    T(text, Modifier.fillMaxWidth(), size = 0.56f, weight = FontWeight.Bold, color = railCasing().hint, align = TextAlign.Center, lineHeight = 1.2f)
 }
 
-/** A big engraved figure, such as the item count. */
-@Composable
-fun RailFigure(text: String, ink: Color? = null) {
-    T(text, size = 1.5f, weight = FontWeight.Black, color = ink ?: railCasing().engraved, tnum = true, maxLines = 1, lineHeight = 1f)
-}
-
-/** A lit readout in a sunk well with its name engraved beneath. */
+/** A reading in a sunk well with its name beneath. */
 @Composable
 fun RailReadout(value: String, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, tint: Color? = null) {
-    val k = railCasing()
-    val shape = RoundedCornerShape(6.dp)
+    val c = Gg.colors
+    val shape = RoundedCornerShape(8.dp)
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Box(
-            Modifier
-                .widthIn(max = RAIL_ITEM)
-                .fillMaxWidth()
-                .casingRim(k.rim, 6.dp)
-                .clip(shape)
-                .background(Gg.colors.sunk)
-                .border(2.dp, Gg.colors.edge, shape)
-                .padding(horizontal = 4.dp, vertical = 3.dp),
+            Modifier.fillMaxWidth().clip(shape).background(c.sunk).border(2.dp, c.edge, shape).padding(horizontal = 4.dp, vertical = 3.dp),
             contentAlignment = Alignment.Center,
-        ) { T(value, size = 0.86f, weight = FontWeight.Black, color = Gg.colors.teal, tnum = true, spacing = 0.04f, fit = true) }
+        ) { T(value, size = 0.82f, weight = FontWeight.Black, color = c.teal, tnum = true, spacing = 0.03f, fit = true) }
         RailLabel(label, icon, tint)
     }
 }
@@ -784,26 +781,19 @@ fun RailReadout(value: String, label: String, icon: androidx.compose.ui.graphics
 /** One class count in a sunk well: its symbol in its own colour, then the number. */
 @Composable
 fun RailChip(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, value: String) {
-    val k = railCasing()
+    val c = Gg.colors
     val shape = RoundedCornerShape(8.dp)
     Row(
-        Modifier
-            .widthIn(max = RAIL_ITEM)
-            .fillMaxWidth()
-            .casingRim(k.rim, 8.dp)
-            .clip(shape)
-            .background(Gg.colors.sunk)
-            .border(2.dp, Gg.colors.edge, shape)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+        Modifier.fillMaxWidth().clip(shape).background(c.sunk).border(2.dp, c.edge, shape).padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Ico(icon, size = 15.dp, tint = tint)
-        T(value, size = 0.95f, weight = FontWeight.Black, color = Gg.colors.text, tnum = true, maxLines = 1)
+        T(value, size = 0.95f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1)
     }
 }
 
-/** The state of the water, as a lamp beside the monitor. It pulses while an alert is sounding. */
+/** The state of the water, as a lamp. It pulses while an alert is sounding. */
 @Composable
 fun RailState(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -813,41 +803,41 @@ fun RailState(
     ink: Color,
     pulse: Boolean,
 ) {
-    val k = railCasing()
+    val c = Gg.colors
     val shape = RoundedCornerShape(9.dp)
     val a = if (pulse) 0.6f + 0.4f * breathe(1200) else 1f
     Column(
-        Modifier
-            .widthIn(max = RAIL_ITEM)
-            .fillMaxWidth()
-            .casingRim(k.rim, 9.dp)
-            .clip(shape)
-            .background(fill.copy(alpha = a))
-            .border(2.dp, Gg.colors.edge, shape)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().clip(shape).background(fill.copy(alpha = a)).border(2.dp, c.edge, shape).padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
         Ico(icon, size = 15.dp, tint = ink)
-        T(label.uppercase(), Modifier.fillMaxWidth(), size = 0.6f, weight = FontWeight.Black, color = ink, spacing = 0.04f, align = TextAlign.Center, fit = true)
+        T(label.uppercase(), Modifier.fillMaxWidth(), size = 0.58f, weight = FontWeight.Black, color = ink, spacing = 0.04f, align = TextAlign.Center, fit = true)
         if (sub != null) T(sub.uppercase(), Modifier.fillMaxWidth(), size = 0.54f, color = ink, tnum = true, align = TextAlign.Center, fit = true)
     }
 }
 
-/** The items meter: a well that fills from the bottom as the count nears the limit. Takes the spare height. */
+/**
+ * The items gauge: a ring that fills as the count nears the limit, with the
+ * count in the middle and the limit beneath.
+ */
 @Composable
-fun ColumnScope.RailMeter(fraction: Float, color: Color) {
-    val k = railCasing()
-    val shape = RoundedCornerShape(9.dp)
-    val f by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(500), label = "meter")
-    Box(
-        Modifier
-            .weight(1f)
-            .width(20.dp)
-            .casingRim(k.rim, 9.dp)
-            .clip(shape)
-            .background(Gg.colors.sunk)
-            .border(2.dp, Gg.colors.edge, shape),
-        contentAlignment = Alignment.BottomCenter,
-    ) { Box(Modifier.fillMaxWidth().fillMaxHeight(f).background(color)) }
+fun RailGauge(fraction: Float, color: Color, count: String, limit: String) {
+    val c = Gg.colors
+    val f by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(500), label = "gauge")
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Box(Modifier.size(62.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = 8.dp.toPx()
+                val inset = w / 2f + 1.dp.toPx()
+                val box = Size(size.width - inset * 2, size.height - inset * 2)
+                val at = Offset(inset, inset)
+                drawArc(c.edge, 135f, 270f, false, topLeft = at, size = box, style = Stroke(width = w + 3.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                drawArc(c.sunk, 135f, 270f, false, topLeft = at, size = box, style = Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                if (f > 0.01f) drawArc(color, 135f, 270f * f, false, topLeft = at, size = box, style = Stroke(width = w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            }
+            T(count, size = 1.4f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1, lineHeight = 1f)
+        }
+        RailLabel(limit, GgIcons.Gauge, c.warn)
+    }
 }
