@@ -46,7 +46,8 @@ import com.garbageguard.app.ui.components.FeedCanvas
 import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.Ico
-import com.garbageguard.app.ui.components.Led
+import com.garbageguard.app.ui.components.LcdTone
+import com.garbageguard.app.ui.components.MonitorHousing
 import com.garbageguard.app.ui.components.OfflinePanel
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.BrandLogo
@@ -117,34 +118,43 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 GgButton(null, vm::closeFullscreen, icon = GgIcons.X, small = true, square = true)
             } else {
                 BrandLogo(38.dp)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Led(online)
-                    T("CAM 01 · LIVE", size = 0.9f, color = c.text, maxLines = 1)
-                }
                 ConnPill(state.conn, onlineLabel = "Camera online")
-                T("${state.latencyMs.roundToInt()} ms", size = 0.8f, weight = FontWeight.Bold, color = c.muted, maxLines = 1)
-                // .fps-chip
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(c.tealTint)
-                        .border(2.dp, c.edge, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                ) { T(fpsLabel(state), size = 0.85f, weight = FontWeight.Black, color = if (c.isDark) c.tealLight else c.teal, tnum = true, spacing = 0.04f, maxLines = 1) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)
+                    T("LATENCY ${state.latencyMs.roundToInt()} MS", size = 0.74f, color = c.muted, tnum = true, spacing = 0.05f, maxLines = 1)
+                }
                 Spacer(Modifier.weight(1f))
+                GgButton(
+                    null, { vm.toggleTheme(c.isDark) }, icon = if (c.isDark) GgIcons.Sun else GgIcons.Moon,
+                    small = true, square = true,
+                )
                 GgButton(null, vm::closeFullscreen, icon = GgIcons.Shrink, small = true, square = true)
             }
         }
 
-        // ---- the picture ----
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(13.dp))
-                .background(FEED_BLACK)
-                .neuInset(c, 13.dp)
-                .border(2.dp, c.edge, RoundedCornerShape(13.dp)),
+        // ---- the monitor ----
+        // The bars above and below follow the page theme. Only the monitor
+        // takes the reverse theme, as on the Pi's dashboard, and the glass
+        // stays black in both.
+        val lcd = when {
+            vm.drawing -> LcdTone.MUTED to "TAP TO OUTLINE THE WATER · ${vm.drawPoints.size} PLACED"
+            state.conn == ConnState.NO_PI -> LcdTone.ALERT to "NO LINK TO PI"
+            !online -> LcdTone.ALERT to "NO CAMERA SIGNAL"
+            state.alertActive && state.muted ->
+                LcdTone.MUTED to "${if (state.autoMuted) "AUTO-MUTED" else "ALERT MUTED"} · ${muteLeftLabel(state.muteLeft).uppercase()}"
+            state.alertActive -> LcdTone.ALERT to "ACCUMULATION ALERT"
+            else -> LcdTone.IDLE to "NO ALERT"
+        }
+        val muteFraction = if (state.muted && state.muteLeft != null && state.muteTotal > 0) {
+            (state.muteLeft.toFloat() / state.muteTotal).coerceIn(0f, 1f)
+        } else null
+        MonitorHousing(
+            online = online,
+            fpsLabel = fpsLabel(state),
+            lcdText = lcd.second,
+            lcdTone = lcd.first,
+            lcdProgress = muteFraction,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
             FeedCanvas(
                 frame = frameOf(state).copy(outline = !vm.drawing),
@@ -182,8 +192,9 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                     Ico(level.icon, size = 14.dp, tint = stateInk)
                     T(level.label.uppercase(), size = 0.8f, color = stateInk, spacing = 0.04f, maxLines = 1)
                 }
+                Ico(GgIcons.Gauge, size = 14.dp, tint = c.warnText)
                 T(
-                    "$p% · ${state.smoothed} of ${state.threshold}",
+                    "$p% · ${state.smoothed} OF ${state.threshold}",
                     size = 0.8f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1,
                 )
                 ClassChip(state.bottle, c.bottle, GgIcons.Bottle)

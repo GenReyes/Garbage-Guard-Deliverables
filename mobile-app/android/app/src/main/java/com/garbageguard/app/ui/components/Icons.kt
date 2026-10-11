@@ -241,6 +241,50 @@ object GgIcons {
             p("M11 18.5h2")
         }
     }
+    val Gauge by lazy {
+        icon("gauge") {
+            p("M3.5 17.5a8.5 8.5 0 1 1 17 0")
+            p("M12 17.5l4.6-5.2")
+            circle(12f, 17.5f, 1.3f)
+        }
+    }
+    val BellAuto by lazy {
+        icon("bellauto") {
+            p("M14.6 16.5H4s2-2 2-7.1a6 6 0 0 1 9.4-4.9")
+            p("M10.2 19.8a2 2 0 0 0 3.6 0")
+            circle(17.6f, 12.6f, 4.1f)
+            p("M17.6 10.6v2.2l1.5 1")
+        }
+    }
+    val SunMoon by lazy {
+        icon("sunmoon") {
+            circle(8.4f, 12f, 3.3f)
+            p("M8.4 5.2v1.4M8.4 17.4v1.4M1.6 12H3M13.8 12h1.4M3.6 7.2l1 1M12.2 15.8l1 1M12.6 8.2l1-1M3.6 16.8l1-1")
+            p("M22 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z")
+        }
+    }
+    val Layers by lazy {
+        icon("layers") {
+            p("M12 3 2.6 7.9 12 12.8l9.4-4.9z")
+            p("m2.6 12.2 9.4 4.9 9.4-4.9M2.6 16.3l9.4 4.9 9.4-4.9")
+        }
+    }
+    val Calendar by lazy {
+        icon("cal") {
+            rect(3.5f, 5f, 17f, 15.5f, 2.2f)
+            p("M3.5 9.8h17M8 3v4M16 3v4")
+        }
+    }
+    val Target by lazy {
+        icon("target") {
+            circle(12f, 12f, 8.6f)
+            circle(12f, 12f, 4.6f)
+            dot(12f, 12f, 1f)
+        }
+    }
+    val Activity by lazy {
+        icon("activity") { p("M2.6 12h4.2l2.6-6.6 4.4 13.2 2.8-6.6h4.8") }
+    }
     val Plug by lazy {
         icon("plug") {
             p("M9 3v4M15 3v4")

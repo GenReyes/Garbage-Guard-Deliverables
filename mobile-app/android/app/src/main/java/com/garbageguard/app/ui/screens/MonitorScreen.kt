@@ -166,10 +166,13 @@ private fun Hero(s: LiveState) {
             },
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            T(
-                if (noPi) "LAST UPDATE $lastUpdate" else "$p% OF LIMIT",
-                size = 0.68f, color = c.muted, spacing = 0.06f,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Ico(if (noPi) GgIcons.Clock else GgIcons.Gauge, size = 12.dp, tint = c.muted)
+                T(
+                    if (noPi) "LAST UPDATE $lastUpdate" else "$p% OF LIMIT",
+                    size = 0.68f, color = c.muted, spacing = 0.06f,
+                )
+            }
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RollingText(if (noPi) "–" else "${s.smoothed}", size = 2.2f, color = c.text, spacing = -0.03f)
                 T("OF ${s.threshold} ITEMS", Modifier.padding(bottom = 4.dp), size = 0.76f, color = c.muted, spacing = 0.05f)
@@ -323,7 +326,8 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val label = MUTE_CHOICES.firstOrNull { it.first == seconds }?.second ?: "15 min"
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        T("for", size = 0.78f, color = c.muted)
+        Ico(GgIcons.Clock, size = 13.dp, tint = c.bag)
+        T("FOR", size = 0.66f, color = c.muted, spacing = 0.06f)
         Box {
             Row(
                 Modifier

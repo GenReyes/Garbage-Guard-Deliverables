@@ -224,8 +224,11 @@ fun GgButton(
     small: Boolean = false,
     enabled: Boolean = true,
     square: Boolean = false,
+    accent: Color? = null,
 ) {
     val c = Gg.colors
+    // Every key carries a symbol. Common labels get theirs here, so no button is text alone.
+    val icon = icon ?: text?.let { defaultIcon(it) }
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
     val hard = if (small) 2.dp else 3.dp
@@ -262,9 +265,42 @@ fun GgButton(
     ) {
         val tint = if (down) c.text else fg
         CompositionLocalProvider(LocalContentColor provides tint) {
-            if (icon != null) Ico(icon, size = if (small) 14.dp else 16.dp)
+            // On a plain key the symbol takes its own colour; on a coloured key it stays the key's ink.
+            val symbol = if (kind == BtnKind.PLAIN && !down && icon != null) accent ?: accentOf(icon) else tint
+            if (icon != null) Ico(icon, size = if (small) 14.dp else 16.dp, tint = symbol)
             if (text != null) T(text.uppercase(), size = if (small) 0.74f else 0.84f, spacing = 0.05f, maxLines = 1)
         }
+    }
+}
+
+private fun defaultIcon(label: String): ImageVector? = when (label.lowercase()) {
+    "cancel", "close" -> GgIcons.X
+    "not now", "later", "load older" -> GgIcons.Clock
+    "allow alerts", "turn on" -> GgIcons.Bell
+    "reset" -> GgIcons.Undo
+    "change" -> GgIcons.Edit
+    "details" -> GgIcons.Signal
+    "fix" -> GgIcons.Wrench
+    "restart", "working" -> GgIcons.Refresh
+    else -> null
+}
+
+/**
+ * One colour per symbol, the same wherever it appears: red for alerts and
+ * anything that removes, amber for mute and caution, teal for the camera and
+ * confirmation, blue for links and editing, purple for time and appearance.
+ */
+@Composable
+fun accentOf(icon: ImageVector): Color {
+    val c = Gg.colors
+    return when (icon.name) {
+        "bell", "trash", "x", "eraser", "warn", "nolink" -> c.bad
+        "eyeoff", "bellauto", "wrench", "undo", "sun", "bolt", "gauge", "poly" -> c.warnText
+        "shutter", "cam", "eye", "check", "ok", "refresh", "gear", "pen", "save", "shield", "target" -> c.teal
+        "link", "edit", "signal", "filter", "layers", "bottle", "expand", "shrink" -> c.bottle
+        "clock", "moon", "sunmoon", "phone", "cal", "bag", "activity" -> c.bag
+        "battery", "plug", "container", "up" -> c.container
+        else -> c.text
     }
 }
 
@@ -312,7 +348,7 @@ fun Hd(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        Ico(icon, size = 18.dp)
+        Ico(icon, size = 18.dp, tint = accentOf(icon))
         T(title.uppercase(), Modifier.weight(1f), size = titleSize * 0.92f, weight = FontWeight.Black, spacing = 0.03f)
         trailing()
     }
@@ -344,34 +380,51 @@ enum class Tone { OK, WARN, BAD }
 
 /** .tag */
 @Composable
-fun Tag(text: String, tone: Tone) {
+fun Tag(text: String, tone: Tone, icon: ImageVector? = null) {
     val c = Gg.colors
     val bg = when (tone) { Tone.OK -> c.okTint; Tone.WARN -> c.warnTint; Tone.BAD -> c.badTint }
-    Box(
+    val ink = when (tone) { Tone.OK -> c.onlineText; Tone.WARN -> c.warnText; Tone.BAD -> c.bad }
+    val symbol = icon ?: when (tone) { Tone.OK -> GgIcons.Check; Tone.WARN -> GgIcons.Warn; Tone.BAD -> GgIcons.X }
+    Row(
         Modifier
             .clip(CircleShape)
             .background(bg)
             .border(2.dp, c.edge, CircleShape)
-            .padding(horizontal = 9.dp, vertical = 3.dp),
-    ) { T(text.uppercase(), size = 0.66f, weight = FontWeight.Black, color = c.text, spacing = 0.05f, maxLines = 1) }
+            .padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Ico(symbol, size = 10.dp, tint = ink)
+        T(text.uppercase(), size = 0.66f, weight = FontWeight.Black, color = c.text, spacing = 0.05f, maxLines = 1)
+    }
 }
 
-/** .sw, the small Auto switch. */
+/**
+ * The auto-mute control: a small key of its own, with the bell-and-clock
+ * symbol, a caps label and the switch. It lights teal when armed.
+ */
 @Composable
-fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO") {
+fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO-MUTE") {
     val c = Gg.colors
+    val view = LocalView.current
     val x by animateDpAsState(if (checked) 14.dp else 0.dp, tween(180), label = "sw")
     Row(
         modifier = Modifier
-            .defaultMinSize(minHeight = 32.dp)
+            .neuRaised(c, 11.dp, hard = 2.dp, fillColor = if (checked) c.tealTint else c.raised)
+            .defaultMinSize(minHeight = 36.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null, onClick = onToggle,
-            )
-            .padding(horizontal = 2.dp),
+                indication = null,
+            ) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onToggle()
+            }
+            .padding(start = 8.dp, end = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        Ico(GgIcons.BellAuto, size = 15.dp, tint = if (checked) c.teal else c.warnText)
+        T(label, size = 0.68f, weight = FontWeight.Black, color = if (checked) c.teal else c.text, spacing = 0.06f, maxLines = 1)
         Box(
             Modifier
                 .size(width = 34.dp, height = 20.dp)
@@ -386,13 +439,12 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String = "AUTO") {
                     .background(Brush.verticalGradient(listOf(c.lite, c.shade))),
             )
         }
-        T(label, weight = FontWeight.Normal, color = if (checked) c.teal else c.text, spacing = 0.04f, maxLines = 1)
     }
 }
 
 /** .seg */
 @Composable
-fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
     val c = Gg.colors
     Row(Modifier.fillMaxWidth().neuWell(c, 12.dp)) {
         options.forEachIndexed { i, label ->
@@ -407,7 +459,12 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                         indication = null,
                     ) { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f) }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    icons.getOrNull(i)?.let { Ico(it, size = 14.dp, tint = if (on) accentOf(it) else c.muted) }
+                    T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f)
+                }
+            }
         }
     }
 }
@@ -588,7 +645,7 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Ico(icon, size = 18.dp, tint = if (selected) c.teal else c.muted)
+            Ico(icon, size = 18.dp, tint = if (selected) accentOf(icon) else c.muted)
             T(label.uppercase(), size = 0.7f, color = if (selected) c.text else c.muted, spacing = 0.06f, maxLines = 1)
         }
         if (badge > 0) {
@@ -706,7 +763,7 @@ fun BoxScope.GgToast(message: String, bottom: Dp) {
                 alpha = rise.value
                 translationY = (1f - rise.value) * 6.dp.toPx()
             }
-            .neuShadow(c, 12.dp, 4.dp, Soft.NONE)
+            .neuShadow(c, 12.dp, 4.dp, Soft.NONE, hardColor = if (c.isDark) c.teal else c.edge)
             .clip(RoundedCornerShape(12.dp))
             .background(c.text)
             .border(2.dp, c.edge, RoundedCornerShape(12.dp))

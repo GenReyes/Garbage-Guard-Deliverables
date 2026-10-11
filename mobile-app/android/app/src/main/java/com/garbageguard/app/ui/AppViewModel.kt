@@ -75,6 +75,8 @@ sealed interface Overlay {
     data object Network : Overlay
     /** Confirmation before restarting Garbage-Guard on the Pi. */
     data object Restart : Overlay
+    /** Who is connected to the Pi right now. */
+    data object Viewers : Overlay
     data object NotifPrompt : Overlay
 }
 
@@ -101,6 +103,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     @OptIn(ExperimentalCoroutinesApi::class)
     val battery: StateFlow<Battery> =
         active.flatMapLatest { it.battery }.stateIn(viewModelScope, SharingStarted.Eagerly, Battery())
+
+    val appVersion: String get() = AppGraph.appVersion
+    val clientId: String get() = if (demo) "demo" else AppGraph.clientId
 
     /** True while the app runs on invented data. */
     var demo by mutableStateOf(false)

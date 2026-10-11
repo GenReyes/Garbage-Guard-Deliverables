@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.garbageguard.app.data.AlertRow
 import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.NetInterface
+import com.garbageguard.app.data.Viewer
 import com.garbageguard.app.ui.components.Skeleton
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
@@ -49,6 +50,7 @@ import com.garbageguard.app.ui.components.Hint
 import com.garbageguard.app.ui.components.ReadoutWell
 import com.garbageguard.app.ui.components.RollingText
 import com.garbageguard.app.ui.components.Tag
+import com.garbageguard.app.ui.components.accentOf
 import com.garbageguard.app.ui.components.Tone
 import com.garbageguard.app.ui.components.batteryLevel
 import com.garbageguard.app.ui.components.batterySource
@@ -77,13 +79,21 @@ import com.garbageguard.app.ui.theme.Gg
 
 /** Draws whichever sheet or viewer the ViewModel has open. */
 @Composable
-fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, battery: Battery, onFixBattery: () -> Unit, onAllowAlerts: () -> Unit) {
+fun OverlayHost(
+    vm: AppViewModel,
+    alerts: List<AlertRow>,
+    battery: Battery,
+    viewers: List<Viewer>,
+    onFixBattery: () -> Unit,
+    onAllowAlerts: () -> Unit,
+) {
     val close = { vm.overlay = null }
     when (val o = vm.overlay) {
         null -> {}
         Overlay.Mute -> MuteSheet(vm, close)
         Overlay.PiBattery -> PiBatterySheet(battery, close)
         Overlay.Network -> NetworkSheet(vm, close)
+        Overlay.Viewers -> ViewersSheet(viewers, vm.clientId, close)
         Overlay.Restart -> GgSheet(close) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Ico(GgIcons.Warn, size = 30.dp, tint = Gg.colors.bad)
@@ -132,6 +142,66 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, battery: Battery, onFi
                 GgButton("Allow alerts", onAllowAlerts, Modifier.weight(1f), kind = BtnKind.TEAL)
             }
         }
+    }
+}
+
+private fun duration(seconds: Int): String = when {
+    seconds >= 3600 -> "${seconds / 3600} h ${(seconds % 3600) / 60} m"
+    seconds >= 60 -> "${seconds / 60} m ${seconds % 60} s"
+    else -> "$seconds s"
+}
+
+/** The Pi's connected-phones panel: every phone and browser watching right now. */
+@Composable
+private fun ViewersSheet(viewers: List<Viewer>, myId: String, close: () -> Unit) {
+    val c = Gg.colors
+    GgSheet(close) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Ico(GgIcons.Phone, size = 18.dp, tint = c.text)
+            T("WATCHING NOW", Modifier.weight(1f), size = 1.02f, weight = FontWeight.Black, color = c.text, spacing = 0.03f)
+            Tag("${viewers.size} connected", if (viewers.isEmpty()) Tone.WARN else Tone.OK)
+        }
+        if (viewers.isEmpty()) {
+            SheetText("The Pi lists nobody at the moment. A phone appears here within a second or two of connecting.")
+        } else {
+            Column(
+                Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(end = 4.dp, bottom = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                viewers.forEach { v ->
+                    val app = v.kind == "app"
+                    val mine = v.id.isNotEmpty() && v.id == myId
+                    Column(
+                        Modifier.fillMaxWidth().neuRaised(c, 14.dp, edge = if (mine) c.teal else c.edge).padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Ico(if (app) GgIcons.Phone else GgIcons.Eye, size = 16.dp, tint = c.teal)
+                            T(
+                                v.device.ifEmpty { if (app) "Phone" else "Browser" }.uppercase(), Modifier.weight(1f),
+                                size = 0.84f, weight = FontWeight.Black, color = c.text, spacing = 0.04f, maxLines = 1,
+                            )
+                            if (mine) Tag("This phone", Tone.OK)
+                            if (v.mode.isNotEmpty()) Tag(if (v.mode == "background") "In background" else "Open", if (v.mode == "background") Tone.WARN else Tone.OK)
+                        }
+                        val lines = buildList {
+                            add("Type" to if (app) "Garbage-Guard app" + (if (v.appVersion.isNotEmpty()) " ${v.appVersion}" else "") else v.browser.ifEmpty { "Browser" })
+                            if (v.os.isNotEmpty()) add("System" to v.os)
+                            add("Address" to v.ip + if (v.hostname.isNotEmpty()) " (${v.hostname})" else "")
+                            if (v.mac.isNotEmpty()) add("MAC" to v.mac)
+                            add("Connected" to duration(v.connectedSeconds))
+                        }
+                        lines.forEach { (label, value) ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                T(label.uppercase(), Modifier.width(76.dp), size = 0.62f, color = c.muted, spacing = 0.06f, maxLines = 1)
+                                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        GgButton("Close", close, Modifier.fillMaxWidth())
     }
 }
 
@@ -241,14 +311,17 @@ private fun PiBatterySheet(b: Battery, close: () -> Unit) {
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ReadoutWell("VOLTAGE", "%.2f".format(b.voltage), "V", c.text, Modifier.weight(1f))
-            ReadoutWell("CURRENT", signed(b.current, 2), "A", flowColor(b), Modifier.weight(1f))
-            ReadoutWell("POWER", signed(b.power, 1), "W", flowColor(b), Modifier.weight(1f))
+            ReadoutWell("VOLTAGE", "%.2f".format(b.voltage), "V", c.text, Modifier.weight(1f), GgIcons.Bolt)
+            ReadoutWell("CURRENT", signed(b.current, 2), "A", flowColor(b), Modifier.weight(1f), GgIcons.Activity)
+            ReadoutWell("POWER", signed(b.power, 1), "W", flowColor(b), Modifier.weight(1f), GgIcons.Plug)
         }
 
         if (b.cells.size == 4) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                T("CELLS", size = 0.66f, color = c.muted, spacing = 0.07f)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Ico(GgIcons.Layers, size = 12.dp, tint = c.bottle)
+                    T("CELLS", size = 0.66f, color = c.muted, spacing = 0.07f)
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     b.cells.forEachIndexed { i, v ->
                         Column(
@@ -324,7 +397,14 @@ private fun FilterSheet(vm: AppViewModel, close: () -> Unit) {
         SheetTitle("Filter history")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             HistFilter.entries.forEach { f ->
-                FilterChip(f.label, icon = null, on = vm.filter == f) {
+                val symbol = when (f) {
+                    HistFilter.ALL -> GgIcons.Layers
+                    HistFilter.ALERTS -> GgIcons.Bell
+                    HistFilter.CAPTURES -> GgIcons.Shutter
+                    HistFilter.TESTS -> GgIcons.Wrench
+                    HistFilter.MUTED -> GgIcons.EyeOff
+                }
+                FilterChip(f.label, icon = symbol, on = vm.filter == f) {
                     vm.filter = f
                     vm.shown = 6
                 }
@@ -332,11 +412,17 @@ private fun FilterSheet(vm: AppViewModel, close: () -> Unit) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                T("FROM", size = 0.76f, spacing = 0.05f)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Ico(GgIcons.Calendar, size = 13.dp, tint = Gg.colors.bag)
+                    T("FROM", size = 0.76f, spacing = 0.05f)
+                }
                 GgInput(vm.dateFrom, { vm.dateFrom = it }, "yyyy-mm-dd")
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                T("TO", size = 0.76f, spacing = 0.05f)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Ico(GgIcons.Calendar, size = 13.dp, tint = Gg.colors.bag)
+                    T("TO", size = 0.76f, spacing = 0.05f)
+                }
                 GgInput(vm.dateTo, { vm.dateTo = it }, "yyyy-mm-dd")
             }
         }
@@ -424,20 +510,23 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, close: () -> Unit) 
         }
         val conf = row.peakConfidence?.let { "${Math.round(it * 100)}%" } ?: "–"
         val cells = listOf(
-            "${row.smoothedCount}" to "Items",
-            "${row.nBottle}" to "Bottle",
-            "${row.nBag}" to "Bag",
-            "${row.nFoodContainer}" to "Container",
-            conf to "Peak confidence",
-            "${row.thresholdUsed}" to "Limit then",
+            Triple("${row.smoothedCount}", "Items", GgIcons.Layers),
+            Triple("${row.nBottle}", "Bottle", GgIcons.Bottle),
+            Triple("${row.nBag}", "Bag", GgIcons.Bag),
+            Triple("${row.nFoodContainer}", "Container", GgIcons.Container),
+            Triple(conf, "Peak confidence", GgIcons.Target),
+            Triple("${row.thresholdUsed}", "Limit then", GgIcons.Gauge),
         )
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             cells.chunked(3).forEach { line ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    line.forEach { (value, label) ->
+                    line.forEach { (value, label, symbol) ->
                         Column(Modifier.weight(1f)) {
                             T(value, size = 1.3f, weight = FontWeight.Black, color = c.text, tnum = true)
-                            T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Ico(symbol, size = 12.dp, tint = accentOf(symbol))
+                                T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f)
+                            }
                         }
                     }
                 }

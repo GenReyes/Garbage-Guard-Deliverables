@@ -31,6 +31,7 @@ import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.Segmented
 import com.garbageguard.app.ui.components.Stepper
 import com.garbageguard.app.ui.components.T
+import com.garbageguard.app.ui.components.accentOf
 import com.garbageguard.app.ui.components.Tag
 import com.garbageguard.app.ui.components.Tone
 import com.garbageguard.app.ui.theme.Gg
@@ -96,14 +97,14 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
         GgCard {
             Hd(GgIcons.Bell, "Alerts")
             val granted = vm.notifications == PermState.ON
-            SettingRow("Notifications", "Needed for alerts when the app is closed") {
+            SettingRow("Notifications", "Needed for alerts when the app is closed", GgIcons.Bell) {
                 Tag(
                     when (vm.notifications) { PermState.ON -> "On"; PermState.BLOCKED -> "Blocked"; PermState.OFF -> "Off" },
                     if (granted) Tone.OK else Tone.BAD,
                 )
                 if (!granted) GgButton("Turn on", { vm.overlay = Overlay.NotifPrompt }, small = true)
             }
-            SettingRow("Battery", "Android may put the app to sleep") {
+            SettingRow("Battery", "Android may put the app to sleep", GgIcons.Battery) {
                 Tag(
                     if (vm.batteryUnrestricted) "Unrestricted" else "Restricted",
                     if (vm.batteryUnrestricted) Tone.OK else Tone.WARN,
@@ -116,6 +117,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             Hd(GgIcons.Moon, "Appearance")
             Segmented(
                 listOf("Auto", "Light", "Dark"),
+                icons = listOf(GgIcons.SunMoon, GgIcons.Sun, GgIcons.Moon),
                 selected = ThemeMode.entries.indexOf(vm.themeMode),
                 onSelect = { vm.chooseTheme(ThemeMode.entries[it]) },
             )
@@ -123,7 +125,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
 
         GgCard {
             Hd(GgIcons.Link, "Connection")
-            SettingRow("Pi address", if (vm.demo) "Demo data, no Pi" else vm.address) {
+            SettingRow("Pi address", if (vm.demo) "Demo data, no Pi" else vm.address, GgIcons.Link) {
                 GgButton("Change", vm::changeAddress, small = true)
             }
             SettingRow(
@@ -133,13 +135,14 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                     ConnState.NO_CAMERA -> "no signal"
                     ConnState.NO_PI -> "unreachable"
                 },
+                GgIcons.Cam,
             ) {
                 GgButton(
                     if (vm.reconnecting) "Working" else "Reconnect", vm::reconnectCamera, small = true,
                     icon = GgIcons.Refresh, enabled = state.conn != ConnState.NO_PI && !vm.reconnecting,
                 )
             }
-            SettingRow("Network", "Wi-Fi, cables and addresses on the Pi") {
+            SettingRow("Network", "Wi-Fi, cables and addresses on the Pi", GgIcons.Signal) {
                 GgButton("Details", vm::openNetwork, small = true, enabled = state.conn != ConnState.NO_PI)
             }
             SettingRow(
@@ -149,14 +152,20 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                     if (state.viewerBrowsers > 0) append(", ").append(plural(state.viewerBrowsers, "browser"))
                     if (state.reconnects > 0) append(" \u00B7 camera restarted ").append(plural(state.reconnects, "time"))
                 },
-            ) { Ico(GgIcons.Phone, size = 18.dp, tint = if (state.viewerApps > 0) c.teal else c.muted) }
-            SettingRow("Garbage-Guard on the Pi", "Restarts detection, camera and server") {
+                GgIcons.Phone,
+            ) {
+                GgButton(
+                    "Details", { vm.overlay = Overlay.Viewers }, small = true, icon = GgIcons.Phone,
+                    enabled = state.conn != ConnState.NO_PI,
+                )
+            }
+            SettingRow("Garbage-Guard on the Pi", "Restarts detection, camera and server", GgIcons.Refresh) {
                 GgButton(
                     "Restart", { vm.overlay = Overlay.Restart }, small = true, kind = BtnKind.DANGER,
                     enabled = state.conn != ConnState.NO_PI,
                 )
             }
-            Hint("Garbage-Guard app 1.0")
+            Hint("Garbage-Guard app ${vm.appVersion.ifEmpty { "2.0" }}")
         }
     }
 }
@@ -168,7 +177,7 @@ private fun plural(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"
 private fun Field(icon: ImageVector, label: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            Ico(icon, size = 14.dp, tint = Gg.colors.muted)
+            Ico(icon, size = 14.dp, tint = accentOf(icon))
             T(label.uppercase(), size = 0.76f, spacing = 0.05f)
         }
         content()
@@ -183,12 +192,13 @@ private fun Pair2(content: @Composable androidx.compose.foundation.layout.RowSco
 
 /** .row */
 @Composable
-private fun SettingRow(label: String, sub: String, trailing: @Composable () -> Unit) {
+private fun SettingRow(label: String, sub: String, icon: ImageVector, trailing: @Composable () -> Unit) {
     Row(
         Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Ico(icon, size = 17.dp, tint = accentOf(icon))
         Column(Modifier.weight(1f)) {
             T(label.uppercase(), size = 0.84f, spacing = 0.04f)
             T(sub, size = 0.78f, weight = FontWeight.Bold, color = Gg.colors.muted)

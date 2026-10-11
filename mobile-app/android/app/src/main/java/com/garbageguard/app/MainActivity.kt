@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.garbageguard.app.ui.AppViewModel
+import com.garbageguard.app.notify.AppGraph
 import com.garbageguard.app.ui.GgApp
 
 class MainActivity : ComponentActivity() {
@@ -16,6 +17,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { GgApp(vm) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AppGraph.pi.foreground = true
+    }
+
+    override fun onStop() {
+        // Still polling through the watch service, but no longer on screen.
+        AppGraph.pi.foreground = false
+        super.onStop()
     }
 
     override fun onResume() {

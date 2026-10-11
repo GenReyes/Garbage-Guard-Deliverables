@@ -1,6 +1,6 @@
 # Garbage-Guard API — for the mobile app
 
-For King Perth. Everything the app needs to talk to the Raspberry Pi.
+Everything the mobile app needs to talk to the Raspberry Pi. App developer: Brian.
 
 **What changed in this version:** auto-mute (`POST /api/auto_mute`, the
 `auto_mute`, `auto_mute_s`, `auto_muted` and `mute_total` state fields, and
@@ -421,9 +421,10 @@ are not in the mock server. The app should not call them.
 `GET /api/battery` (UPS HAT readout: `ok`, `percent`, `voltage_v`, `current_a`,
 `power_w`, `on_ac`, `charging`, `state`, `minutes_left`, `capacity_mah`,
 `cells_v`, `vbus_v`, `vbus_a`, `vbus_w`) and `POST /api/window`
-(minimize or restore the Pi's dashboard window, local only) exist for the Pi's
-own screen. The app does not need them. `/api/battery` is read-only and
-returns `{"ok": false, "error": ...}` when no UPS is attached.
+(minimize or restore the Pi's dashboard window, local only) were added for the
+Pi's own screen. The app uses `/api/battery` for its header battery indicator
+and does not call `/api/window`. `/api/battery` is read-only and returns
+`{"ok": false, "error": ...}` when no UPS is attached.
 
 For phone access away from the Pi's own screen, see `SYNC_PLAN.md`.
 
@@ -500,3 +501,14 @@ at the bottom.
 
 You do not need `garbageguard_live.py`, `gg_counter.py`, `gg_web.py`, the
 model folder, or the camera.
+
+## What the Android app uses today
+
+As of app version 2.0 the app calls: `/api/state`, `/frame.jpg`,
+`/api/alerts`, `/snapshots/<name>`, `/api/settings`, `/api/roi`,
+`/api/test_alert`, `/api/capture`, `/api/mute`, `/api/auto_mute`,
+`/api/alerts/read`, `/api/alerts/delete`, `/api/battery`,
+`/api/camera/reconnect`, `/api/restart`, `/api/net/details` and
+`/api/client/bye`. It sends all six `X-GG-*` headers on these calls. It does
+not use `/stream.mjpg`, `/api/window`, `/api/net/ipv4` or the Wi-Fi setup
+endpoints.

@@ -39,6 +39,24 @@ data class LiveState(
     /** Phones and browsers that polled the Pi in the last few seconds. */
     val viewerApps: Int = 0,
     val viewerBrowsers: Int = 0,
+    val viewers: List<Viewer> = emptyList(),
+)
+
+/** One phone or browser from the "viewers" list in GET /api/state. */
+data class Viewer(
+    val ip: String,
+    /** "app" or "browser". */
+    val kind: String,
+    val id: String = "",
+    val device: String = "",
+    val os: String = "",
+    val browser: String = "",
+    val appVersion: String = "",
+    /** "foreground" or "background", as the app reports it. */
+    val mode: String = "",
+    val connectedSeconds: Int = 0,
+    val hostname: String = "",
+    val mac: String = "",
 )
 
 /** The seven event values a history row can carry. */

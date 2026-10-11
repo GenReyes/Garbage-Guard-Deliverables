@@ -236,13 +236,16 @@ fun BatteryChip(b: Battery, onClick: () -> Unit, modifier: Modifier = Modifier) 
 
 /** One value in the full readout: a sunk well with a caps label over a number and its unit. */
 @Composable
-fun ReadoutWell(label: String, value: String, unit: String, color: Color, modifier: Modifier = Modifier) {
+fun ReadoutWell(label: String, value: String, unit: String, color: Color, modifier: Modifier = Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     val c = Gg.colors
     Column(
         modifier.neuWell(c, 12.dp).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
-        T(label, size = 0.6f, color = c.muted, spacing = 0.07f, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            if (icon != null) Ico(icon, size = 11.dp, tint = accentOf(icon))
+            T(label, size = 0.6f, color = c.muted, spacing = 0.07f, maxLines = 1)
+        }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             RollingText(value, size = 1.25f, color = color)
             T(unit, Modifier.padding(bottom = 2.dp), size = 0.7f, color = c.muted)

@@ -1,78 +1,112 @@
-# mobile-app/ — for King Perth
+# mobile-app/
 
-Everything needed to build the mobile app, without needing the Raspberry Pi,
-the camera, or the model. This folder is intentionally small: two files,
-neither of which needs installing anything beyond Python 3.
+The Garbage-Guard Android app and everything needed to work on it without
+the Raspberry Pi, the camera, or the model. App developer: Brian.
 
-## Why this folder is separate from `pi/`
+## What is in this folder
 
-The app talks to the Pi over plain HTTP. It never imports Pi-side code,
-never touches the model, and never needs a camera plugged in anywhere. So
-nothing in `../pi/` is a dependency of the app — it's just the thing the
-app eventually points at. Keeping the two folders apart means you can build
-and test the whole app before the hardware is even switched on.
-
-## Files
-
-| File | What it's for |
+| Item | What it is |
 |---|---|
-| `gg_mock_server.py` | Run this. A fake version of the Pi's server, same API, invented data. Lets you build the whole app with no hardware. |
-| `GarbageGuard_API.md` | The API reference. Every endpoint, with real request and response examples. |
-| `SYNC_PLAN.md` | Design plan for syncing the app and a portable dashboard with the Pi through Firebase or other options. Nothing is built yet. |
+| `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
+| `Garbage-Guard v2.apk` | The latest build, ready to install on a phone. Older versions are kept beside it. |
+| `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
+| `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
+| `SYNC_PLAN.md` | Design notes for reaching the Pi from outside its Wi-Fi (Tailscale, Firebase). None of that is built yet. |
 
-## Getting started
+## What the app does
+
+The app is a second screen for the Pi. It reads the same API as the
+touchscreen dashboard, so a change made on one shows on the other within a
+few seconds.
+
+- **Monitor:** item count against the limit, per-class counts, the live
+  camera feed, capture, mute and auto-mute, and camera reconnect.
+- **History:** every alert, capture, test and mute event with its snapshot,
+  read and unread state, filters, and deletion.
+- **Settings:** detection confidence, accumulation limit, the monitored
+  area (drawn on the live picture), light and dark theme, network details,
+  connected phones, and restarting Garbage-Guard on the Pi.
+- **Pi battery:** the UPS HAT readout in the header, with full details on tap.
+- **Alerts:** a notification with the snapshot when the limit is reached,
+  including while the app is in the background.
+- **Demo mode:** runs on invented data with no Pi, for showing the app.
+
+The look is the project's own "Brutal-Morph" style: the soft depth of
+Neumorphism with the hard edges and contrast colours of Neo-Brutalism.
+
+## How it connects
+
+The phone and the Pi must be on the same Wi-Fi or hotspot. On first launch
+the app asks for the Pi's address, for example `192.168.1.101:8080`, tests
+it, and remembers it. There is no login and no cloud service; the app talks
+to the Pi directly over plain HTTP on port 8080.
+
+A router with client isolation switched on blocks this even when both
+devices show as connected. The team has hit that once already, so test at
+the venue early.
+
+Reaching the Pi from another network is not built. `SYNC_PLAN.md` sets out
+the options.
+
+## Installing the app on a phone
+
+Copy `Garbage-Guard v2.apk` to the phone, open it, and allow the install
+when Android asks. Installing a newer version over an older one keeps the
+saved Pi address. Android 8.0 or newer is required.
+
+## Building it
+
+1. Open `mobile-app/android` in Android Studio and let Gradle sync.
+2. Press Run with a phone or emulator selected.
+
+From a terminal, in `mobile-app/android`:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Working without the Pi
 
 ```bash
 python3 gg_mock_server.py
 ```
 
-No install step — it's plain Python 3 standard library, nothing to `pip
-install`. It prints the URLs it's serving on startup. Point your app at:
+Plain Python 3, nothing to install. It serves the same API as the Pi with
+counts that drift up and down, a placeholder camera frame, a seeded history,
+an invented battery, and invented network details. In the app, enter your
+computer's LAN address with port 8080.
 
-```
-http://localhost:8080
-```
+The app's own demo mode needs no server at all: choose "Try with demo data"
+on the first screen.
 
-or, from a phone or emulator, your computer's LAN IP instead of
-`localhost`.
+## Where things are in the code
 
-The mock server invents a live-looking feed: counts that drift up and down
-on their own, a placeholder camera frame, and a history log seeded with one
-of each event type — including one row with no snapshot, so your UI has to
-handle a missing image without crashing.
+| Path under `android/app/src/main/java/com/garbageguard/app/` | Purpose |
+|---|---|
+| `data/GgRepository.kt` | Everything the screens need from the Pi, one function per endpoint. |
+| `data/PiRepository.kt` | The real connection: HTTP calls and JSON parsing. |
+| `data/FakeRepository.kt` | Invented data for demo mode. |
+| `ui/AppViewModel.kt` | App state and the actions behind every button. |
+| `ui/screens/` | Setup, Monitor, History, Settings, fullscreen, and the bottom sheets. |
+| `ui/components/` | The shared look: shadows, buttons, icons, the live feed, the battery. |
+| `notify/` | Alert notifications and the background watcher. |
 
-## When the real Pi is available
+## Rules that come from the thesis
 
-Change one thing: the base URL, from `http://localhost:8080` to
-`http://<the-pi's-ip>:8080`. Nothing else in the app should need to change,
-because the mock server implements the exact same API described in
-`GarbageGuard_API.md`.
+- Say "Detection Confidence", not "Accuracy". Accuracy is a scored metric
+  in the thesis.
+- Class names are `bottle`, `bag` and `food_container`.
+- Show `smoothed`, not `raw`. The raw count flickers from frame to frame.
+- Latency in milliseconds is the scored performance metric. Frame rate may
+  be shown beside it.
 
-The Pi and the phone have to be on the same network for this to work. A
-router with client isolation enabled will silently block it even when both
-devices show as connected — that's a real problem the team already hit once
-with the Pi itself, so it's worth testing early rather than assuming it'll
-work at the venue.
+`GarbageGuard_API.md` has the full list and the reasons.
 
-## Read `GarbageGuard_API.md` for
+## The dashboard as a reference
 
-- Every endpoint: what it returns, what it accepts, what each field means
-- Which fields to actually display (`smoothed`, not `raw`) and why
-- The event types a history row can have, and suggested colors for each
-- The naming that has to match the thesis — "Detection Confidence," not
-  "Accuracy"; the real class names, `bottle` / `bag` / `food_container`
-- The mute and read/unread behavior, including the one auto-lift rule that
-  matters: a mute clears itself once the count drops back below the
-  re-arm value, so it can never silently swallow the next real alert
-
-## Seeing the real thing for comparison
-
-`../pi/dashboard.html` is the actual touchscreen UI, built against this
-exact API. It's kept in `pi/` rather than duplicated here, since a second
-copy would just drift out of sync with the real one over time. If anything
-in the API doc is ambiguous, open that file and read the JavaScript at the
-bottom — it calls every endpoint this doc describes, so it's a working
-answer to "how is this actually used."
-
-You don't need to run it or understand its styling. It's a reference for
-behavior, not something the app has to match visually.
+`../pi/dashboard.html` is the touchscreen UI and calls every endpoint the
+API reference describes. When the reference is unclear, its JavaScript shows
+how an endpoint is used. It is kept once, in `pi/`, so there is only one
+copy to keep current.

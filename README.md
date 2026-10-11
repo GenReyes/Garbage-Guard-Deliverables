@@ -19,21 +19,21 @@ you're working on detection or the dashboard, start in
 
 ### [`mobile-app/`](mobile-app/) — for the mobile app
 
-Everything King Perth needs to build the app, with no Pi, camera, or model
-required. A mock server that speaks the exact same API as the real system,
-plus the full API reference. Start in
-[`mobile-app/README.md`](mobile-app/README.md).
+The Android app (developer: Brian): the Android Studio project, an
+installable APK, a mock server that speaks the same API as the real system,
+and the full API reference. The app shows the live count, feed, history,
+settings and Pi battery, and raises alert notifications, over the same Wi-Fi
+as the Pi. Start in [`mobile-app/README.md`](mobile-app/README.md).
 
 ## Why split this way
 
 The app only ever talks to the Pi over HTTP — it has no code dependency on
-anything in `pi/`. Keeping them in separate folders means Perth can build
-and test the entire app against the mock server before the hardware even
-exists in the same room as him, and changes to the dashboard's styling
-never touch anything he's working on.
+anything in `pi/`. Keeping them in separate folders means the app can be
+built and tested against the mock server with no hardware in the room, and
+changes to the dashboard's styling never touch the app's code.
 
 `dashboard.html` lives once, in `pi/`, even though it's also useful to
-Perth as a reference implementation — `mobile-app/README.md` points to it
+the app developer as a reference implementation — `mobile-app/README.md` points to it
 rather than duplicating it, so there's only ever one copy to go stale.
 
 ## Quick links
@@ -43,6 +43,7 @@ rather than duplicating it, so there's only ever one copy to go stale.
 | Run the system on the Pi | [`pi/README.md`](pi/README.md) → Running it |
 | Run the counting tests | [`pi/README.md`](pi/README.md) → Running the tests |
 | Build the mobile app | [`mobile-app/README.md`](mobile-app/README.md) |
+| Install the app on a phone | [`mobile-app/Garbage-Guard v2.apk`](mobile-app/Garbage-Guard%20v2.apk) |
 | Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
 | Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
 

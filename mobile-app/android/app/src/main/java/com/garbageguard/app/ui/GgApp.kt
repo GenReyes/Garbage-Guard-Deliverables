@@ -115,7 +115,7 @@ fun GgApp(vm: AppViewModel) {
                 }
 
                 OverlayHost(
-                    vm, alerts, battery,
+                    vm, alerts, battery, state.viewers,
                     onFixBattery = {
                         vm.closeBatterySheet()
                         // Android's own "let this app run in the background" prompt.

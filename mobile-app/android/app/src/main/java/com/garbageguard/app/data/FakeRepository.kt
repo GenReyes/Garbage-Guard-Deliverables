@@ -96,6 +96,12 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             fps = 14.2f + Random.nextFloat() * 0.8f,
             camFps = 14.8f + Random.nextFloat() * 0.3f,
             viewerApps = 1,
+            viewers = listOf(
+                Viewer(
+                    ip = "192.168.1.23", kind = "app", id = "demo", device = "This phone (demo)",
+                    os = "Android", appVersion = "demo", mode = "foreground", connectedSeconds = tick,
+                )
+            ),
         )
 
         // Mute countdown.

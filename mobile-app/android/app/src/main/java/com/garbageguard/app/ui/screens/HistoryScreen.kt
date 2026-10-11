@@ -63,6 +63,7 @@ import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.Skeleton
 import com.garbageguard.app.ui.components.Soft
 import com.garbageguard.app.ui.components.T
+import com.garbageguard.app.ui.components.accentOf
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.ui.components.rememberSnapshot
@@ -104,7 +105,7 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
         // .tools2
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(vm.filter.label, GgIcons.Filter, on = vm.filter != HistFilter.ALL) { vm.overlay = Overlay.Filter }
-            FilterChip("Dates", GgIcons.Clock, on = false) { vm.overlay = Overlay.Filter }
+            FilterChip("Dates", GgIcons.Calendar, on = false) { vm.overlay = Overlay.Filter }
             Spacer(Modifier.weight(1f))
             GgButton("Mark all read", vm::markAllRead, icon = GgIcons.Check, small = true, enabled = unread > 0)
         }
@@ -155,7 +156,7 @@ fun FilterChip(label: String, icon: ImageVector?, on: Boolean, onClick: () -> Un
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        if (icon != null) Ico(icon, size = 14.dp, tint = c.text)
+        if (icon != null) Ico(icon, size = 14.dp, tint = accentOf(icon))
         T(label.uppercase(), size = 0.76f, color = c.text, spacing = 0.05f, maxLines = 1)
     }
 }

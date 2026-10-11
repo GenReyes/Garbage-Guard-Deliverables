@@ -32,6 +32,30 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     private var job: Job? = null
     private var failures = 0
 
+    /**
+     * Who this phone is, sent with every request so the Pi's screen can list
+     * it: X-GG-Client-Id, X-GG-Device, X-GG-OS, X-GG-App-Version.
+     */
+    @Volatile
+    var identity: Map<String, String> = emptyMap()
+
+    /** True while the app is on screen. Sent as X-GG-Mode. */
+    @Volatile
+    var foreground: Boolean = true
+
+    /** Tells a Pi this phone is leaving, so its badge drops at once instead of after 4 s. */
+    private fun sayBye(base: String) {
+        if (base.isEmpty()) return
+        scope.launch {
+            try {
+                request("POST", "/api/client/bye", JSONObject(), base)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     /** The address as the user typed it. */
     var address: String = ""
         private set
@@ -60,6 +84,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     fun start(address: String) {
         val base = toBaseUrl(address) ?: return
         if (base != baseUrl) {
+            sayBye(baseUrl)
             loaded.value = false
             _alerts.value = emptyList()
             _state.value = LiveState(conn = ConnState.NO_PI)
@@ -82,6 +107,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     fun stop() {
+        if (job != null) sayBye(baseUrl)
         job?.cancel()
         job = null
     }
@@ -316,6 +342,8 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             conn.requestMethod = method
             // Lets the Pi's screen show that a phone is connected.
             conn.setRequestProperty("X-GG-Client", "android")
+            identity.forEach { (name, value) -> conn.setRequestProperty(name, value) }
+            conn.setRequestProperty("X-GG-Mode", if (foreground) "foreground" else "background")
             conn.connectTimeout = 2500
             conn.readTimeout = 4000
             if (body != null) {
@@ -358,6 +386,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             reconnects = o.optInt("reconnects"),
             viewerApps = o.optJSONObject("viewers")?.optInt("apps") ?: 0,
             viewerBrowsers = o.optJSONObject("viewers")?.optInt("browsers") ?: 0,
+            viewers = parseViewers(o.optJSONObject("viewers")?.optJSONArray("list")),
             fps = o.optDouble("fps", 0.0).toFloat(),
             camFps = o.optDouble("cam_fps", 0.0).toFloat(),
             alertActive = o.optBoolean("alert_active", false),
@@ -368,6 +397,19 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             autoMuteS = o.optInt("auto_mute_s", 900),
             autoMuted = o.optBoolean("auto_muted", false),
         )
+    }
+
+    private fun parseViewers(list: JSONArray?): List<Viewer> {
+        if (list == null) return emptyList()
+        return (0 until list.length()).mapNotNull { i ->
+            val v = list.optJSONObject(i) ?: return@mapNotNull null
+            Viewer(
+                ip = text(v, "ip"), kind = text(v, "kind"), id = text(v, "id"),
+                device = text(v, "device"), os = text(v, "os"), browser = text(v, "browser"),
+                appVersion = text(v, "app_version"), mode = text(v, "mode"),
+                connectedSeconds = v.optInt("since_s"), hostname = text(v, "hostname"), mac = text(v, "mac"),
+            )
+        }
     }
 
     private fun parseAlerts(rows: JSONArray): List<AlertRow> =

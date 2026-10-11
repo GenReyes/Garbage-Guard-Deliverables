@@ -79,6 +79,12 @@ private val COL_ROI = Color(0xFFF0B429)
 private val COL_ITEM = Color(0xFFD8D2C4)
 val FEED_BLACK = Color(0xFF0B0A09)
 
+/**
+ * Outline and drop colour for anything drawn on the black screen. The page's
+ * ink is near black, so a border or hard shadow in it would vanish there.
+ */
+val GLASS_EDGE = Color(0xFFF2EBE1)
+
 fun pointInPolygon(x: Float, y: Float, poly: List<RoiPoint>): Boolean {
     var inside = false
     var j = poly.size - 1
@@ -273,10 +279,10 @@ fun BoxScope.AlertFlag() {
                     size = Size(size.width + 2 * grow, size.height + 2 * grow), cornerRadius = CornerRadius(r, r),
                 )
             }
-            .neuShadow(c, 9.dp, 3.dp, Soft.NONE)
+            .neuShadow(c, 9.dp, 3.dp, Soft.NONE, hardColor = GLASS_EDGE)
             .clip(RoundedCornerShape(9.dp))
             .background(c.bad)
-            .border(2.dp, c.edge, RoundedCornerShape(9.dp))
+            .border(2.dp, GLASS_EDGE, RoundedCornerShape(9.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -293,9 +299,10 @@ fun BoxScope.OfflinePanel(noPi: Boolean) {
     Row(
         Modifier
             .align(Alignment.Center)
+            .neuShadow(c, 9.dp, 3.dp, Soft.NONE, hardColor = GLASS_EDGE)
             .clip(RoundedCornerShape(9.dp))
             .background(c.raised)
-            .border(2.dp, c.edge, RoundedCornerShape(9.dp))
+            .border(2.dp, if (c.isDark) GLASS_EDGE else c.edge, RoundedCornerShape(9.dp))
             .padding(horizontal = 11.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -333,13 +340,28 @@ private class Casing(
     val engraved: Color, val hint: Color, val fps: Color,
     val keyTop: Color, val keyBottom: Color, val keyInk: Color,
     val lipLight: Float, val lipDark: Float,
+    /** A thin line around keys and readouts so their dark outline shows on the casing. */
+    val rim: Color = Color.Transparent,
 )
+
+/** Draws the casing's rim just outside a key or readout. */
+private fun Modifier.casingRim(rim: Color, radius: androidx.compose.ui.unit.Dp): Modifier = drawBehind {
+    if (rim.alpha > 0f) {
+        val o = 1.5.dp.toPx()
+        val r = radius.toPx() + o
+        drawRoundRect(
+            rim, topLeft = Offset(-o, -o), size = Size(size.width + 2 * o, size.height + 2 * o),
+            cornerRadius = CornerRadius(r, r),
+        )
+    }
+}
 
 private val DarkCasing = Casing(
     top = Color(0xFF4E4740), mid = Color(0xFF2C2621), bottom = Color(0xFF1F1A16),
     engraved = Color(0xFFC9BFB2), hint = Color(0xFFBDB3A7), fps = Color(0xFF8FE0CF),
     keyTop = Color(0xFF5C554D), keyBottom = Color(0xFF36302A), keyInk = Color(0xFFEDE6DC),
     lipLight = 0.16f, lipDark = 0.35f,
+    rim = Color(0x59FFFFFF),
 )
 
 private val PaleCasing = Casing(
@@ -362,15 +384,17 @@ private fun casing(): Casing {
     val keyTop by animateColorAsState(to.keyTop, spec, label = "c6")
     val keyBottom by animateColorAsState(to.keyBottom, spec, label = "c7")
     val keyInk by animateColorAsState(to.keyInk, spec, label = "c8")
-    return Casing(top, mid, bottom, engraved, hint, to.fps, keyTop, keyBottom, keyInk, to.lipLight, to.lipDark)
+    val rim by animateColorAsState(to.rim, spec, label = "c9")
+    return Casing(top, mid, bottom, engraved, hint, to.fps, keyTop, keyBottom, keyInk, to.lipLight, to.lipDark, rim)
 }
 
 /** A small lit readout set into the bezel. */
 @Composable
-private fun Lcd(text: String) {
+private fun Lcd(text: String, rim: Color = Color.Transparent) {
     // Black glass in both themes, like the screen.
     Box(
         Modifier
+            .casingRim(rim, 6.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(Color(0xFF14201A))
             .border(2.dp, BEZEL_INK, RoundedCornerShape(6.dp))
@@ -402,7 +426,7 @@ private fun TvKey(
         Modifier
             .alpha(if (enabled) 1f else 0.4f)
             .offset { if (down) IntOffset(3.dp.roundToPx(), 3.dp.roundToPx()) else IntOffset.Zero }
-            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 3.dp, Soft.NONE, hardColor = BEZEL_INK))
+            .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 3.dp, Soft.NONE, hardColor = Color.Black).casingRim(casing.rim, 10.dp))
             .clip(shape)
             .background(fill)
             .border(2.dp, BEZEL_INK, shape)
@@ -472,7 +496,7 @@ fun TvFeed(
             T("LIVE FEED", size = 0.78f, weight = FontWeight.Black, color = k.engraved, spacing = 0.1f, maxLines = 1)
             T("CAM 01", size = 0.66f, color = k.hint, spacing = 0.1f, maxLines = 1)
             Box(Modifier.weight(1f))
-            Lcd(fpsLabel)
+            Lcd(fpsLabel, k.rim)
         }
 
         Box(
@@ -508,8 +532,11 @@ fun TvFeed(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                T("LATENCY", size = 0.58f, color = k.hint, spacing = 0.12f, maxLines = 1)
-                Lcd(latencyLabel)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Ico(GgIcons.Clock, size = 10.dp, tint = k.hint)
+                    T("LATENCY", size = 0.58f, color = k.hint, spacing = 0.12f, maxLines = 1)
+                }
+                Lcd(latencyLabel, k.rim)
             }
             // Reconnects the camera; the arrows turn until the picture is back.
             TvKey(GgIcons.Refresh, null, teal = false, enabled = !noPi && !reconnecting, casing = k, spinning = reconnecting, onClick = onReconnect)
@@ -520,6 +547,90 @@ fun TvFeed(
         T(
             caption, Modifier.padding(horizontal = 4.dp), size = 0.68f, weight = FontWeight.Medium,
             color = k.hint, lineHeight = 1.3f,
+        )
+    }
+}
+/** What the monitor's status readout is saying, which sets its colour. */
+enum class LcdTone { IDLE, ALERT, MUTED }
+
+/**
+ * The fullscreen monitor. Same casing as the Live Feed card, so it reverses
+ * against the page theme, with one strip along the top: power light, name,
+ * a status readout, and the frame rate. The picture goes in [screen].
+ */
+@Composable
+fun MonitorHousing(
+    online: Boolean,
+    fpsLabel: String,
+    lcdText: String,
+    lcdTone: LcdTone,
+    lcdProgress: Float?,
+    modifier: Modifier = Modifier,
+    screen: @Composable BoxScope.() -> Unit,
+) {
+    val c = Gg.colors
+    val k = casing()
+    val shape = RoundedCornerShape(16.dp)
+    val ink = when (lcdTone) {
+        LcdTone.IDLE -> Color(0xFF5E9C72)
+        LcdTone.ALERT -> Color(0xFFFF8A7E)
+        LcdTone.MUTED -> Color(0xFFF0B429)
+    }
+    val pulse = if (lcdTone == LcdTone.ALERT) 0.55f + 0.45f * breathe(1200) else 1f
+    Column(
+        modifier
+            .neuShadow(c, 16.dp, 3.dp, Soft.SM)
+            .clip(shape)
+            .background(angledBrush(172f, 0f to k.top, 0.46f to k.mid, 1f to k.bottom))
+            .drawBehind {
+                val lip = 2.dp.toPx()
+                drawRect(Color.White.copy(alpha = k.lipLight), topLeft = Offset(0f, lip), size = Size(size.width, lip))
+                drawRect(Color.Black.copy(alpha = k.lipDark), topLeft = Offset(0f, size.height - lip - 3.dp.toPx()), size = Size(size.width, 3.dp.toPx()))
+            }
+            .border(2.dp, c.edge, shape)
+            .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Led(online)
+            T("LIVE FEED", size = 0.74f, weight = FontWeight.Black, color = k.engraved, spacing = 0.1f, maxLines = 1)
+            T("CAM 01", size = 0.64f, color = k.hint, spacing = 0.1f, maxLines = 1)
+            // The status readout: black glass, lit text, a thin bar while a mute counts down.
+            Box(
+                Modifier
+                    .weight(1f)
+                    .casingRim(k.rim, 6.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0xFF14201A))
+                    .drawBehind {
+                        if (lcdProgress != null) {
+                            val h = 3.dp.toPx()
+                            drawRect(Color(0x2EF0B429), topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+                            drawRect(Color(0xFFF0B429), topLeft = Offset(0f, size.height - h), size = Size(size.width * lcdProgress, h))
+                        }
+                    }
+                    .border(2.dp, BEZEL_INK, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
+            ) {
+                T(
+                    lcdText, Modifier.alpha(pulse), size = 0.74f, weight = FontWeight.Black, color = ink,
+                    tnum = true, spacing = 0.06f, maxLines = 1,
+                )
+            }
+            Lcd(fpsLabel, k.rim)
+        }
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(9.dp))
+                .background(FEED_BLACK)
+                .border(2.dp, Color.Black, RoundedCornerShape(9.dp)),
+            content = screen,
         )
     }
 }

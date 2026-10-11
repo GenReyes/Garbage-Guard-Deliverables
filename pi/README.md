@@ -6,10 +6,10 @@ of the project that's been changing constantly — new UI styling, mute,
 fullscreen, deletion, scaling fixes. If you're Brian or Gen working on the
 detection or dashboard, this folder is yours.
 
-If you're King Perth working on the mobile app, you don't need anything in
+If you're working on the mobile app (Brian), you don't need anything in
 here except `dashboard.html`, and only as a reference — see
-[`../mobile-app/README.md`](../mobile-app/README.md) instead. You don't have
-a camera, a Pi, or the model, so none of the Python here will run for you.
+[`../mobile-app/README.md`](../mobile-app/README.md) instead. The app is
+built against the mock server, so none of the Python here has to run for it.
 
 ## Files
 
