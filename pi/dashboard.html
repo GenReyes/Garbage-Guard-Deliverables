@@ -807,6 +807,30 @@ main{flex:1;min-height:0;display:flex}
 #batt:active{transform:translate(3px,3px);box-shadow:var(--press)}
 #batt:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
 #battDlg{width:min(560px,94vw)}
+#phnDlg{width:min(720px,95vw)}
+.pl{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px;max-height:calc(94vh - 60px);overflow:auto;
+  -webkit-user-select:text;user-select:text}
+.pc{border:2px solid var(--edge);border-radius:13px;padding:10px 12px;display:flex;flex-direction:column;gap:9px;
+  background:linear-gradient(162deg,var(--lite) -40%,var(--raised) 55%);box-shadow:var(--hard-sm), var(--soft-sm);
+}
+.pl.fresh .pc{animation:rise .3s ease-out both}
+.pc.app{border-left:7px solid var(--teal)} .pc.web{border-left:7px solid var(--c-bottle)}
+.ph{display:flex;align-items:center;gap:10px}
+.ph > div{flex:1;min-width:0}
+.ph b{display:block;font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph small{font-size:11px;font-weight:700;color:var(--muted)}
+.pb{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;border:2px solid var(--edge);
+  color:#fff;box-shadow:2px 2px 0 var(--edge)}
+.app .pb{background:var(--teal)} .web .pb{background:var(--c-bottle)}
+.pb .ico{width:19px;height:19px}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pr{display:grid;grid-template-columns:18px auto 1fr;align-items:center;gap:6px;padding:5px 9px;border-radius:9px;
+  background:var(--sunk);box-shadow:var(--well);border:2px solid var(--edge);min-width:0}
+.pr .ico{width:14px;height:14px;color:var(--teal)}
+.pr span{font-size:10.5px;font-weight:900;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.pr b{font-size:12.5px;font-weight:900;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums}
+.pua{margin:0;font-size:10.5px;color:var(--muted);font-family:"DejaVu Sans Mono",ui-monospace,monospace;word-break:break-all}
 .bd{padding:13px;display:flex;flex-direction:column;gap:12px}
 .bd-hero{display:flex;align-items:center;gap:20px}
 .bd .bt-cell{width:150px;height:66px;border-radius:13px;padding:4px;margin-right:10px}
@@ -1366,6 +1390,16 @@ a.btn{text-decoration:none}
   </div>
 </dialog>
 
+<dialog id="phnDlg" aria-label="Connected phones">
+  <div class="vh">
+    <svg class="ico" style="width:18px;height:18px;color:var(--teal)"><use href="#i-phone"/></svg>
+    <h3>Connected phones</h3>
+    <span class="tagx" id="phnSum">–</span>
+    <button class="btn sm ink" id="phnClose" type="button">Close</button>
+  </div>
+  <div class="pl" id="phnList"></div>
+</dialog>
+
 <dialog id="battDlg" aria-label="Pi battery details">
   <div class="vh">
     <svg class="ico" id="bdIco" style="width:18px;height:18px"><use href="#i-batt"/></svg>
@@ -1418,6 +1452,7 @@ a.btn{text-decoration:none}
 
 <script>
 const $ = id => document.getElementById(id);
+const esc = t => t.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed","i-eyeoff"],
                 test:["Test alert","i-wrench"], manual:["Manual capture","i-shutter"],
                 muted:["Alert muted","i-belloff"], auto_muted:["Auto-muted","i-bellauto"], unmuted:["Alert unmuted","i-bellon"]};
@@ -1921,18 +1956,62 @@ function setViewers(v){
   const b = $("phn"), apps = v ? v.apps : 0, web = v ? v.browsers : 0;
   b.className = "phn " + (apps ? "app" : web ? "web" : "none");
   b.querySelector("use").setAttribute("href", apps || web ? "#i-phone" : "#i-phoneoff");
-  $("phnN").textContent = apps + web > 1 ? apps + web : "";
+  $("phnN").textContent = apps + web >= 1 ? apps + web : "";
   $("fsPhn").querySelector("use").setAttribute("href", apps || web ? "#i-phone" : "#i-phoneoff");
   $("fsPhnT").textContent = apps ? (apps > 1 ? apps + " apps" : "App on") : web ? "Browser" : "No app";
   $("fsPhn").classList.toggle("on", !!apps);
+  paintPhones();
   b.title = apps ? `Mobile app connected (${apps})` : web ? `Viewed from another device (${web})` : "No phone connected";
 }
+function since(sec){
+  if(sec < 60) return sec + " s";
+  if(sec < 3600) return Math.floor(sec/60) + " min " + (sec%60) + " s";
+  return Math.floor(sec/3600) + " h " + Math.floor(sec%3600/60) + " min";
+}
+function paintPhones(){
+  const d = $("phnDlg");
+  if(!d.open) return;
+  const v = viewers || {apps:0, browsers:0, list:[]};
+  $("phnSum").textContent = v.list.length
+    ? `${v.apps} app${v.apps===1?"":"s"} · ${v.browsers} browser${v.browsers===1?"":"s"}`
+    : "Nothing connected";
+  if(!v.list.length){
+    $("phnList").innerHTML = `<div class="empty" style="display:flex"><svg class="ico"><use href="#i-phoneoff"/></svg>
+      <span>No phone is polling the Pi right now. A phone counts as gone 4 seconds after it stops.</span></div>`;
+    return;
+  }
+  const row = (ico, k, val) => val ? `<div class="pr"><svg class="ico"><use href="#${ico}"/></svg><span>${k}</span><b>${esc(String(val))}</b></div>` : "";
+  $("phnList").innerHTML = v.list.map(r => {
+    const app = r.kind === "app";
+    const name = r.device || r.hostname || (app ? "Android phone" : (r.browser || "Browser") + (r.os ? " on " + r.os : ""));
+    return `<div class="pc ${app ? "app" : "web"}">
+      <div class="ph"><span class="pb"><svg class="ico"><use href="#${app ? "i-phone" : "i-image"}"/></svg></span>
+        <div><b>${esc(name)}</b><small>${app ? "Garbage-Guard app" : "Dashboard in a browser"}</small></div>
+        <span class="tagx ${app ? "ok" : "warn"}">${app ? "App" : "Browser"}</span>
+        ${r.mode ? `<span class="tagx ${r.mode === "background" ? "warn" : "ok"}">${r.mode === "background" ? "In background" : "Open"}</span>` : ""}
+      </div>
+      <div class="pg">
+        ${row("i-signal","IP address",r.ip)}
+        ${row("i-tag","MAC address",r.mac || "Not in the Pi's table yet")}
+        ${row("i-layers","Network name",r.hostname)}
+        ${row("i-phone","Device",r.device)}
+        ${row("i-gear","System",r.os)}
+        ${row("i-eye","Browser",r.browser)}
+        ${row("i-box","App version",r.app_version)}
+        ${row("i-clock","Connected for",since(r.since_s))}
+        ${row("i-refresh","Last update",r.age_s < 1.5 ? "just now" : r.age_s + " s ago")}
+        ${row("i-act","Requests",r.hits)}
+      </div>
+      ${r.ua ? `<p class="pua">${esc(r.ua)}</p>` : ""}
+    </div>`;
+  }).join("");
+}
 $("phn").onclick = () => {
-  const v = viewers;
-  if(!v || !v.list.length) return toast("No phone is connected right now", "i-phoneoff");
-  const parts = v.list.map(r => `${r.kind === "app" ? "App" : "Browser"} ${r.ip}`);
-  toast(parts.join(" · "), "i-phone");
+  $("phnDlg").showModal(); $("phnList").classList.add("fresh"); paintPhones();
+  setTimeout(() => $("phnList").classList.remove("fresh"), 400);
 };
+$("phnClose").onclick = () => $("phnDlg").close();
+$("phnDlg").addEventListener("click", e => { if(e.target === $("phnDlg")) $("phnDlg").close(); });
 
 const feed = $("feed");
 let pending = false;

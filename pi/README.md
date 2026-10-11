@@ -92,7 +92,7 @@ python3 test_snapcard.py
 python3 test_web.py
 ```
 
-Expect `Ran 5 tests` and `Ran 3 tests`, both `OK`.
+Expect `Ran 5 tests` and `Ran 7 tests`, both `OK`.
 
 ## Starting at boot, and Wi-Fi setup
 

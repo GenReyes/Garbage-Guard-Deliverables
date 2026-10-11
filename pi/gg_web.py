@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import socket
 import sys
 import threading
 import time
@@ -18,33 +19,117 @@ SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
 
 
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
-VIEWER_TTL = 8.0
+VIEWER_TTL = 4.0
 
 _viewers = {}
 _viewers_lock = threading.Lock()
+_names = {}
+
+UA_ANDROID = re.compile(r"Android ([\d.]+)(?:; ([^;)]+?))?(?: Build/|\)|;)")
+UA_IOS = re.compile(r"(iPhone|iPad).*?OS ([\d_]+)")
 
 
 def client_kind(headers):
     tag = (headers.get("X-GG-Client") or "").lower()
     if tag:
-        return "app" if tag in ("android", "app", "mobile") else "browser"
+        return "app" if tag in ("android", "app", "mobile", "ios") else "browser"
     ua = headers.get("User-Agent") or ""
     return "app" if ("Dalvik" in ua or "okhttp" in ua) else "browser"
 
 
-def note_viewer(ip, kind, now=None):
+def describe_ua(ua):
+    ua = ua or ""
+    os_name, model, browser = None, None, None
+    m = UA_ANDROID.search(ua)
+    if m:
+        os_name = "Android " + m.group(1)
+        if m.group(2) and m.group(2).strip() not in ("K", "U", "wv"):
+            model = m.group(2).strip()
+    elif UA_IOS.search(ua):
+        m = UA_IOS.search(ua)
+        os_name, model = "iOS " + m.group(2).replace("_", "."), m.group(1)
+    elif "Windows" in ua:
+        os_name = "Windows"
+    elif "Mac OS X" in ua:
+        os_name = "macOS"
+    elif "Linux" in ua:
+        os_name = "Linux"
+    for key, name in (("Edg/", "Edge"), ("Firefox/", "Firefox"), ("Chrome/", "Chrome"),
+                      ("Safari/", "Safari"), ("Dalvik", "Android app")):
+        if key in ua:
+            browser = name
+            break
+    return os_name, model, browser
+
+
+def mac_for(ip):
+    try:
+        with open("/proc/net/arp") as f:
+            for line in f.read().splitlines()[1:]:
+                parts = line.split()
+                if parts and parts[0] == ip and parts[3] != "00:00:00:00:00:00":
+                    return parts[3].upper()
+    except OSError:
+        pass
+    return None
+
+
+def _lookup_name(ip):
+    try:
+        name = socket.gethostbyaddr(ip)[0]
+    except OSError:
+        name = None
+    _names[ip] = (name, time.time())
+
+
+def hostname_for(ip):
+    hit = _names.get(ip)
+    if hit is None or time.time() - hit[1] > 600:
+        _names[ip] = (hit[0] if hit else None, time.time())
+        threading.Thread(target=_lookup_name, args=(ip,), daemon=True).start()
+    return _names[ip][0]
+
+
+def note_viewer(ip, kind, now=None, headers=None):
     now = time.time() if now is None else now
+    headers = headers or {}
+    cid = (headers.get("X-GG-Client-Id") or "")[:64]
+    key = cid or f"{ip}|{kind}"
     with _viewers_lock:
-        _viewers[ip] = (kind, now)
+        row = _viewers.get(key)
+        if row is None or now - row["seen"] > VIEWER_TTL:
+            row = {"since": now, "hits": 0}
+            _viewers[key] = row
+        row.update(ip=ip, kind=kind, seen=now, id=cid or None)
+        row["hits"] += 1
+        for field, name in (("X-GG-Device", "device"), ("X-GG-OS", "os"), ("X-GG-App-Version", "app_version"),
+                            ("X-GG-Mode", "mode"), ("User-Agent", "ua")):
+            if headers.get(field):
+                row[name] = str(headers.get(field))[:160]
+
+
+def forget_viewer(ip, kind, cid=None):
+    with _viewers_lock:
+        _viewers.pop(cid or f"{ip}|{kind}", None)
 
 
 def viewers(now=None):
     now = time.time() if now is None else now
     with _viewers_lock:
-        for ip in [k for k, (_, t) in _viewers.items() if now - t > VIEWER_TTL]:
-            del _viewers[ip]
-        rows = [{"ip": ip, "kind": k, "age_s": round(now - t, 1)}
-                for ip, (k, t) in sorted(_viewers.items())]
+        for k in [k for k, r in _viewers.items() if now - r["seen"] > VIEWER_TTL]:
+            del _viewers[k]
+        rows = []
+        for r in sorted(_viewers.values(), key=lambda r: (r["kind"] != "app", r["since"])):
+            os_name, model, browser = describe_ua(r.get("ua"))
+            rows.append({"ip": r["ip"], "kind": r["kind"], "id": r.get("id"),
+                         "device": r.get("device") or model, "os": r.get("os") or os_name,
+                         "browser": None if r["kind"] == "app" else browser,
+                         "app_version": r.get("app_version"), "mode": r.get("mode"),
+                         "since_s": int(now - r["since"]), "age_s": round(now - r["seen"], 1),
+                         "hits": r["hits"], "ua": r.get("ua")})
+    for row in rows:
+        row["mac"] = mac_for(row["ip"])
+        row["hostname"] = hostname_for(row["ip"])
     return {"apps": sum(r["kind"] == "app" for r in rows),
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
@@ -130,7 +215,7 @@ def make_handler(engine, net=None, ups=None):
             if path == "/api/state":
                 ip = self.client_address[0]
                 if ip not in LOOPBACK:
-                    note_viewer(ip, client_kind(self.headers))
+                    note_viewer(ip, client_kind(self.headers), headers=self.headers)
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
                 return self._json(st)
@@ -173,6 +258,11 @@ def make_handler(engine, net=None, ups=None):
                 if not self._local():
                     return
                 return self._json(net.fix_camera_route())
+
+            if path == "/api/client/bye":
+                forget_viewer(self.client_address[0], client_kind(self.headers),
+                              self.headers.get("X-GG-Client-Id"))
+                return self._json({"ok": True})
 
             if path == "/api/camera/reconnect":
                 engine.reconnect("button")

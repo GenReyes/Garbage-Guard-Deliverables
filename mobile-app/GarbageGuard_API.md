@@ -114,7 +114,7 @@ Poll about once per second. This drives the whole main screen.
 | `auto_mute` | Auto-mute is switched on. |
 | `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
 | `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
-| `viewers` | Devices polling `/api/state` in the last 8 s: `{"apps": 1, "browsers": 0, "list": [{"ip", "kind", "age_s"}]}`. The Pi screen shows a phone badge from this. A request counts as the app when it sends `X-GG-Client: android`, or (fallback) when its User-Agent is Android's `Dalvik`. Please send that header. |
+| `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
 
 ---
 
@@ -372,6 +372,25 @@ Poll `/api/state` until `uptime_s` starts again from near zero. Settings, the
 monitored area and history are kept. Ask the user to confirm before calling it.
 
 ---
+
+## Telling the Pi who you are
+
+The Pi screen shows which phones are connected. Send these headers on
+**every** request so it can show the phone properly (all optional, but please
+send the first two):
+
+| Header | Example | Shown as |
+|---|---|---|
+| `X-GG-Client` | `android` | Marks the request as the app, not a browser. |
+| `X-GG-Client-Id` | a random UUID, made once and saved | Keeps two phones apart even behind one address. |
+| `X-GG-Device` | `Galaxy A54` (`Build.MANUFACTURER + " " + Build.MODEL`) | Device |
+| `X-GG-OS` | `Android 14` | System |
+| `X-GG-App-Version` | `1.0` (`BuildConfig.VERSION_NAME`) | App version |
+| `X-GG-Mode` | `foreground` or `background` | "Open" or "In background" |
+
+A phone counts as gone 4 seconds after its last `/api/state`. To show it
+gone at once, call `POST /api/client/bye` (same headers, empty body) when the
+user disconnects from the Pi or the background watcher stops.
 
 ## Network details
 

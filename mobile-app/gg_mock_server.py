@@ -270,6 +270,13 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return {}
 
+    def _viewer_key(self):
+        ua = self.headers.get("User-Agent") or ""
+        tag = (self.headers.get("X-GG-Client") or "").lower()
+        kind = "app" if (tag in ("android", "app", "mobile", "ios") or (not tag and ("Dalvik" in ua or "okhttp" in ua))) else "browser"
+        cid = self.headers.get("X-GG-Client-Id")
+        return (cid or f"{self.client_address[0]}|{kind}"), kind
+
     def do_OPTIONS(self):
         self._send(204, "text/plain", b"")
 
@@ -280,13 +287,22 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/state":
             ip = self.client_address[0]
             if ip not in ("127.0.0.1", "::1"):
-                ua = self.headers.get("User-Agent") or ""
-                app = "Dalvik" in ua or "okhttp" in ua or self.headers.get("X-GG-Client")
-                VIEWERS[ip] = ("app" if app else "browser", time.time())
+                key, kind = self._viewer_key()
+                old = VIEWERS.get(key)
+                now = time.time()
+                since = old["since"] if old and now - old["seen"] <= 4 else now
+                VIEWERS[key] = {"ip": ip, "kind": kind, "since": since, "seen": now,
+                                "hits": (old["hits"] + 1) if old and since == old["since"] else 1,
+                                "device": self.headers.get("X-GG-Device"), "os": self.headers.get("X-GG-OS"),
+                                "app_version": self.headers.get("X-GG-App-Version"),
+                                "mode": self.headers.get("X-GG-Mode"), "ua": self.headers.get("User-Agent")}
             st = build_state()
             now = time.time()
-            rows = [{"ip": k, "kind": v[0], "age_s": round(now - v[1], 1)}
-                    for k, v in VIEWERS.items() if now - v[1] <= 8]
+            rows = [{"ip": v["ip"], "kind": v["kind"], "id": k if "|" not in k else None,
+                     "device": v["device"], "os": v["os"], "browser": None, "app_version": v["app_version"],
+                     "mode": v["mode"], "since_s": int(now - v["since"]), "age_s": round(now - v["seen"], 1),
+                     "hits": v["hits"], "ua": v["ua"], "mac": None, "hostname": None}
+                    for k, v in VIEWERS.items() if now - v["seen"] <= 4]
             st["viewers"] = {"apps": sum(r["kind"] == "app" for r in rows),
                              "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
             return self._json(st)
@@ -333,6 +349,10 @@ class Handler(BaseHTTPRequestHandler):
                 "threshold": STATE["threshold"],
                 "roi": STATE["roi"],
             }})
+
+        if path == "/api/client/bye":
+            VIEWERS.pop(self._viewer_key()[0], None)
+            return self._json({"ok": True})
 
         if path == "/api/camera/reconnect":
             STATE["cam_off_until"] = time.time() + 3
