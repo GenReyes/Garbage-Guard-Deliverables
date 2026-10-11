@@ -95,6 +95,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             avgLatencyMs = 67f + Random.nextFloat() * 2f,
             fps = 14.2f + Random.nextFloat() * 0.8f,
             camFps = 14.8f + Random.nextFloat() * 0.3f,
+            viewerApps = 1,
         )
 
         // Mute countdown.
@@ -151,6 +152,44 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     /** Demo only: lets the app show the no-camera and no-link screens. */
+    override suspend fun reconnectCamera() {
+        _state.update { it.copy(conn = ConnState.NO_CAMERA, reconnects = it.reconnects + 1) }
+        scope.launch {
+            delay(3000)
+            _state.update { it.copy(conn = ConnState.ONLINE) }
+        }
+    }
+
+    override suspend fun restart() {
+        _state.update { it.copy(conn = ConnState.NO_PI) }
+        scope.launch {
+            delay(4000)
+            _state.update { it.copy(conn = ConnState.ONLINE) }
+        }
+    }
+
+    override suspend fun networkDetails(): NetDetails {
+        delay(400)
+        return NetDetails(
+            internet = true,
+            cameraIp = "192.168.8.64",
+            interfaces = listOf(
+                NetInterface(
+                    device = "wlan0", role = "wifi", state = "connected", connection = "Demo Wi-Fi",
+                    ips = listOf("192.168.1.101/24"), gateway = "192.168.1.1", dns = listOf("192.168.1.1"),
+                    mac = "D8:3A:DD:00:00:01", speed = "", method = "auto", isDefault = true,
+                    ssid = "Demo Wi-Fi", signal = 78, frequency = "5180 MHz", channel = "36",
+                    rate = "270 Mbit/s", security = "WPA2",
+                ),
+                NetInterface(
+                    device = "eth0", role = "camera", state = "connected", connection = "camera-link",
+                    ips = listOf("192.168.8.10/24"), gateway = "", dns = emptyList(),
+                    mac = "D8:3A:DD:00:00:02", speed = "100 Mb/s", method = "manual", isDefault = false,
+                ),
+            ),
+        )
+    }
+
     fun demoSetConn(conn: ConnState) {
         _state.update { it.copy(conn = conn) }
     }

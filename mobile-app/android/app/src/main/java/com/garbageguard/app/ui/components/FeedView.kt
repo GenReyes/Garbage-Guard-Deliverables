@@ -117,6 +117,7 @@ fun FeedCanvas(
     drawPoints: List<RoiPoint>? = null,
     onTap: (RoiPoint) -> Unit = {},
     image: ImageBitmap? = null,
+    alignTop: Boolean = false,
 ) {
     // The drawing space is 160 wide. Its height follows the real picture
     // when there is one, so taps land on the same spot of the camera view.
@@ -137,7 +138,7 @@ fun FeedCanvas(
     ) {
         val s = fitScale(size.width, size.height, fh, cover)
         val ox = (size.width - FW * s) / 2f
-        val oy = (size.height - fh * s) / 2f
+        val oy = if (alignTop) 0f else (size.height - fh * s) / 2f
         if (image != null) {
             // The Pi's frame already carries its boxes and the area outline.
             drawImage(
@@ -385,6 +386,7 @@ private fun TvKey(
     teal: Boolean,
     enabled: Boolean,
     casing: Casing,
+    spinning: Boolean = false,
     onClick: () -> Unit,
 ) {
     val c = Gg.colors
@@ -413,7 +415,7 @@ private fun TvKey(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Ico(icon, size = 17.dp, tint = ink)
+        Ico(icon, if (spinning) Modifier.spin() else Modifier, size = 17.dp, tint = ink)
         if (label != null) T(label, size = 0.76f, color = ink, spacing = 0.05f, maxLines = 1)
     }
 }
@@ -435,6 +437,8 @@ fun TvFeed(
     onCapture: () -> Unit,
     onFullscreen: () -> Unit,
     image: ImageBitmap? = null,
+    onReconnect: () -> Unit = {},
+    reconnecting: Boolean = false,
 ) {
     val c = Gg.colors
     val k = casing()
@@ -507,6 +511,8 @@ fun TvFeed(
                 T("LATENCY", size = 0.58f, color = k.hint, spacing = 0.12f, maxLines = 1)
                 Lcd(latencyLabel)
             }
+            // Reconnects the camera; the arrows turn until the picture is back.
+            TvKey(GgIcons.Refresh, null, teal = false, enabled = !noPi && !reconnecting, casing = k, spinning = reconnecting, onClick = onReconnect)
             TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, casing = k, onClick = onCapture)
             TvKey(GgIcons.Expand, null, teal = false, enabled = true, casing = k, onClick = onFullscreen)
         }

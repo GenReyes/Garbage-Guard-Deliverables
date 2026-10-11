@@ -182,6 +182,8 @@ private fun Hero(s: LiveState) {
     }
 }
 
+private data class ClassCount(val label: String, val value: Int, val tint: Color, val icon: ImageVector)
+
 /** .counts */
 @Composable
 private fun Counts(s: LiveState) {
@@ -189,10 +191,10 @@ private fun Counts(s: LiveState) {
     val noPi = s.conn == ConnState.NO_PI
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
-            Triple("Bottle", s.bottle, c.bottle),
-            Triple("Bag", s.bag, c.bag),
-            Triple("Container", s.foodContainer, c.container),
-        ).forEach { (label, value, tint) ->
+            ClassCount("Bottle", s.bottle, c.bottle, GgIcons.Bottle),
+            ClassCount("Bag", s.bag, c.bag, GgIcons.Bag),
+            ClassCount("Container", s.foodContainer, c.container, GgIcons.Container),
+        ).forEach { (label, value, tint, icon) ->
             Column(
                 Modifier
                     .weight(1f)
@@ -201,7 +203,7 @@ private fun Counts(s: LiveState) {
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Ico(GgIcons.Box, size = 12.dp, tint = tint)
+                    Ico(icon, size = 13.dp, tint = tint)
                     T(label.uppercase(), size = 0.66f, color = c.muted, spacing = 0.05f, maxLines = 1)
                 }
                 RollingText(if (noPi) "–" else "$value", size = 1.5f, color = c.text)
@@ -374,6 +376,8 @@ private fun FeedCard(vm: AppViewModel, s: LiveState) {
         else "Whole frame is monitored. Draw an area in Settings.",
         showFlag = s.alertActive && !s.muted && online,
         onCapture = vm::capture,
+        onReconnect = vm::reconnectCamera,
+        reconnecting = vm.reconnecting,
         onFullscreen = vm::openFullscreen,
         image = rememberLiveFrame(vm.frameUrl),
     )

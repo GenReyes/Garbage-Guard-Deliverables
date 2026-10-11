@@ -186,9 +186,9 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                     "$p% · ${state.smoothed} of ${state.threshold}",
                     size = 0.8f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1,
                 )
-                ClassChip(state.bottle, c.bottle)
-                ClassChip(state.bag, c.bag)
-                ClassChip(state.foodContainer, c.container)
+                ClassChip(state.bottle, c.bottle, GgIcons.Bottle)
+                ClassChip(state.bag, c.bag, GgIcons.Bag)
+                ClassChip(state.foodContainer, c.container, GgIcons.Container)
                 Spacer(Modifier.weight(1f))
                 AutoSwitch(state.autoMute, vm::toggleAutoMute)
                 if (state.alertActive) {
@@ -218,9 +218,9 @@ private fun Bar(content: @Composable RowScope.() -> Unit) {
 
 /** .fchip */
 @Composable
-private fun ClassChip(count: Int, tint: Color) {
+private fun ClassChip(count: Int, tint: Color, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Ico(GgIcons.Box, size = 15.dp, tint = tint)
+        Ico(icon, size = 16.dp, tint = tint)
         T("$count", size = 1.1f, color = Gg.colors.text, tnum = true)
     }
 }

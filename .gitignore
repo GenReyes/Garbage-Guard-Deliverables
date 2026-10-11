@@ -26,3 +26,6 @@ garbageguard_v5_best_ncnn_model/
 # Screenshots and test artifacts taken while developing
 /tmp/
 *.mp4
+
+# Android Studio settings for this folder
+.idea/

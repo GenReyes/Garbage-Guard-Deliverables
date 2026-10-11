@@ -37,6 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.garbageguard.app.data.AlertRow
 import com.garbageguard.app.data.Battery
+import com.garbageguard.app.data.NetInterface
+import com.garbageguard.app.ui.components.Skeleton
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.garbageguard.app.ui.components.BatteryGlyph
 import com.garbageguard.app.ui.components.BatteryLevel
 import com.garbageguard.app.ui.components.Hint
@@ -77,6 +83,20 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, battery: Battery, onFi
         null -> {}
         Overlay.Mute -> MuteSheet(vm, close)
         Overlay.PiBattery -> PiBatterySheet(battery, close)
+        Overlay.Network -> NetworkSheet(vm, close)
+        Overlay.Restart -> GgSheet(close) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Ico(GgIcons.Warn, size = 30.dp, tint = Gg.colors.bad)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SheetTitle("Restart Garbage-Guard on the Pi?")
+                    SheetText("Detection, the camera and the dashboard stop for a few seconds, then start again. Settings, the monitored area and history are kept.")
+                }
+            }
+            Acts {
+                GgButton("Cancel", close, Modifier.weight(1f))
+                GgButton("Restart", vm::restartPi, Modifier.weight(1f), icon = GgIcons.Refresh, kind = BtnKind.DANGER)
+            }
+        }
         Overlay.Filter -> FilterSheet(vm, close)
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
         is Overlay.Viewer -> {
@@ -110,6 +130,76 @@ fun OverlayHost(vm: AppViewModel, alerts: List<AlertRow>, battery: Battery, onFi
             Acts {
                 GgButton("Not now", close, Modifier.weight(1f))
                 GgButton("Allow alerts", onAllowAlerts, Modifier.weight(1f), kind = BtnKind.TEAL)
+            }
+        }
+    }
+}
+
+/** The Pi's network screen, read-only: changing addresses stays on the Pi's own screen. */
+@Composable
+private fun NetworkSheet(vm: AppViewModel, close: () -> Unit) {
+    val c = Gg.colors
+    val net = vm.net
+    GgSheet(close) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Ico(GgIcons.Signal, size = 18.dp, tint = c.text)
+            T("PI NETWORK", Modifier.weight(1f), size = 1.02f, weight = FontWeight.Black, color = c.text, spacing = 0.03f)
+            if (net != null) Tag(if (net.internet) "Internet" else "No internet", if (net.internet) Tone.OK else Tone.WARN)
+            GgButton(null, vm::loadNetwork, icon = GgIcons.Refresh, small = true, square = true, enabled = !vm.netLoading)
+        }
+        when {
+            net == null && vm.netLoading -> repeat(2) { Skeleton(74.dp) }
+            net == null -> SheetText("The Pi did not send network details. It may be out of reach, or running software from before this feature.")
+            net.interfaces.isEmpty() -> SheetText("The Pi reported no Wi-Fi or cable connections.")
+            else -> Column(
+                Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(end = 4.dp, bottom = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                net.interfaces.forEach { NetCard(it) }
+                if (net.cameraIp.isNotEmpty()) Hint("Camera address ${net.cameraIp}.", icon = GgIcons.Cam)
+            }
+        }
+        Hint("Addresses can only be changed on the Pi's own screen.", icon = GgIcons.Ok)
+        GgButton("Close", close, Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun NetCard(n: NetInterface) {
+    val c = Gg.colors
+    val up = n.state.startsWith("connected")
+    val (icon, title) = when (n.role) {
+        "wifi" -> GgIcons.Signal to "Wi-Fi"
+        "camera" -> GgIcons.Cam to "Camera cable"
+        else -> GgIcons.Link to "Internet cable"
+    }
+    Column(
+        Modifier.fillMaxWidth().neuRaised(c, 14.dp).padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Ico(icon, size = 16.dp, tint = if (up) c.teal else c.muted)
+            T(title.uppercase(), Modifier.weight(1f), size = 0.84f, weight = FontWeight.Black, color = c.text, spacing = 0.04f, maxLines = 1)
+            if (n.isDefault) Tag("Internet", Tone.OK)
+            Tag(if (up) "Connected" else n.state.ifEmpty { "Off" }, if (up) Tone.OK else Tone.WARN)
+        }
+        val lines = buildList {
+            if (n.role == "wifi" && n.ssid.isNotEmpty()) {
+                add("Network" to n.ssid + (n.signal?.let { ", signal $it%" } ?: ""))
+                val band = listOf(n.frequency, n.channel.takeIf { it.isNotEmpty() }?.let { "channel $it" }, n.rate, n.security)
+                    .filter { !it.isNullOrEmpty() }.joinToString(", ")
+                if (band.isNotEmpty()) add("Link" to band)
+            } else if (n.connection.isNotEmpty()) add("Profile" to n.connection)
+            if (n.ips.isNotEmpty()) add("Address" to n.ips.joinToString(", ") + if (n.method.isNotEmpty()) " (${if (n.method == "manual") "fixed" else "automatic"})" else "")
+            if (n.gateway.isNotEmpty()) add("Gateway" to n.gateway)
+            if (n.dns.isNotEmpty()) add("DNS" to n.dns.joinToString(", "))
+            if (n.speed.isNotEmpty()) add("Speed" to n.speed)
+            if (n.mac.isNotEmpty()) add("MAC" to "${n.mac} (${n.device})")
+        }
+        lines.forEach { (label, value) ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                T(label.uppercase(), Modifier.width(64.dp), size = 0.62f, color = c.muted, spacing = 0.06f, maxLines = 1)
+                T(value, Modifier.weight(1f), size = 0.78f, weight = FontWeight.Bold, color = c.text, tnum = true)
             }
         }
     }

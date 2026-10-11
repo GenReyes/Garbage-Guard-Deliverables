@@ -34,6 +34,11 @@ data class LiveState(
     val autoMute: Boolean = false,
     val autoMuteS: Int = 900,
     val autoMuted: Boolean = false,
+    /** How many times the Pi has restarted the camera stream. */
+    val reconnects: Int = 0,
+    /** Phones and browsers that polled the Pi in the last few seconds. */
+    val viewerApps: Int = 0,
+    val viewerBrowsers: Int = 0,
 )
 
 /** The seven event values a history row can carry. */
@@ -94,4 +99,34 @@ data class Battery(
     val inputV: Float? = null,
     val inputA: Float? = null,
     val inputW: Float? = null,
+)
+/** One adapter from GET /api/net/details. */
+data class NetInterface(
+    val device: String,
+    /** "wifi", "wired", or "camera" for the cable that goes to the camera. */
+    val role: String,
+    val state: String,
+    val connection: String,
+    val ips: List<String>,
+    val gateway: String,
+    val dns: List<String>,
+    val mac: String,
+    val speed: String,
+    /** "auto" or "manual". */
+    val method: String,
+    /** True for the adapter that carries the internet. */
+    val isDefault: Boolean,
+    val ssid: String = "",
+    val signal: Int? = null,
+    val frequency: String = "",
+    val channel: String = "",
+    val rate: String = "",
+    val security: String = "",
+)
+
+/** Mirrors GET /api/net/details. Read-only in the app. */
+data class NetDetails(
+    val internet: Boolean,
+    val cameraIp: String,
+    val interfaces: List<NetInterface>,
 )

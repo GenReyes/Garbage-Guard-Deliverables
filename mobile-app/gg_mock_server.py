@@ -190,6 +190,26 @@ def build_state():
     }
 
 
+def build_net_details():
+    """Invented adapters in the shape gg_net.details() returns on the Pi."""
+    return {
+        "backend": "mock", "internet": True, "default_dev": "wlan0",
+        "camera_ip": "192.168.8.64", "local": False,
+        "interfaces": [
+            {"device": "wlan0", "type": "wifi", "role": "wifi", "state": "connected",
+             "connection": "Mock Wi-Fi", "ips": ["192.168.1.101/24"], "gateway": "192.168.1.1",
+             "dns": ["192.168.1.1", "8.8.8.8"], "mac": "D8:3A:DD:00:00:01", "speed": None,
+             "method": "auto", "default": True,
+             "link": {"ssid": "Mock Wi-Fi", "signal": 74, "rate": "270 Mbit/s", "channel": "36",
+                      "freq": "5180 MHz", "security": "WPA2", "bssid": "AA:BB:CC:DD:EE:FF"}},
+            {"device": "eth0", "type": "ethernet", "role": "camera", "state": "connected",
+             "connection": "camera-link", "ips": ["192.168.8.10/24"], "gateway": None,
+             "dns": [], "mac": "D8:3A:DD:00:00:02", "speed": "100 Mb/s",
+             "method": "manual", "default": False},
+        ],
+    }
+
+
 def build_battery():
     """Invented UPS HAT readout, same fields as pi/gg_ups.py. Two minutes on
     battery, then two minutes charging, so both looks can be seen."""
@@ -272,6 +292,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(st)
         if path == "/api/battery":
             return self._json(build_battery())
+        if path == "/api/net/details":
+            return self._json(build_net_details())
         if path == "/api/alerts":
             limit = int((q.get("limit") or [50])[0])
             return self._json({"alerts": LOG[:limit]})

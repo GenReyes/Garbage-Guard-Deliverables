@@ -133,11 +133,35 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                     ConnState.NO_CAMERA -> "no signal"
                     ConnState.NO_PI -> "unreachable"
                 },
-            ) {}
+            ) {
+                GgButton(
+                    if (vm.reconnecting) "Working" else "Reconnect", vm::reconnectCamera, small = true,
+                    icon = GgIcons.Refresh, enabled = state.conn != ConnState.NO_PI && !vm.reconnecting,
+                )
+            }
+            SettingRow("Network", "Wi-Fi, cables and addresses on the Pi") {
+                GgButton("Details", vm::openNetwork, small = true, enabled = state.conn != ConnState.NO_PI)
+            }
+            SettingRow(
+                "Watching now",
+                buildString {
+                    append(plural(state.viewerApps, "phone"))
+                    if (state.viewerBrowsers > 0) append(", ").append(plural(state.viewerBrowsers, "browser"))
+                    if (state.reconnects > 0) append(" \u00B7 camera restarted ").append(plural(state.reconnects, "time"))
+                },
+            ) { Ico(GgIcons.Phone, size = 18.dp, tint = if (state.viewerApps > 0) c.teal else c.muted) }
+            SettingRow("Garbage-Guard on the Pi", "Restarts detection, camera and server") {
+                GgButton(
+                    "Restart", { vm.overlay = Overlay.Restart }, small = true, kind = BtnKind.DANGER,
+                    enabled = state.conn != ConnState.NO_PI,
+                )
+            }
             Hint("Garbage-Guard app 1.0")
         }
     }
 }
+
+private fun plural(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"
 
 /** .field */
 @Composable

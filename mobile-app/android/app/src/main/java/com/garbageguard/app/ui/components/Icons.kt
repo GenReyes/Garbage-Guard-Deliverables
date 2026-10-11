@@ -217,6 +217,30 @@ object GgIcons {
     }
     val Expand by lazy { icon("expand", 2.2f) { p("M9.5 3.5H3.5v6M14.5 3.5h6v6M20.5 14.5v6h-6M3.5 14.5v6h6") } }
     val Shrink by lazy { icon("shrink", 2.2f) { p("M3.5 9.5h6v-6M20.5 9.5h-6v-6M14.5 20.5v-6h6M9.5 20.5v-6h-6") } }
+    val Bottle by lazy {
+        icon("bottle") {
+            p("M10 2.6h4M10.6 2.6v3.1L8.5 8.7a3 3 0 0 0-.5 1.6V20a1.6 1.6 0 0 0 1.6 1.6h4.8A1.6 1.6 0 0 0 16 20v-9.7a3 3 0 0 0-.5-1.6l-2.1-3V2.6")
+            p("M8 13.5h8")
+        }
+    }
+    val Bag by lazy {
+        icon("bag") {
+            p("M5.4 8.2h13.2l-1 12a1.5 1.5 0 0 1-1.5 1.3H7.9a1.5 1.5 0 0 1-1.5-1.3z")
+            p("M9 8.2V6.6a3 3 0 0 1 6 0v1.6")
+        }
+    }
+    val Container by lazy {
+        icon("container") {
+            p("M3.6 9.4h16.8l-1.5 10a1.4 1.4 0 0 1-1.4 1.2H6.5a1.4 1.4 0 0 1-1.4-1.2z")
+            p("M2.6 9.4h18.8M7 9.4l1.6-4.6h6.8L17 9.4")
+        }
+    }
+    val Phone by lazy {
+        icon("phone") {
+            rect(6.5f, 2.5f, 11f, 19f, 2.4f)
+            p("M11 18.5h2")
+        }
+    }
     val Plug by lazy {
         icon("plug") {
             p("M9 3v4M15 3v4")

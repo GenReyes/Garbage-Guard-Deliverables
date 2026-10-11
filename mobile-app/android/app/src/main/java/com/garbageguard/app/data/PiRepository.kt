@@ -235,6 +235,64 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         refreshAlerts()
     }
 
+    override suspend fun reconnectCamera() {
+        post("/api/camera/reconnect", null)
+        pollState()
+    }
+
+    override suspend fun restart() {
+        post("/api/restart", null)
+    }
+
+    override suspend fun networkDetails(): NetDetails? = try {
+        parseNet(JSONObject(request("GET", "/api/net/details")))
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
+    /** A field that may arrive as a list or as one string. */
+    private fun strings(o: JSONObject, key: String): List<String> {
+        val array = o.optJSONArray(key)
+        if (array != null) return (0 until array.length()).map { array.optString(it) }.filter { it.isNotBlank() }
+        return if (o.isNull(key)) emptyList() else listOf(o.optString(key)).filter { it.isNotBlank() }
+    }
+
+    private fun text(o: JSONObject, key: String): String = if (o.isNull(key)) "" else o.optString(key)
+
+    private fun parseNet(o: JSONObject): NetDetails {
+        val list = o.optJSONArray("interfaces") ?: JSONArray()
+        val interfaces = (0 until list.length()).mapNotNull { i ->
+            val d = list.optJSONObject(i) ?: return@mapNotNull null
+            val link = d.optJSONObject("link")
+            NetInterface(
+                device = text(d, "device"),
+                role = text(d, "role").ifEmpty { text(d, "type") },
+                state = text(d, "state"),
+                connection = text(d, "connection"),
+                ips = strings(d, "ips"),
+                gateway = text(d, "gateway"),
+                dns = strings(d, "dns"),
+                mac = text(d, "mac"),
+                speed = text(d, "speed"),
+                method = text(d, "method"),
+                isDefault = d.optBoolean("default", false),
+                ssid = link?.let { text(it, "ssid") }.orEmpty(),
+                signal = link?.takeIf { !it.isNull("signal") }?.optInt("signal"),
+                frequency = link?.let { text(it, "freq") }.orEmpty(),
+                channel = link?.let { text(it, "channel") }.orEmpty(),
+                rate = link?.let { text(it, "rate") }.orEmpty(),
+                security = link?.let { text(it, "security") }.orEmpty(),
+            )
+        }
+        return NetDetails(
+            internet = o.optBoolean("internet", false),
+            cameraIp = text(o, "camera_ip"),
+            interfaces = interfaces,
+        )
+    }
+
     // ---------- HTTP ----------
 
     /** A failed command must not crash the app; the next poll shows the truth. */
@@ -256,6 +314,8 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         val conn = URL(base + path).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = method
+            // Lets the Pi's screen show that a phone is connected.
+            conn.setRequestProperty("X-GG-Client", "android")
             conn.connectTimeout = 2500
             conn.readTimeout = 4000
             if (body != null) {
@@ -295,6 +355,9 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             roi = points,
             latencyMs = o.optDouble("latency_ms", 0.0).toFloat(),
             avgLatencyMs = o.optDouble("avg_latency_ms", 0.0).toFloat(),
+            reconnects = o.optInt("reconnects"),
+            viewerApps = o.optJSONObject("viewers")?.optInt("apps") ?: 0,
+            viewerBrowsers = o.optJSONObject("viewers")?.optInt("browsers") ?: 0,
             fps = o.optDouble("fps", 0.0).toFloat(),
             camFps = o.optDouble("cam_fps", 0.0).toFloat(),
             alertActive = o.optBoolean("alert_active", false),

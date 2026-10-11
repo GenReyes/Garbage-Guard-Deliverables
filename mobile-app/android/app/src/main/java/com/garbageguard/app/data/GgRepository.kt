@@ -60,4 +60,13 @@ interface GgRepository {
 
     /** POST /api/alerts/delete {"all": true} */
     suspend fun deleteAll()
+
+    /** POST /api/camera/reconnect. Watch the state's conn for the result. */
+    suspend fun reconnectCamera()
+
+    /** POST /api/restart. The Pi drops off for a few seconds, then comes back. */
+    suspend fun restart()
+
+    /** GET /api/net/details. Null when the Pi does not answer or is too old to have it. */
+    suspend fun networkDetails(): NetDetails?
 }

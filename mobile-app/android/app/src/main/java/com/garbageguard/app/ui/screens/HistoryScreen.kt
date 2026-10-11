@@ -318,7 +318,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = rememberSnapshot(vm.snapshotUrl(row.snapshot)))
+                if (row.snapshot != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = rememberSnapshot(vm.snapshotUrl(row.snapshot)), alignTop = true)
                 else T("NO IMAGE", size = 0.5f, color = c.muted, maxLines = 1)
             }
         }

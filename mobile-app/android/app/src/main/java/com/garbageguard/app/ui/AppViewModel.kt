@@ -13,6 +13,7 @@ import com.garbageguard.app.data.EventType
 import com.garbageguard.app.data.FakeRepository
 import com.garbageguard.app.data.GgRepository
 import com.garbageguard.app.data.LiveState
+import com.garbageguard.app.data.NetDetails
 import com.garbageguard.app.data.PiRepository
 import android.Manifest
 import android.app.Application
@@ -70,6 +71,10 @@ sealed interface Overlay {
     data object Battery : Overlay
     /** The Pi's UPS pack, opened from the header. */
     data object PiBattery : Overlay
+    /** Read-only view of the Pi's network adapters. */
+    data object Network : Overlay
+    /** Confirmation before restarting Garbage-Guard on the Pi. */
+    data object Restart : Overlay
     data object NotifPrompt : Overlay
 }
 
@@ -326,6 +331,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ConnState.NO_PI -> ConnState.ONLINE
         }
         fake.demoSetConn(next)
+    }
+
+    /** True from the tap on Reconnect until the picture is back, or we give up. */
+    var reconnecting by mutableStateOf(false)
+        private set
+
+    fun reconnectCamera() {
+        if (reconnecting) return
+        reconnecting = true
+        viewModelScope.launch {
+            repo.reconnectCamera()
+            showToast("Reconnecting camera")
+            delay(2500) // let the old stream drop before judging the new one
+            var waited = 0
+            while (state.value.conn != ConnState.ONLINE && waited < 20) {
+                delay(1000)
+                waited++
+            }
+            reconnecting = false
+            showToast(if (state.value.conn == ConnState.ONLINE) "Camera is back" else "Camera still not answering")
+        }
+    }
+
+    /** Restarts detection, camera and server on the Pi. Settings and history are kept. */
+    fun restartPi() {
+        overlay = null
+        launchAction("Restarting Garbage-Guard on the Pi") { repo.restart() }
+    }
+
+    var net by mutableStateOf<NetDetails?>(null)
+        private set
+    var netLoading by mutableStateOf(false)
+        private set
+
+    fun openNetwork() {
+        overlay = Overlay.Network
+        loadNetwork()
+    }
+
+    fun loadNetwork() {
+        if (netLoading) return
+        netLoading = true
+        viewModelScope.launch {
+            net = repo.networkDetails()
+            netLoading = false
+        }
     }
 
     fun openFullscreen() {
