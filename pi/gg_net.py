@@ -88,6 +88,130 @@ def friendly_error(text):
     return "failed", one or "Could not connect."
 
 
+def parse_device_show(text):
+    devs, cur = [], None
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        key, _, val = line.partition(":")
+        key = key.split("[")[0]
+        if key == "GENERAL.DEVICE":
+            cur = {"device": val, "ips": [], "dns": []}
+            devs.append(cur)
+            continue
+        if cur is None:
+            continue
+        if key == "GENERAL.TYPE":
+            cur["type"] = val
+        elif key == "GENERAL.HWADDR":
+            cur["mac"] = val.replace("\\", "") or None
+        elif key == "GENERAL.STATE":
+            m = re.search(r"\((.*)\)", val)
+            cur["state"] = m.group(1) if m else val
+        elif key == "GENERAL.CONNECTION":
+            cur["connection"] = val or None
+        elif key == "CAPABILITIES.SPEED":
+            cur["speed"] = None if val in ("", "unknown") else val
+        elif key == "IP4.ADDRESS" and val:
+            cur["ips"].append(val)
+        elif key == "IP4.GATEWAY":
+            cur["gateway"] = val or None
+        elif key == "IP4.DNS" and val:
+            cur["dns"].append(val)
+    return devs
+
+
+def parse_wifi_link(text):
+    for line in text.splitlines():
+        f = split_terse(line)
+        if len(f) >= 8 and f[0].strip() == "*":
+            try:
+                signal = int(f[6])
+            except ValueError:
+                signal = None
+            return {"ssid": f[1], "bssid": f[2], "channel": f[3], "freq": f[4],
+                    "rate": f[5], "signal": signal, "security": f[7] or "Open"}
+    return None
+
+
+def parse_default_route(text):
+    best = None
+    for line in text.splitlines():
+        parts = line.split()
+        if not parts or parts[0] != "default" or "dev" not in parts:
+            continue
+        dev = parts[parts.index("dev") + 1]
+        metric = int(parts[parts.index("metric") + 1]) if "metric" in parts else 0
+        if best is None or metric < best[1]:
+            best = (dev, metric)
+    return best[0] if best else None
+
+
+def validate_ipv4(cfg, camera_ip="192.168.1.64", reserved=()):
+    """Checks a static address before NetworkManager ever sees it.
+
+    Returns (clean, errors). errors maps a field name to a sentence the
+    touchscreen can show next to that field.
+    """
+    errors, clean = {}, {"method": cfg.get("method", "auto")}
+    if clean["method"] not in ("auto", "manual"):
+        return clean, {"method": "Pick Automatic or Manual."}
+    if clean["method"] == "auto":
+        return clean, {}
+
+    def addr(field, text):
+        text = (text or "").strip()
+        if not re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}", text):
+            errors[field] = "Four numbers from 0 to 255, separated by dots."
+            return None
+        if any(len(p) > 1 and p.startswith("0") for p in text.split(".")):
+            errors[field] = "Leave out leading zeros (write 1, not 001)."
+            return None
+        try:
+            return ipaddress.IPv4Address(text)
+        except ValueError:
+            errors[field] = "Each number must be 0 to 255."
+            return None
+
+    ip = addr("address", cfg.get("address"))
+    try:
+        prefix = int(cfg.get("prefix", 24))
+    except (TypeError, ValueError):
+        prefix = -1
+    if not 8 <= prefix <= 30:
+        errors["prefix"] = "Use a subnet between /8 and /30. Home networks are almost always /24."
+        prefix = None
+    gw = addr("gateway", cfg.get("gateway"))
+    dns = []
+    for i, d in enumerate([x for x in (cfg.get("dns") or []) if str(x).strip()][:2]):
+        v = addr(f"dns{i + 1}", d)
+        if v is not None:
+            dns.append(str(v))
+
+    if ip is not None and prefix is not None:
+        net = ipaddress.IPv4Network(f"{ip}/{prefix}", strict=False)
+        if ip.is_loopback or ip.is_multicast or ip.is_unspecified or ip.is_link_local:
+            errors["address"] = "That kind of address cannot be used on a network."
+        elif ip == net.network_address:
+            errors["address"] = f"{ip} is the network's own name, not a usable address."
+        elif ip == net.broadcast_address:
+            errors["address"] = f"{ip} is the broadcast address for this network."
+        elif str(ip) == camera_ip:
+            errors["address"] = "That is the camera's address."
+        elif str(ip) in reserved:
+            errors["address"] = "The camera cable already uses this address. Pick another."
+        if gw is not None and "address" not in errors:
+            if gw not in net:
+                errors["gateway"] = f"The gateway must be inside {net}."
+            elif gw == ip:
+                errors["gateway"] = "The gateway is the router, not this Pi. Use a different address."
+        clean.update(address=str(ip), prefix=prefix, network=str(net))
+    if gw is not None:
+        clean["gateway"] = str(gw)
+    clean["dns"] = dns
+    return clean, errors
+
+
 def internet_ok(timeout=1.2, probes=PROBES):
     for host, port in probes:
         try:
@@ -238,6 +362,72 @@ class Net:
             code, msg = friendly_error(err or out)
             return {"ok": False, "error": code, "message": msg}
 
+    def details(self):
+        out = {"backend": self.backend, "interfaces": [], "default_dev": None,
+               "internet": False, "camera_ip": self.camera_ip}
+        if self.backend == "none":
+            out["internet"] = self._probe()
+            return out
+        fields = ("GENERAL.DEVICE,GENERAL.TYPE,GENERAL.HWADDR,GENERAL.STATE,GENERAL.CONNECTION,"
+                  "CAPABILITIES.SPEED,IP4.ADDRESS,IP4.GATEWAY,IP4.DNS")
+        rc, text, _ = self._nm("-t", "-f", fields, "device", "show")
+        devs = parse_device_show(text) if rc == 0 else []
+        rc, routes, _ = self._run(["ip", "-4", "route", "show", "default"], 5)
+        out["default_dev"] = parse_default_route(routes) if rc == 0 else None
+        for d in devs:
+            if d.get("type") not in ("wifi", "ethernet"):
+                continue
+            d["role"] = ("camera" if d.get("connection") == CAMERA_PROFILE
+                         else "wifi" if d["type"] == "wifi" else "wired")
+            d["default"] = d["device"] == out["default_dev"]
+            d["method"] = None
+            if d.get("connection"):
+                rc, m, _ = self._nm("-g", "ipv4.method", "connection", "show", d["connection"])
+                d["method"] = (m.strip() or None) if rc == 0 else None
+            if d["type"] == "wifi" and d.get("state") == "connected":
+                rc, w, _ = self._nm("-t", "-f", "IN-USE,SSID,BSSID,CHAN,FREQ,RATE,SIGNAL,SECURITY",
+                                    "device", "wifi", "list", "ifname", d["device"], "--rescan", "no")
+                d["link"] = parse_wifi_link(w) if rc == 0 else None
+            out["interfaces"].append(d)
+        out["internet"] = self._probe()
+        return out
+
+    def _reserved(self):
+        rc, out, _ = self._nm("-g", "ipv4.addresses", "connection", "show", CAMERA_PROFILE)
+        return tuple(a.split("/")[0] for a in ADDR.findall(out)) if rc == 0 else ()
+
+    def set_ipv4(self, connection, cfg):
+        connection = (connection or "").strip()
+        if not connection:
+            return {"ok": False, "error": "no_connection", "message": "Pick a connection first."}
+        if connection == CAMERA_PROFILE:
+            return {"ok": False, "error": "camera_profile",
+                    "message": "The camera cable's settings are fixed so the camera keeps working."}
+        clean, errors = validate_ipv4(cfg, self.camera_ip, self._reserved())
+        if errors:
+            return {"ok": False, "error": "invalid", "fields": errors,
+                    "message": next(iter(errors.values()))}
+        if clean["method"] == "auto":
+            args = ["ipv4.method", "auto", "ipv4.addresses", "", "ipv4.gateway", "",
+                    "ipv4.dns", "", "ipv4.ignore-auto-dns", "no"]
+        else:
+            args = ["ipv4.method", "manual",
+                    "ipv4.addresses", f"{clean['address']}/{clean['prefix']}",
+                    "ipv4.gateway", clean.get("gateway", ""),
+                    "ipv4.dns", " ".join(clean["dns"]),
+                    "ipv4.ignore-auto-dns", "yes" if clean["dns"] else "no"]
+        with self._lock:
+            rc, _, err = self._nm("connection", "modify", connection, *args, timeout=15)
+            if rc != 0:
+                return {"ok": False, "error": "modify_failed", "message": " ".join(err.split())[:160]}
+            rc, _, err = self._nm("connection", "up", connection, timeout=40)
+            self._cache = (0.0, None)
+            if rc != 0:
+                return {"ok": False, "error": "up_failed", "applied": clean,
+                        "message": "Saved, but the connection did not come back up. "
+                                   "Switch it to Automatic to undo. " + " ".join(err.split())[:120]}
+        return {"ok": True, "applied": clean}
+
     def camera_up(self):
         rc, _, _ = self._run(["ping", "-c", "1", "-W", "2", self.camera_ip], 5)
         if rc == 0:
@@ -314,6 +504,36 @@ class FakeNet(Net):
         self.ssid = ssid
         self.conflict = True
         return {"ok": True, "ssid": ssid}
+
+    def details(self):
+        on = self.ssid is not None
+        ifs = [
+            {"device": "eth0", "type": "ethernet", "state": "connected", "connection": "camera-link",
+             "mac": "D8:3A:DD:00:00:01", "speed": "100 Mb/s", "ips": ["192.168.1.101/24"],
+             "gateway": None, "dns": [], "role": "camera", "default": False, "method": "manual"},
+            {"device": "eth1", "type": "ethernet", "state": "connected", "connection": "Wired connection 1",
+             "mac": "00:E0:4C:00:00:02", "speed": "1000 Mb/s", "ips": ["192.168.1.15/24"],
+             "gateway": "192.168.1.1", "dns": ["192.168.1.1"], "role": "wired", "default": True,
+             "method": "auto"},
+            {"device": "wlan0", "type": "wifi", "state": "connected" if on else "disconnected",
+             "connection": self.ssid, "mac": "D8:3A:DD:00:00:03", "speed": None,
+             "ips": ["192.168.1.20/24"] if on else [], "gateway": "192.168.1.1" if on else None,
+             "dns": ["192.168.1.1"] if on else [], "role": "wifi", "default": False,
+             "method": "auto" if on else None,
+             "link": {"ssid": self.ssid, "bssid": "AA:BB:CC:DD:EE:FF", "channel": "6",
+                      "freq": "2437 MHz", "rate": "65 Mbit/s", "signal": 62,
+                      "security": "WPA2"} if on else None},
+        ]
+        return {"backend": "fake", "interfaces": ifs, "default_dev": "eth1",
+                "internet": True, "camera_ip": self.camera_ip}
+
+    def set_ipv4(self, connection, cfg):
+        clean, errors = validate_ipv4(cfg, self.camera_ip, ("192.168.1.101",))
+        if errors:
+            return {"ok": False, "error": "invalid", "fields": errors,
+                    "message": next(iter(errors.values()))}
+        time.sleep(0.8)
+        return {"ok": True, "applied": clean}
 
     def camera_up(self):
         return {"ok": True, "reachable": True, "action": "none"}

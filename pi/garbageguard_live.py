@@ -28,6 +28,7 @@ from ultralytics import YOLO
 
 from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
 import gg_web
+from gg_snapcard import add_card
 
 CAMERA_FILE = Path(__file__).resolve().parent / "camera.txt"
 SOURCE = "rtsp://admin:CHANGE_THIS_PASSWORD@192.168.1.64:554/Streaming/Channels/102"
@@ -140,21 +141,6 @@ def draw_detection(frame, box, label, color, inside):
     cv2.rectangle(frame, (x1, y1 - th - 6), (x1 + tw + 4, y1), color, -1)
     cv2.putText(frame, label, (x1 + 2, y1 - 4),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
-
-
-def stamp_snapshot(frame, state):
-    h, w = frame.shape[:2]
-    cv2.rectangle(frame, (0, 0), (w, 86), (28, 28, 28), -1)
-    c = state["counts"]
-    cv2.putText(frame, f"{state['timestamp']}   {state['latency_ms']:.1f} ms",
-                (10, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 1, cv2.LINE_AA)
-    cv2.putText(frame, f"ITEMS {state['smoothed']}   threshold {state['threshold']}",
-                (10, 52), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
-    cv2.putText(frame,
-                f"bottle {c.get('bottle',0)}  bag {c.get('bag',0)}  "
-                f"food_container {c.get('food_container',0)}",
-                (10, 76), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1, cv2.LINE_AA)
-    cv2.rectangle(frame, (0, 0), (w - 1, h - 1), (0, 0, 255), 6)
 
 
 class FrameReader:
@@ -485,7 +471,9 @@ class Engine:
             frame = None if src is None else src.copy()
         if frame is None:
             return None
-        stamp_snapshot(frame, state)
+        with self.lock:
+            peak = self.peak_conf
+        frame = add_card(frame, tag, state, peak)
         path = SNAPSHOT_DIR / f"{tag}_{datetime.now():%Y%m%d_%H%M%S_%f}.jpg"
         cv2.imwrite(str(path), frame)
         return path

@@ -18,6 +18,35 @@ SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
 
 
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+VIEWER_TTL = 8.0
+
+_viewers = {}
+_viewers_lock = threading.Lock()
+
+
+def client_kind(headers):
+    tag = (headers.get("X-GG-Client") or "").lower()
+    if tag:
+        return "app" if tag in ("android", "app", "mobile") else "browser"
+    ua = headers.get("User-Agent") or ""
+    return "app" if ("Dalvik" in ua or "okhttp" in ua) else "browser"
+
+
+def note_viewer(ip, kind, now=None):
+    now = time.time() if now is None else now
+    with _viewers_lock:
+        _viewers[ip] = (kind, now)
+
+
+def viewers(now=None):
+    now = time.time() if now is None else now
+    with _viewers_lock:
+        for ip in [k for k, (_, t) in _viewers.items() if now - t > VIEWER_TTL]:
+            del _viewers[ip]
+        rows = [{"ip": ip, "kind": k, "age_s": round(now - t, 1)}
+                for ip, (k, t) in sorted(_viewers.items())]
+    return {"apps": sum(r["kind"] == "app" for r in rows),
+            "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
 
 def make_handler(engine, net=None, ups=None):
@@ -79,6 +108,11 @@ def make_handler(engine, net=None, ups=None):
                 st["local"] = self.client_address[0] in LOOPBACK
                 return self._json(st)
 
+            if path == "/api/net/details":
+                d = net.details()
+                d["local"] = self.client_address[0] in LOOPBACK
+                return self._json(d)
+
             if path == "/api/wifi/scan":
                 if not self._local():
                     return
@@ -94,7 +128,12 @@ def make_handler(engine, net=None, ups=None):
                 return self._json(ups.status())
 
             if path == "/api/state":
-                return self._json(engine.snapshot_state())
+                ip = self.client_address[0]
+                if ip not in LOOPBACK:
+                    note_viewer(ip, client_kind(self.headers))
+                st = engine.snapshot_state()
+                st["viewers"] = viewers()
+                return self._json(st)
 
             if path == "/api/alerts":
                 limit = int((query.get("limit") or [50])[0])
@@ -124,6 +163,11 @@ def make_handler(engine, net=None, ups=None):
                 res = net.connect(str(data.get("ssid") or ""), data.get("password") or None,
                                   bool(data.get("hidden")))
                 return self._json(res)
+
+            if path == "/api/net/ipv4":
+                if not self._local():
+                    return
+                return self._json(net.set_ipv4(str(data.get("connection") or ""), data))
 
             if path == "/api/wifi/fix_camera":
                 if not self._local():

@@ -22,7 +22,10 @@ a camera, a Pi, or the model, so none of the Python here will run for you.
 | `test_counter.py` | Unit tests for `gg_counter.py`. Run these any time the counting logic changes, with no camera needed. |
 | `gg_net.py` | Wi-Fi helper. Wraps `nmcli` to read network status, scan, connect and fix the camera-cable route. Has a fake mode for testing without a Pi. |
 | `test_net.py` | Unit tests for `gg_net.py`. No Pi or NetworkManager needed. |
-| `wifi.html` | The startup splash (`/start`) and the touchscreen Wi-Fi setup page (`/wifi`) with an on-screen keyboard. |
+| `gg_snapcard.py` | Draws the info card under each saved snapshot (event, time, items vs limit, per-class counts), so the photo itself is never covered. |
+| `test_snapcard.py` | Unit tests for `gg_snapcard.py`. |
+| `test_web.py` | Unit tests for the connected-phone tracking in `gg_web.py`. |
+| `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
 | `start.sh` | The launcher. Checks the camera's reachable, activates the Python environment, opens the dashboard fullscreen (via `/start`), and starts detection. |
 | `GarbageGuard_Field_Reference.md` | Everything needed to run this at the actual creek site: wiring, startup, ROI setup, calibration, troubleshooting. |
@@ -76,13 +79,20 @@ run this before anything else.
 python3 test_net.py
 ```
 
-Expect `Ran 17 tests` and `OK`.
+Expect `Ran 27 tests` and `OK`.
 
 ```bash
 python3 test_window.py
 ```
 
 Expect `Ran 5 tests` and `OK`.
+
+```bash
+python3 test_snapcard.py
+python3 test_web.py
+```
+
+Expect `Ran 5 tests` and `Ran 3 tests`, both `OK`.
 
 ## Starting at boot, and Wi-Fi setup
 

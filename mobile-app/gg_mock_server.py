@@ -104,6 +104,7 @@ def mute_left():
     return int(left) if left > 0 else 0
 
 LOG = []
+VIEWERS = {}
 NEXT_ID = [1]
 SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
 
@@ -257,7 +258,18 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(urlparse(self.path).query)
 
         if path == "/api/state":
-            return self._json(build_state())
+            ip = self.client_address[0]
+            if ip not in ("127.0.0.1", "::1"):
+                ua = self.headers.get("User-Agent") or ""
+                app = "Dalvik" in ua or "okhttp" in ua or self.headers.get("X-GG-Client")
+                VIEWERS[ip] = ("app" if app else "browser", time.time())
+            st = build_state()
+            now = time.time()
+            rows = [{"ip": k, "kind": v[0], "age_s": round(now - v[1], 1)}
+                    for k, v in VIEWERS.items() if now - v[1] <= 8]
+            st["viewers"] = {"apps": sum(r["kind"] == "app" for r in rows),
+                             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
+            return self._json(st)
         if path == "/api/battery":
             return self._json(build_battery())
         if path == "/api/alerts":

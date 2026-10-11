@@ -114,6 +114,7 @@ Poll about once per second. This drives the whole main screen.
 | `auto_mute` | Auto-mute is switched on. |
 | `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
 | `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
+| `viewers` | Devices polling `/api/state` in the last 8 s: `{"apps": 1, "browsers": 0, "list": [{"ip", "kind", "age_s"}]}`. The Pi screen shows a phone badge from this. A request counts as the app when it sends `X-GG-Client: android`, or (fallback) when its User-Agent is Android's `Dalvik`. Please send that header. |
 
 ---
 
@@ -196,8 +197,13 @@ Returns the saved JPEG for a history entry. Take `<name>` from the row's
 ```
 
 The image is the camera view at the moment of the event, with the detection
-boxes, the monitored-area outline, and a header stamped with the time, item
-count, and per-class breakdown. It is evidence, so show it full width.
+boxes and the monitored-area outline. Snapshots saved from this version on
+have an info card added **below** the photo (about 20% of the width in
+height): event, time, items against the limit with a bar, and the
+per-class counts, in the dashboard's colours. Nothing is drawn over the
+photo any more. Older snapshots still have the old dark band across the top.
+It is evidence, so show it full width; if you crop thumbnails, crop from the
+top so the photo stays in view.
 
 Returns 404 for any name that is not a saved snapshot.
 
@@ -366,6 +372,21 @@ Poll `/api/state` until `uptime_s` starts again from near zero. Settings, the
 monitored area and history are kept. Ask the user to confirm before calling it.
 
 ---
+
+## Network details
+
+`GET /api/net/details` (read-only, anyone may call it) returns every network
+adapter: `device`, `type`, `state`, `connection`, `role` (`wifi`, `wired`, or
+`camera` for the camera cable), `ips`, `gateway`, `dns`, `mac`, `speed`,
+`method` (`auto` or `manual`), `default` (carries the internet), and for Wi-Fi
+a `link` object with `ssid`, `signal`, `rate`, `channel`, `freq`, `security`,
+`bssid`. Top level: `internet`, `default_dev`, `camera_ip`, `local`.
+
+`POST /api/net/ipv4` (Pi screen only) sets a connection to automatic or a
+checked static address:
+`{"connection": "Wired connection 1", "method": "manual", "address": "192.168.1.50", "prefix": 24, "gateway": "192.168.1.1", "dns": ["8.8.8.8"]}`.
+Invalid input returns `{"ok": false, "error": "invalid", "fields": {...}}`
+with one message per field. The camera cable's profile cannot be changed.
 
 ## Pi-only endpoints (the app does not use these)
 

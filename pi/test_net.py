@@ -157,5 +157,84 @@ class FakeTests(unittest.TestCase):
         self.assertFalse(f.status()["camera_conflict"])
 
 
+class DetailTests(unittest.TestCase):
+    SHOW = ("GENERAL.DEVICE:eth1\nGENERAL.TYPE:ethernet\nGENERAL.HWADDR:00\\:E0\\:4C\\:68\\:00\\:01\n"
+            "GENERAL.STATE:100 (connected)\nGENERAL.CONNECTION:Wired connection 1\n"
+            "CAPABILITIES.SPEED:1000 Mb/s\nIP4.ADDRESS[1]:192.168.1.15/24\nIP4.GATEWAY:192.168.1.1\n"
+            "IP4.DNS[1]:192.168.1.1\n\nGENERAL.DEVICE:wlan0\nGENERAL.TYPE:wifi\n"
+            "GENERAL.HWADDR:D8\\:3A\\:DD\\:00\\:00\\:03\nGENERAL.STATE:30 (disconnected)\n"
+            "GENERAL.CONNECTION:\nCAPABILITIES.SPEED:unknown\nIP4.GATEWAY:\n")
+
+    def test_device_show(self):
+        d = g.parse_device_show(self.SHOW)
+        self.assertEqual(len(d), 2)
+        self.assertEqual(d[0]["mac"], "00:E0:4C:68:00:01")
+        self.assertEqual(d[0]["state"], "connected")
+        self.assertEqual(d[0]["ips"], ["192.168.1.15/24"])
+        self.assertEqual(d[0]["dns"], ["192.168.1.1"])
+        self.assertEqual(d[1]["state"], "disconnected")
+        self.assertIsNone(d[1]["connection"])
+        self.assertIsNone(d[1]["speed"])
+
+    def test_wifi_link(self):
+        txt = " :Other:AA\\:AA\\:AA\\:AA\\:AA\\:AA:1:2412 MHz:54 Mbit/s:30:WPA2\n" \
+              "*:Home:BB\\:BB\\:BB\\:BB\\:BB\\:BB:6:2437 MHz:65 Mbit/s:72:WPA2"
+        w = g.parse_wifi_link(txt)
+        self.assertEqual(w["ssid"], "Home")
+        self.assertEqual(w["bssid"], "BB:BB:BB:BB:BB:BB")
+        self.assertEqual(w["signal"], 72)
+
+    def test_default_route_lowest_metric(self):
+        r = "default via 192.168.1.1 dev wlan0 proto dhcp metric 600\n" \
+            "default via 192.168.1.1 dev eth1 proto dhcp metric 100\n"
+        self.assertEqual(g.parse_default_route(r), "eth1")
+        self.assertIsNone(g.parse_default_route(""))
+
+
+class Ipv4Tests(unittest.TestCase):
+    def ok(self, **kw):
+        cfg = {"method": "manual", "address": "192.168.1.50", "prefix": 24, "gateway": "192.168.1.1"}
+        cfg.update(kw)
+        return g.validate_ipv4(cfg, "192.168.1.64", ("192.168.1.101",))
+
+    def test_auto_needs_nothing(self):
+        self.assertEqual(g.validate_ipv4({"method": "auto"})[1], {})
+
+    def test_good_manual(self):
+        clean, err = self.ok(dns=["8.8.8.8", ""])
+        self.assertEqual(err, {})
+        self.assertEqual(clean["network"], "192.168.1.0/24")
+        self.assertEqual(clean["dns"], ["8.8.8.8"])
+
+    def test_bad_shapes(self):
+        self.assertIn("address", self.ok(address="192.168.1")[1])
+        self.assertIn("address", self.ok(address="192.168.1.300")[1])
+        self.assertIn("address", self.ok(address="192.168.001.5")[1])
+        self.assertIn("prefix", self.ok(prefix=31)[1])
+
+    def test_reserved_and_special(self):
+        self.assertIn("address", self.ok(address="192.168.1.64")[1])
+        self.assertIn("address", self.ok(address="192.168.1.101")[1])
+        self.assertIn("address", self.ok(address="192.168.1.0")[1])
+        self.assertIn("address", self.ok(address="192.168.1.255")[1])
+
+    def test_gateway_rules(self):
+        self.assertIn("gateway", self.ok(gateway="10.0.0.1")[1])
+        self.assertIn("gateway", self.ok(gateway="192.168.1.50")[1])
+
+    def test_camera_profile_refused(self):
+        res = g.Net(runner=runner_for({})).set_ipv4("camera-link", {"method": "auto"})
+        self.assertEqual(res["error"], "camera_profile")
+
+    def test_set_manual_commands(self):
+        run = runner_for({})
+        res = g.Net(runner=run).set_ipv4("Home", {"method": "manual", "address": "192.168.1.50",
+                                                  "prefix": 24, "gateway": "192.168.1.1"})
+        self.assertTrue(res["ok"])
+        mod = next(c for c in run.calls if c[:3] == ["nmcli", "connection", "modify"])
+        self.assertIn("192.168.1.50/24", mod)
+        self.assertIn(["nmcli", "connection", "up", "Home"], run.calls)
+
+
 if __name__ == "__main__":
     unittest.main()
