@@ -114,7 +114,7 @@ Poll about once per second. This drives the whole main screen.
 | `auto_mute` | Auto-mute is switched on. |
 | `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
 | `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
-| `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
+| `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`, and `via`: `direct` (the IP and MAC are the phone's own), `shared` (several phones arrive from one address, so the IP and MAC belong to a router in between, such as a second Wi-Fi router), or `remote` (Tailscale or the internet; `mac` is null). Show a short note for `shared` and `remote` so the numbers are not mistaken for the phone's own. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
 
 ---
 

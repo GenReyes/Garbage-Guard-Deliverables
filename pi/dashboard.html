@@ -830,6 +830,14 @@ main{flex:1;min-height:0;display:flex}
 .pr span{font-size:10.5px;font-weight:900;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .pr b{font-size:12.5px;font-weight:900;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   font-variant-numeric:tabular-nums}
+.tagx.via-direct{background:var(--ok-tint);color:#15703A} [data-theme="dark"] .tagx.via-direct{color:var(--ok)}
+.tagx.via-shared{background:var(--warn-tint);color:#8A5A00} [data-theme="dark"] .tagx.via-shared{color:var(--warn)}
+.tagx.via-remote{background:var(--purple-tint);color:var(--purple)}
+.pnote{margin:0;display:flex;gap:7px;align-items:flex-start;padding:7px 10px;border-radius:10px;border:2px solid var(--edge);
+  font-size:12px;font-weight:700}
+.pnote .ico{width:15px;height:15px;flex:none;margin-top:1px}
+.pnote.via-shared{background:var(--warn-tint);color:#8A5A00} [data-theme="dark"] .pnote.via-shared{color:var(--warn)}
+.pnote.via-remote{background:var(--purple-tint);color:var(--purple)}
 .pua{margin:0;font-size:10.5px;color:var(--muted);font-family:"DejaVu Sans Mono",ui-monospace,monospace;word-break:break-all}
 .bd{padding:13px;display:flex;flex-direction:column;gap:12px}
 .bd-hero{display:flex;align-items:center;gap:20px}
@@ -1968,6 +1976,11 @@ function since(sec){
   if(sec < 3600) return Math.floor(sec/60) + " min " + (sec%60) + " s";
   return Math.floor(sec/3600) + " h " + Math.floor(sec%3600/60) + " min";
 }
+const VIA = {
+  direct: ["Direct", ""],
+  shared: ["Shared address", "This IP and MAC belong to a router between this phone and the Pi (for example a separate Wi-Fi router). Every phone behind it shows the same pair. The phone is still counted on its own."],
+  remote: ["Remote", "Connected from outside this network, so the IP is the remote link's address and the MAC cannot be seen."]
+};
 function paintPhones(){
   const d = $("phnDlg");
   if(!d.open) return;
@@ -1989,11 +2002,13 @@ function paintPhones(){
       <div class="ph"><span class="pb"><svg class="ico"><use href="#${app ? "i-phone" : "i-image"}"/></svg></span>
         <div><b>${esc(name)}</b><small>${app ? "Garbage-Guard app" : "Dashboard in a browser"}</small></div>
         <span class="tagx ${app ? "ok" : "warn"}">${app ? "App" : "Browser"}</span>
+        ${VIA[r.via] ? `<span class="tagx via-${r.via}">${VIA[r.via][0]}</span>` : ""}
         ${r.mode ? `<span class="tagx ${r.mode === "background" ? "warn" : "ok"}">${r.mode === "background" ? "In background" : "Open"}</span>` : ""}
       </div>
       <div class="pg">
         ${row("i-signal","IP address",r.ip)}
-        ${row("i-tag","MAC address",r.mac || "Not in the Pi's table yet")}
+        ${row("i-tag", r.via === "shared" ? "Router MAC" : "MAC address",
+              r.via === "remote" ? "Not available remotely" : (r.mac || "Not in the Pi's table yet"))}
         ${row("i-layers","Network name",r.hostname)}
         ${row("i-phone","Device",r.device)}
         ${row("i-gear","System",r.os)}
@@ -2003,6 +2018,7 @@ function paintPhones(){
         ${row("i-refresh","Last update",r.age_s < 1.5 ? "just now" : r.age_s + " s ago")}
         ${row("i-act","Requests",r.hits)}
       </div>
+      ${VIA[r.via] && VIA[r.via][1] ? `<p class="pnote via-${r.via}"><svg class="ico"><use href="#i-warn"/></svg><span>${VIA[r.via][1]}</span></p>` : ""}
       ${r.ua ? `<p class="pua">${esc(r.ua)}</p>` : ""}
     </div>`;
   }).join("");
