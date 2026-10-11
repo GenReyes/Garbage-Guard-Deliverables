@@ -45,6 +45,19 @@ class ViewerTests(unittest.TestCase):
         self.assertEqual((row["device"], row["os"], row["app_version"], row["mode"]),
                          ("Galaxy A54", "Android 14", "1.2", "background"))
 
+    def test_how_connected(self):
+        self.assertEqual(w.link_kind("192.168.1.30"), "local")
+        self.assertEqual(w.link_kind("100.101.5.9"), "remote")
+        self.assertEqual(w.link_kind("8.8.8.8"), "remote")
+        w.note_viewer("192.168.1.233", "app", now=1.0, headers={"X-GG-Client-Id": "a"})
+        w.note_viewer("192.168.1.233", "app", now=1.0, headers={"X-GG-Client-Id": "b"})
+        w.note_viewer("192.168.1.40", "app", now=1.0)
+        w.note_viewer("100.80.1.2", "app", now=1.0)
+        via = {(r["ip"], r["id"]): r["via"] for r in w.viewers(now=1.5)["list"]}
+        self.assertEqual(via[("192.168.1.233", "a")], "shared")
+        self.assertEqual(via[("192.168.1.40", None)], "direct")
+        self.assertEqual(via[("100.80.1.2", None)], "remote")
+
     def test_bye_removes_at_once(self):
         w.note_viewer("192.168.1.30", "app", now=1.0)
         w.forget_viewer("192.168.1.30", "app")

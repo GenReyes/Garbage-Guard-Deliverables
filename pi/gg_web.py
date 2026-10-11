@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import os
 import re
@@ -60,6 +61,22 @@ def describe_ua(ua):
             browser = name
             break
     return os_name, model, browser
+
+
+TAILNET = ipaddress.ip_network("100.64.0.0/10")
+
+
+def link_kind(ip):
+    """How a client reaches the Pi, judged from its address alone."""
+    try:
+        a = ipaddress.ip_address(ip.replace("::ffff:", ""))
+    except ValueError:
+        return "remote"
+    if a.version == 4 and a in TAILNET:
+        return "remote"
+    if a.is_private or a.is_link_local:
+        return "local"
+    return "remote"
 
 
 def mac_for(ip):
@@ -127,8 +144,16 @@ def viewers(now=None):
                          "app_version": r.get("app_version"), "mode": r.get("mode"),
                          "since_s": int(now - r["since"]), "age_s": round(now - r["seen"], 1),
                          "hits": r["hits"], "ua": r.get("ua")})
+    shared = {}
     for row in rows:
-        row["mac"] = mac_for(row["ip"])
+        shared[row["ip"]] = shared.get(row["ip"], 0) + 1
+    for row in rows:
+        kind = link_kind(row["ip"])
+        if kind == "remote":
+            row["via"], row["mac"] = "remote", None
+        else:
+            row["via"] = "shared" if shared[row["ip"]] > 1 else "direct"
+            row["mac"] = mac_for(row["ip"])
         row["hostname"] = hostname_for(row["ip"])
     return {"apps": sum(r["kind"] == "app" for r in rows),
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
