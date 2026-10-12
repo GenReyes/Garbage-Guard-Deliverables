@@ -4,6 +4,32 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi dashboard History matches the app (2026-10-12)
+
+Follows `mobile-app/HISTORY_TOOLS.md`, which lists what the app's History page
+does from version 9.0 to 9.3. No server change: the same `/api/alerts`,
+`/api/alerts/read` and `/api/alerts/delete` endpoints as before.
+
+- Filter by kind: All, Alerts, Captures, Tests, Mutes, Power. Power covers
+  both `low_battery_shutdown` and `manual_shutdown`. Suppressed rows show
+  only under All.
+- The From and To dates now filter the table instead of only feeding Delete.
+  Quick picks for Today, 7 days, 30 days and Any. Future days cannot be
+  picked, and choosing a From after the To moves the other one along, so the
+  range can never run backwards.
+- One **Mark read** and one **Delete** that act on exactly the rows shown,
+  replacing Mark all read, Delete range and Delete all. A line under the
+  tools says what is shown ("Showing 2 alerts on 12 Oct") and the delete
+  confirmation repeats it with the count. With dates alone it says "at
+  least", because that delete also clears records older than the 300 rows
+  the page holds.
+- Every event now has its own look, ranked by urgency the same way as the
+  app: the two loudest wear their colour on the whole border, the quieter
+  ones keep the ink border and show a band down the left edge, and the
+  unread dot takes the row's colour. The shutdown rows show their symbol
+  where the item count would be, because a shutdown has no count and "0"
+  reads as a real measurement.
+
 ## App version 9.5: no pale halo on coloured surfaces (2026-10-12)
 
 ### App

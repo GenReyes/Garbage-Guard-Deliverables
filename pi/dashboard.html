@@ -703,15 +703,28 @@ main{flex:1;min-height:0;display:flex}
 
 /* ---------------- history ---------------- */
 #history{flex-direction:column}
-.card-log{flex:1;min-height:0;min-width:0;gap:7px}
+.card-log{flex:1;min-height:0;min-width:0;gap:5px}
 .tools{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding-bottom:7px;border-bottom:2px dashed var(--shade)}
+  padding-bottom:5px;border-bottom:2px dashed var(--shade)}
 .tools .dt{display:flex;align-items:center;gap:4px;background:var(--sunk);
   border:2px solid var(--edge);border-radius:9px;box-shadow:var(--well);padding:2px 7px}
 .tools .dt label{font-size:10px;font-weight:800;color:var(--muted)}
 .tools input[type=date]{border:0;background:transparent;outline:none;font-size:11px;
   font-weight:800;width:104px}
 .tools .sp{flex:1}
+.tools.dates{padding:3px 0 0;border-bottom:0;gap:5px}
+/* One bar of choices: the chosen one is pressed into the bar, the rest stand out. */
+.fbar{display:flex;align-items:stretch;gap:0;background:var(--sunk);
+  border:2px solid var(--edge);border-radius:11px;box-shadow:var(--well);padding:2px;overflow:hidden}
+.fbar button{display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;
+  border:0;border-radius:8px;background:transparent;font:inherit;font-size:11.5px;font-weight:800;
+  color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s, color .15s, box-shadow .15s}
+.fbar button .ico{width:14px;height:14px}
+.fbar button:active{transform:translateY(1px)}
+.fbar button[aria-pressed="true"]{background:var(--teal);color:#fff;box-shadow:var(--hard-sm)}
+.fbar.quick button{font-size:11px;padding:0 8px}
+.scope{font-size:11.5px;font-weight:800;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
 .tablewrap{flex:1;min-height:0;min-width:0;overflow:auto;border:2px solid var(--edge);
   border-radius:13px;background:var(--base);box-shadow:var(--press);
   scrollbar-width:thin;scrollbar-color:var(--shade) transparent}
@@ -756,6 +769,34 @@ main{flex:1;min-height:0;display:flex}
 .lr.read .c-n{font-weight:800}
 [data-theme="dark"] .lr.read{border-color:#0C0B0A}
 .lr.accumulation.read{background:color-mix(in srgb, var(--sunk) 72%, var(--bad-tint))}
+/* Every event carries its own colour, and how far it stands out follows how
+   urgent it is, the same ranking as the mobile app. The two loudest ranks
+   wear the colour on the whole border; the quieter ones keep the ink border
+   and show a band down the left edge. Read rows stay flat and grey. */
+.lr.unread.accumulation{--evc:var(--bad)}
+.lr.unread.low_battery_shutdown{--evc:var(--orange);
+  background:color-mix(in srgb, var(--orange) 22%, var(--raised));
+  border-color:var(--orange);box-shadow:4px 4px 0 var(--orange), var(--soft-sm)}
+.lr.unread.manual_shutdown{--evc:var(--orange);
+  background:color-mix(in srgb, var(--orange) 12%, var(--raised));
+  border-color:var(--orange);box-shadow:3px 3px 0 var(--orange), var(--soft-sm)}
+.lr.unread.auto_muted{--evc:var(--warn);
+  background:color-mix(in srgb, var(--warn) 16%, var(--raised));
+  border-color:var(--warn);box-shadow:3px 3px 0 var(--warn), var(--soft-sm)}
+.lr.unread.test{--evc:var(--warn);background:color-mix(in srgb, var(--warn) 10%, var(--raised))}
+.lr.unread.manual{--evc:var(--teal);background:color-mix(in srgb, var(--teal) 10%, var(--raised))}
+.lr.unread.muted,.lr.unread.unmuted{--evc:var(--purple);
+  background:color-mix(in srgb, var(--purple) 8%, var(--raised));box-shadow:2px 2px 0 var(--edge), var(--soft-sm)}
+.lr.unread.suppressed{--evc:var(--slate);
+  background:color-mix(in srgb, var(--slate) 5%, var(--raised));box-shadow:2px 2px 0 var(--edge), var(--soft-sm)}
+.lr.unread.test::before,.lr.unread.manual::before,.lr.unread.muted::before,
+.lr.unread.unmuted::before,.lr.unread.suppressed::before{
+  content:"";position:absolute;left:4px;top:7px;bottom:7px;width:5px;
+  border-radius:5px;background:var(--evc)}
+.lr.unread .dot{background:var(--evc, var(--teal));
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--evc, var(--teal)) 30%, transparent)}
+/* A shutdown has no item count, and a "0" there reads as a real measurement. */
+.lr .c-n .ico{width:17px;height:17px;color:var(--evc, var(--muted))}
 .lr.urgent{background:linear-gradient(162deg,color-mix(in srgb,var(--bad-tint) 60%,var(--lite)) -30%,var(--bad-tint) 60%);
   border-color:var(--bad);
   box-shadow:4px 4px 0 var(--bad), var(--soft-sm);animation:urgent 1.9s ease-in-out infinite}
@@ -1422,15 +1463,31 @@ a.btn{text-decoration:none}
           <svg class="ico a-spin"><use href="#i-refresh"/></svg>Refresh</button>
       </div>
       <div class="tools">
+        <div class="fbar" id="fbar" role="group" aria-label="Filter by kind of event">
+          <button type="button" data-f="all" aria-pressed="true" title="All events"><svg class="ico"><use href="#i-layers"/></svg>All</button>
+          <button type="button" data-f="alerts" aria-pressed="false" title="Limit reached"><svg class="ico"><use href="#i-bell"/></svg>Alerts</button>
+          <button type="button" data-f="captures" aria-pressed="false" title="Manual captures"><svg class="ico"><use href="#i-shutter"/></svg>Captures</button>
+          <button type="button" data-f="tests" aria-pressed="false" title="Test alerts"><svg class="ico"><use href="#i-wrench"/></svg>Tests</button>
+          <button type="button" data-f="mutes" aria-pressed="false" title="Mutes and unmutes"><svg class="ico"><use href="#i-eyeoff"/></svg>Mutes</button>
+          <button type="button" data-f="power" aria-pressed="false" title="Shutdowns"><svg class="ico"><use href="#i-power"/></svg>Power</button>
+        </div>
+        <span class="sp"></span>
+        <button class="btn sm" id="markAll" type="button">
+          <svg class="ico a-pop"><use href="#i-check"/></svg>Mark read</button>
+        <button class="btn sm danger" id="delShown" type="button">
+          <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete</button>
+      </div>
+      <div class="tools dates">
         <span class="dt"><label for="dFrom">From</label><input id="dFrom" type="date"></span>
         <span class="dt"><label for="dTo">To</label><input id="dTo" type="date"></span>
-        <button class="btn sm" id="markAll" type="button">
-          <svg class="ico a-pop"><use href="#i-check"/></svg>Mark all read</button>
-        <button class="btn sm" id="delRange" type="button">
-          <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete range</button>
+        <div class="fbar quick" id="quick" role="group" aria-label="Quick date range">
+          <button type="button" data-q="today">Today</button>
+          <button type="button" data-q="7">7 days</button>
+          <button type="button" data-q="30">30 days</button>
+          <button type="button" data-q="any" aria-pressed="true">Any</button>
+        </div>
         <span class="sp"></span>
-        <button class="btn sm danger" id="delAll" type="button">
-          <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete all</button>
+        <span class="scope" id="scopeLine"></span>
       </div>
       <div class="tablewrap">
         <div class="lt" role="table" aria-label="Event history">
@@ -1445,7 +1502,7 @@ a.btn{text-decoration:none}
           <div id="logs" role="rowgroup"></div>
         </div>
         <div class="empty" id="noLogs"><svg class="ico"><use href="#i-clock"/></svg>
-          <span>No events yet. Alerts, captures and tests appear here.</span></div>
+          <span id="noLogsText">No events yet. Alerts, captures and tests appear here.</span></div>
       </div>
       <div class="pager">
         <button class="btn sm" id="newer" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Newer</button>
@@ -1656,7 +1713,8 @@ const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed
                 muted:["Alert muted","i-belloff"], auto_muted:["Auto-muted","i-bellauto"], unmuted:["Alert unmuted","i-bellon"],
                 low_battery_shutdown:["Low battery shutdown","i-batt"],
                 manual_shutdown:["Manual shutdown","i-power"]};
-let PAGE = 5, draft=null, editing=false, last=null, rows=[], page=0, prevCounts={};
+let PAGE = 5, draft=null, editing=false, last=null, rows=[], view=[], page=0, prevCounts={};
+let kind = "all";
 
 function toast(m, icon){
   $("toastMsg").textContent = m;
@@ -1778,16 +1836,6 @@ $("cfmYes").onclick = async () => {
   pendingDelete = null; $("confirm").close();
   toast(`Deleted ${j.deleted} record${j.deleted===1?"":"s"}, ${j.files_removed} image${j.files_removed===1?"":"s"}`,"i-trash");
   loadLogs();
-};
-$("delAll").onclick = () => {
-  if(!rows.length) return toast("Nothing to delete","i-warn");
-  askDelete(`Delete all ${rows.length} records and their snapshot images? This cannot be undone.`, {all:true});
-};
-$("delRange").onclick = () => {
-  const f = $("dFrom").value, t = $("dTo").value;
-  if(!f && !t) return toast("Pick a From or To date first","i-warn");
-  askDelete(`Delete records ${f?("from "+f):"up to"} ${t?("to "+t):"onward"}, including their images?`,
-            {from:f||null, to:t||null});
 };
 async function doMute(secs, sel){
   await post("/api/mute", {seconds: secs});
@@ -1963,30 +2011,53 @@ async function setRead(ids, read){
   await post("/api/alerts/read", {ids, read});
   loadLogs();
 }
+/* Both buttons act on exactly the rows on screen. With no filter at all the
+   Pi can do the whole lot in one go; otherwise we send the ids we are showing.
+   Dates alone are the one exception for Delete: the Pi takes the range and
+   clears records older than the 300 this page has loaded. */
 $("markAll").onclick = async () => {
-  if(!unreadCount()) return toast("Nothing unread", "i-check");
-  await post("/api/alerts/read", {all: true});
-  toast("All marked read", "i-check"); loadLogs();
+  const list = view.filter(a => !a.read);
+  if(!list.length) return toast("Nothing unread", "i-check");
+  const whole = kind === "all" && !$("dFrom").value && !$("dTo").value;
+  await post("/api/alerts/read", whole ? {all: true} : {ids: list.map(a => a.id)});
+  toast(whole ? "All marked read" : "Marked " + scopeText(list.length) + " read", "i-check");
+  loadLogs();
+};
+
+$("delShown").onclick = () => {
+  if(!view.length) return toast("Nothing to delete","i-warn");
+  const f = $("dFrom").value, t = $("dTo").value;
+  const whole = kind === "all" && !f && !t;
+  if(whole)
+    return askDelete(`Delete all ${rows.length} records and their snapshot images? This cannot be undone.`,
+                     {all: true});
+  if(kind === "all")
+    // A range alone also clears older records the page never loaded, so the
+    // count can only be a floor.
+    return askDelete(`Delete at least ${scopeText(view.length)} and their snapshot images? This cannot be undone.`,
+                     {from: f || null, to: t || null});
+  askDelete(`Delete ${scopeText(view.length)} and their snapshot images? This cannot be undone.`,
+            {ids: view.map(a => a.id)});
 };
 
 $("logs").addEventListener("click", e => {
   const d2 = e.target.closest("[data-read]");
   if(d2){
-    const a = rows[Number(d2.dataset.read)];
+    const a = view[Number(d2.dataset.read)];
     return setRead([a.id], !a.read);
   }
   const v = e.target.closest("[data-view]");
   if(v) return openViewer(Number(v.dataset.view));
   const d = e.target.closest("[data-del]");
   if(d){
-    const a = rows[Number(d.dataset.del)];
+    const a = view[Number(d.dataset.del)];
     askDelete(`Delete this ${((EVENTS[a.event]||["record"])[0]).toLowerCase()} from ${(a.timestamp||"").replace("T"," ")}?`,
               {ids:[a.id]});
   }
 });
 
 function openViewer(i){
-  const a = rows[i];
+  const a = view[i];
   if(!a || !a.snapshot) return;
   const src = "/snapshots/" + encodeURIComponent(a.snapshot);
   $("vImg").src = src; $("zImg").src = src;
@@ -2035,9 +2106,127 @@ $("vOpen").onclick = () => $("zoom").showModal();
 $("zoom").addEventListener("click", () => $("zoom").close());
 $("viewer").addEventListener("click", e => { if(e.target===$("viewer")) $("viewer").close(); });
 
+/* ---------------- history filter ---------------- */
+/* The kinds match the app's filter bar one for one, so a row looks the same
+   in both places. "suppressed" is deliberately only under All. */
+const NO_COUNT = ["low_battery_shutdown","manual_shutdown"];
+const KINDS = {all:null, alerts:["accumulation"], captures:["manual"], tests:["test"],
+               mutes:["muted","auto_muted","unmuted"],
+               power:["low_battery_shutdown","manual_shutdown"]};
+const KIND_WORD = {all:["record","records"], alerts:["alert","alerts"],
+                   captures:["capture","captures"], tests:["test","tests"],
+                   mutes:["mute record","mute records"], power:["shutdown","shutdowns"]};
+
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000)
+                      .toISOString().slice(0,10);
+const dayOf = a => (a.timestamp || "").slice(0,10);
+
+function clampDates(moved){
+  const f = $("dFrom"), t = $("dTo"), now = today();
+  f.max = now; t.max = now;
+  if(f.value > now) f.value = now;
+  if(t.value > now) t.value = now;
+  // The range can never run backwards: the box that was not touched moves along.
+  if(f.value && t.value && f.value > t.value){
+    if(moved === "from") t.value = f.value; else f.value = t.value;
+  }
+  f.max = t.value || now;
+  t.min = f.value || "";
+}
+
+function inRange(a){
+  const f = $("dFrom").value, t = $("dTo").value, d = dayOf(a);
+  if(!d) return !f && !t;
+  return (!f || d >= f) && (!t || d <= t);
+}
+
+function shown(){
+  const want = KINDS[kind];
+  return rows.filter(a => (!want || want.includes(a.event)) && inRange(a));
+}
+
+function niceDay(d){
+  if(!d) return "";
+  const [y,m,dd] = d.split("-");
+  return Number(dd) + " " + ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m)-1]
+         + (d.slice(0,4) === today().slice(0,4) ? "" : " " + y);
+}
+
+/* "2 alerts on 12 Oct", used by the line under the tools and by the
+   delete confirmation, so both always say the same thing. */
+function scopeText(n){
+  const [one, many] = KIND_WORD[kind];
+  const f = $("dFrom").value, t = $("dTo").value;
+  let when = "";
+  if(f && t) when = f === t ? " on " + niceDay(f) : ` from ${niceDay(f)} to ${niceDay(t)}`;
+  else if(f) when = " from " + niceDay(f) + " onward";
+  else if(t) when = " up to " + niceDay(t);
+  return `${n} ${n === 1 ? one : many}${when}`;
+}
+
+function paintScope(n){
+  const all = kind === "all" && !$("dFrom").value && !$("dTo").value;
+  $("scopeLine").textContent = n ? "Showing " + (all ? `all ${n} record${n===1?"":"s"}` : scopeText(n)) : "";
+  document.querySelectorAll("#fbar button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.f === kind)));
+}
+
+function applyFilter(reset){
+  if(reset !== false) page = 0;
+  renderPage();
+}
+
+$("fbar").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if(!b) return;
+  kind = b.dataset.f;
+  applyFilter();
+});
+
+$("quick").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if(!b) return;
+  const q = b.dataset.q, now = today();
+  if(q === "any"){ $("dFrom").value = ""; $("dTo").value = ""; }
+  else if(q === "today"){ $("dFrom").value = now; $("dTo").value = now; }
+  else {
+    const back = new Date(now + "T00:00:00");
+    back.setDate(back.getDate() - (Number(q) - 1));
+    $("dFrom").value = back.toISOString().slice(0,10);
+    $("dTo").value = now;
+  }
+  clampDates("from");
+  paintQuick();
+  applyFilter();
+});
+
+function paintQuick(){
+  const f = $("dFrom").value, t = $("dTo").value, now = today();
+  let on = "";
+  if(!f && !t) on = "any";
+  else if(f === now && t === now) on = "today";
+  else if(t === now && f){
+    const days = Math.round((new Date(t) - new Date(f)) / 86400000) + 1;
+    if(days === 7) on = "7"; else if(days === 30) on = "30";
+  }
+  document.querySelectorAll("#quick button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.q === on)));
+}
+
+clampDates("from"); paintQuick();
+$("dFrom").onchange = () => { clampDates("from"); paintQuick(); applyFilter(); };
+$("dTo").onchange = () => { clampDates("to"); paintQuick(); applyFilter(); };
+
 function renderPage(){
-  const start = page*PAGE, slice = rows.slice(start, start+PAGE);
-  $("noLogs").style.display = rows.length ? "none" : "flex";
+  view = shown();
+  const pages = Math.max(1, Math.ceil(view.length/PAGE));
+  if(page > pages-1) page = pages-1;
+  if(page < 0) page = 0;
+  const start = page*PAGE, slice = view.slice(start, start+PAGE);
+  $("noLogs").style.display = view.length ? "none" : "flex";
+  $("noLogsText").textContent = rows.length
+    ? "No records match. Change the filter or the dates."
+    : "No events yet. Alerts, captures and tests appear here.";
   $("logs").innerHTML = slice.map((a,k) => {
     const i = start+k, ev = EVENTS[a.event] || [a.event||"Unknown","i-box"];
     const urgent = !a.read && a.event === "accumulation";
@@ -2046,20 +2235,21 @@ function renderPage(){
           aria-label="${a.read ? "Mark as unread" : "Mark as read"}" title="${a.read ? "Mark as unread" : "Mark as read"}"></button></div>
       <div role="cell">${(a.timestamp||"").replace("T"," ")}</div>
       <div role="cell"><span class="ev ${a.event||""}"><svg class="ico"><use href="#${ev[1]}"/></svg>${ev[0]}</span></div>
-      <div class="c-n" role="cell">${a.smoothed_count}</div>
+      <div class="c-n" role="cell">${NO_COUNT.includes(a.event)
+            ? `<svg class="ico"><use href="#${ev[1]}"/></svg>` : a.smoothed_count}</div>
       <div role="cell">${a.snapshot
             ? `<button class="btn sm" type="button" data-view="${i}"><svg class="ico a-pop"><use href="#i-eye"/></svg>View</button>`
             : `<span class="noimg">No image</span>`}</div>
       <div class="c-act" role="cell"><button class="btn sm danger" type="button" data-del="${i}"
             aria-label="Delete this record"><svg class="ico a-tilt"><use href="#i-trash"/></svg></button></div></div>`;
   }).join("");
-  const pages = Math.max(1, Math.ceil(rows.length/PAGE));
-  $("where").textContent = rows.length ? `${start+1}–${Math.min(start+PAGE, rows.length)} of ${rows.length}` : "";
+  $("where").textContent = view.length ? `${start+1}–${Math.min(start+PAGE, view.length)} of ${view.length}` : "";
   $("newer").disabled = page <= 0;
   $("older").disabled = page >= pages-1;
-  const un = unreadCount();
-  $("logCount").textContent = un ? `(${un})` : "";
-  $("markAll").disabled = !un;
+  $("logCount").textContent = unreadCount() ? `(${unreadCount()})` : "";
+  $("markAll").disabled = !view.some(a => !a.read);
+  $("delShown").disabled = !view.length;
+  paintScope(view.length);
   requestAnimationFrame(fitRows);
 }
 
@@ -2076,15 +2266,12 @@ function fitRows(){
 window.addEventListener("resize", () => requestAnimationFrame(fitRows));
 
 $("newer").onclick = () => { if(page>0){ page--; renderPage(); } };
-$("older").onclick = () => { if((page+1)*PAGE < rows.length){ page++; renderPage(); } };
+$("older").onclick = () => { if((page+1)*PAGE < view.length){ page++; renderPage(); } };
 $("refreshLogs").onclick = () => { page=0; loadLogs(); toast("History refreshed","i-refresh"); };
 
 async function loadLogs(){
   try{
     rows = (await (await fetch("/api/alerts?limit=300")).json()).alerts || [];
-    const pages = Math.max(1, Math.ceil(rows.length/PAGE));
-    if(page > pages-1) page = pages-1;
-    if(page < 0) page = 0;
     renderPage();
   }catch(e){}
 }

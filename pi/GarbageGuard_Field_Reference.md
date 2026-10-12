@@ -218,13 +218,21 @@ switch is saved on the Pi, so it survives a restart. Turn it off for
 threshold calibration and acceptance testing, where you want to see each
 alert.
 
+**Filtering what you see.** The History tab has a bar of six choices: All,
+Alerts, Captures, Tests, Mutes and Power. Power holds both shutdown kinds.
+The From and To dates filter the table as well, with quick picks for Today,
+7 days and 30 days. Future days cannot be picked and the range cannot run
+backwards. Suppressed rows appear only under All.
+
 **Read and unread.** Each history row has a dot: filled means unread, hollow
-means read. Tap it to toggle, or press **Mark all read**. The History tab
+means read. Tap it to toggle, or press **Mark read**. That button acts on
+exactly the rows on screen, so with a filter set it marks only those. The
+History tab
 shows the unread count, so anyone returning to the screen can see what
 happened while they were away. The flag is stored on the Pi, so the
 touchscreen and the mobile app agree.
 
-**Deleting history to save card space.** The History tab has a trash button on each row, a **Delete all** button, and a From/To date range with **Delete range**. All three remove the snapshot image files as well as the database rows, so this is how you reclaim space on the SD card. Each asks for confirmation and names how many records will go. Deletion cannot be undone, so copy anything you need for the thesis before clearing a field session.
+**Deleting history to save card space.** The History tab has a trash button on each row and one **Delete** button that acts on exactly the rows on screen. With no filter set it clears everything; with a filter or a date range it clears only what is shown. Both remove the snapshot image files as well as the database rows, so this is how you reclaim space on the SD card. The confirmation names what will go, for example "Delete 2 alerts on 12 Oct and their snapshot images?". With dates alone it says "at least", because the Pi also clears records older than the 300 the page has loaded. Deletion cannot be undone, so copy anything you need for the thesis before clearing a field session.
 
 If `sqlite3` is not installed, the dashboard's own log table shows the same
 alert data.

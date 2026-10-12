@@ -118,7 +118,7 @@ A `screen_off` / `screen_on` row is not needed and would clutter the log. Leave 
      - `dim`: show a full screen black layer with opacity `1 - screen_dim_pct/100`.
      - `off`: show the same layer fully black.
      - `on`: hide it.
-   - The layer sits above everything and catches the waking tap: on tap it calls `/api/screen/touch`, hides itself, and does nothing else. This is what stops a blind tap from pressing Delete all or Clear.
+   - The layer sits above everything and catches the waking tap: on tap it calls `/api/screen/touch`, hides itself, and does nothing else. This is what stops a blind tap from pressing Delete or Clear.
    - While `screen` is `dim` or `off`, stop `pullFrame` and resume it on wake.
    - If the page is hidden (dashboard minimized), stop sending touches. The Pi timer can still turn the screen off, which is fine.
 5. **Settings card** in the empty space under Monitored area, styled like Detection settings:
