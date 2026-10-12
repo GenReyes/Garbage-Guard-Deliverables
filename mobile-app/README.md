@@ -12,6 +12,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
+| `HISTORY_TOOLS.md` | What the app's History page does (filters, date range, scoped Mark read and Delete, a look for every event), written so the web dashboard can match it. |
 | `SYNC_PLAN.md` | Earlier comparison of options for remote access (Tailscale, Firebase, MQTT). Superseded by `FIREBASE.md`. |
 
 ## What the app does
