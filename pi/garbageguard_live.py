@@ -28,6 +28,9 @@ from ultralytics import YOLO
 
 from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
 import gg_cloud
+import gg_power
+import gg_screen
+import gg_ups
 import gg_web
 from gg_snapcard import add_card
 
@@ -52,7 +55,8 @@ SNAPSHOT_DIR = BASE_DIR / "snapshots"
 SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
-                    "auto_mute": False, "auto_mute_s": 900}
+                    "auto_mute": False, "auto_mute_s": 900,
+                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -251,6 +255,7 @@ class Engine:
         self.proc_stamps = collections.deque(maxlen=90)
         self.all_latencies = []
         self.started_at = time.time()
+        self.on_alert = None
 
         self.counter = AccumulationCounter(
             threshold=settings["threshold"],
@@ -349,6 +354,9 @@ class Engine:
         if was and log:
             self._log_simple("unmuted")
         return was
+
+    def log_note(self, event):
+        self._log_simple(event)
 
     def _log_simple(self, event):
         st = self.snapshot_state()
@@ -640,6 +648,8 @@ class Engine:
                 snap = self._save_snapshot("alert", state)
                 self._log_event("accumulation", counts, raw_count,
                                 step.smoothed, peak, snap)
+                if self.on_alert:
+                    self.on_alert()
                 print(f"[ALERT] count={step.smoothed} "
                       f"bottle={counts.get('bottle',0)} "
                       f"bag={counts.get('bag',0)} "
@@ -746,7 +756,15 @@ def main():
     print("=" * 64)
 
     if not args.no_web:
-        gg_web.serve(engine, args.port)
+        ups = gg_ups.Ups()
+        save = lambda: save_settings(settings)
+        screen = gg_screen.Screen(settings, save=save, ups=ups)
+        power = gg_power.Power(settings, save=save, ups=ups, screen=screen,
+                               log=engine.log_note, flush=gg_cloud.flush)
+        engine.on_alert = screen.alert
+        screen.start()
+        power.start()
+        gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power)
         gg_cloud.start(note=gg_web.note_viewer)
 
     try:

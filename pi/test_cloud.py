@@ -29,7 +29,9 @@ class FakeWorld:
              "threshold_used": 20, "read": 1, "snapshot": None, "snapshot_path": None},
         ]
         self.state = {"connected": True, "counts": {"bottle": 9}, "smoothed": 21, "threshold": 20,
-                      "alert_active": True, "muted": False, "auto_mute": False, "viewers": {"apps": 1}}
+                      "alert_active": True, "muted": False, "auto_mute": False, "viewers": {"apps": 1},
+                      "screen": "on", "screen_mode": "off"}
+        self.battery = {"ok": True, "percent": 80, "shutdown_state": "armed"}
 
     def _node(self, parts, make=False):
         cur = self.db
@@ -70,7 +72,7 @@ class FakeWorld:
         if path == "/api/state":
             return 200, json.dumps(self.state).encode()
         if path == "/api/battery":
-            return 200, b'{"ok": true, "percent": 80}'
+            return 200, json.dumps(self.battery).encode()
         if path.startswith("/api/alerts?"):
             return 200, json.dumps({"alerts": self.alerts}).encode()
         if path.startswith("/snapshots/") or path == "/frame.jpg":
@@ -108,6 +110,48 @@ class CloudTests(unittest.TestCase):
         self.assertFalse(self.c.push_state())
         self.w.state["muted"] = True
         self.assertTrue(self.c.push_state())
+
+    def test_screen_change_is_pushed_at_once(self):
+        self.assertTrue(self.c.push_state())
+        self.assertFalse(self.c.push_state())
+        self.w.state["screen"] = "off"
+        self.assertTrue(self.c.push_state())
+        self.assertEqual(self.w.db["gg"]["state"]["screen"], "off")
+
+    def test_shutdown_state_change_is_pushed_at_once(self):
+        self.c.push_state()
+        self.w.battery["shutdown_state"] = "counting"
+        self.w.battery["shutdown_in_s"] = 299
+        self.assertTrue(self.c.push_state())
+        self.assertEqual(self.w.db["gg"]["state"]["battery"]["shutdown_in_s"], 299)
+
+    def test_countdown_is_sent_every_few_seconds_and_commands_polled_fast(self):
+        self.w.battery["shutdown_state"] = "counting"
+        self.c.push_state()
+        self.t[0] += 1
+        self.assertFalse(self.c.push_state())
+        self.t[0] += 3
+        self.assertTrue(self.c.push_state())
+        self.assertTrue(self.c.counting)
+        self.c.next.pop("commands", None)
+        self.c.tick()
+        self.t[0] += 2.5
+        self.w.db.setdefault("gg", {}).setdefault("commands", {})["c1"] = {"cmd": "auto_shutdown", "ts": 1,
+                                                                          "args": {"cancel": True}}
+        self.c.tick()
+        self.assertIn(("/api/auto_shutdown", {"cancel": True}), self.w.posts)
+
+    def test_flush_sends_history_and_state_now(self):
+        self.assertTrue(self.c.flush(2))
+        gg = self.w.db["gg"]
+        self.assertIn("2", gg["alerts"])
+        self.assertIn("state", gg)
+        self.assertIn("pi", gg)
+
+    def test_screen_and_power_commands_are_known(self):
+        for name in ("screen_saver", "screen", "auto_shutdown"):
+            self.assertIn(name, gc.COMMANDS)
+        self.assertIn("screen_timeout_battery_s", gc.STATE_KEYS)
 
     def test_counts_are_pushed_only_while_watched(self):
         self.c.watchers = {"p1": {"ts": 1}}

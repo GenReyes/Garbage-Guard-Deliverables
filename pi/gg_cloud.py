@@ -44,11 +44,16 @@ COMMANDS = {
     "alerts_read": "/api/alerts/read",
     "alerts_delete": "/api/alerts/delete",
     "camera_reconnect": "/api/camera/reconnect",
+    "screen_saver": "/api/screen_saver",
+    "screen": "/api/screen",
+    "auto_shutdown": "/api/auto_shutdown",
 }
 
 STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "roi", "latency_ms",
               "avg_latency_ms", "fps", "cam_fps", "alert_active", "muted", "mute_left", "mute_total",
-              "auto_mute", "auto_mute_s", "auto_muted", "frames", "uptime_s", "reconnects")
+              "auto_mute", "auto_mute_s", "auto_muted", "frames", "uptime_s", "reconnects",
+              "screen", "screen_mode", "screen_timeout_s", "screen_timeout_battery_s",
+              "screen_dim_pct", "screen_wake_on_alert")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 
@@ -59,7 +64,7 @@ DEFAULTS = {"root": "gg", "enabled": True, "state_s": 3, "idle_state_s": 120,
             "alerts_s": 10, "commands_s": 2, "idle_commands_s": 10, "pi_s": 30, "idle_pi_s": 60,
             "preview_s": 3, "preview_width": 480,
             "snap_width": 960, "snap_max_kb": 300, "history": 200, "watch_window_s": 30,
-            "month_limit_gb": 10, "day_preview_mb": 300, "usage_s": 600}
+            "month_limit_gb": 10, "day_preview_mb": 300, "usage_s": 600, "countdown_s": 3}
 
 
 # Firebase bills the TLS handshake of every new connection (about 3.5 KB), so
@@ -266,6 +271,8 @@ class Cloud:
         self.alerts_rev = int(self.clock() * 1000)
         self.handshakes = NET["handshakes"]
         self.watchers = {}
+        self.busy = threading.RLock()
+        self.counting = False
         self.usage = usage if usage is not None else gg_usage.Usage(
             clock=clock, limit=int(self.cfg["month_limit_gb"] * gg_usage.GB),
             day_preview_mb=self.cfg["day_preview_mb"])
@@ -315,18 +322,24 @@ class Cloud:
     def push_state(self, force=False):
         st = json.loads(self._get_local("/api/state"))
         slim = {k: st.get(k) for k in STATE_KEYS}
+        try:
+            battery = json.loads(self._get_local("/api/battery"))
+        except Exception:
+            battery = None
+        shutdown = (battery or {}).get("shutdown_state")
+        self.counting = shutdown == "counting"
         # With nobody watching, a changing count is not worth a write; alert and mute changes still are.
         watched = self.watching()
         fields = ("counts", "smoothed") if watched else ()
         key = json.dumps({k: slim[k] for k in fields + ("alert_active", "muted", "connected",
-                                                         "threshold", "auto_mute")}, sort_keys=True)
+                                                         "threshold", "auto_mute", "screen", "screen_mode")}
+                         | {"shutdown": shutdown}, sort_keys=True)
         every = self.cfg["state_s"] if watched else self.cfg["idle_state_s"]
+        if self.counting:
+            every = min(every, self.cfg["countdown_s"])
         if not force and key == self.sent_state and not self._due("state_beat", every):
             return False
-        try:
-            slim["battery"] = json.loads(self._get_local("/api/battery"))
-        except Exception:
-            slim["battery"] = None
+        slim["battery"] = battery
         slim["ts"] = int(self.clock() * 1000)
         self._fb("PUT", "state", slim)
         self._count("state", slim)
@@ -466,7 +479,24 @@ class Cloud:
 
     # ---------- loop ----------
     def tick(self):
-        every = self.cfg["commands_s"] if self.watching() else self.cfg["idle_commands_s"]
+        with self.busy:
+            self._tick()
+
+    def flush(self, timeout=8):
+        """Send state, history and the heartbeat now. Used right before the Pi powers off."""
+        if not self.busy.acquire(timeout=timeout):
+            return False
+        try:
+            self.sync_alerts()
+            self.push_state(force=True)
+            self.push_pi()
+            self.usage.save(force=True)
+            return True
+        finally:
+            self.busy.release()
+
+    def _tick(self):
+        every = self.cfg["commands_s"] if self.watching() or self.counting else self.cfg["idle_commands_s"]
         if self._due("commands", every):
             self.read_watchers()
             self.run_commands()
@@ -512,6 +542,25 @@ def stop():
         c.stop_flag.set()
     _current["cloud"] = None
     STATUS.update(enabled=False, ok=False, error=None, watchers=0)
+
+
+def flush(timeout=8):
+    c = _current["cloud"]
+    if not c or not STATUS.get("ok"):
+        return False
+    done = threading.Event()
+    out = {"ok": False}
+
+    def work():
+        try:
+            out["ok"] = c.flush(timeout)
+        except Exception as e:
+            print(f"[CLOUD] flush failed: {e}", flush=True)
+        done.set()
+
+    threading.Thread(target=work, daemon=True).start()
+    done.wait(timeout)
+    return out["ok"]
 
 
 def start(note=None):

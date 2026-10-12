@@ -12,6 +12,8 @@ from urllib.parse import parse_qs, urlparse
 
 import gg_cloud
 import gg_net
+import gg_power
+import gg_screen
 import gg_ups
 import gg_window
 
@@ -162,9 +164,11 @@ def viewers(now=None):
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
 
-def make_handler(engine, net=None, ups=None):
+def make_handler(engine, net=None, ups=None, screen=None, power=None):
     net = net or gg_net.make_net()
     ups = ups or gg_ups.Ups()
+    screen = screen or gg_screen.Screen(engine.settings, ups=ups)
+    power = power or gg_power.Power(engine.settings, ups=ups, screen=screen)
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -243,7 +247,7 @@ def make_handler(engine, net=None, ups=None):
                 return self._send(200, "text/html; charset=utf-8", f.read_bytes())
 
             if path == "/api/battery":
-                return self._json(ups.status())
+                return self._json({**ups.status(), **power.fields()})
 
             if path == "/api/state":
                 ip = self.client_address[0]
@@ -251,6 +255,7 @@ def make_handler(engine, net=None, ups=None):
                     note_viewer(ip, client_kind(self.headers), headers=self.headers)
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
+                st.update(screen.fields())
                 st["cloud"] = {k: gg_cloud.STATUS.get(k)
                                for k in ("enabled", "ok", "error", "watchers", "usage")}
                 return self._json(st)
@@ -365,6 +370,36 @@ def make_handler(engine, net=None, ups=None):
                                            seconds=None if secs is None else int(secs))
                 return self._json({"ok": True, **res})
 
+            if path == "/api/screen_saver":
+                res = screen.configure(mode=data.get("mode"), timeout_s=data.get("timeout_s"),
+                                       timeout_battery_s=data.get("timeout_battery_s"),
+                                       dim_pct=data.get("dim_pct"),
+                                       wake_on_alert=data.get("wake_on_alert"))
+                return self._json({"ok": True, **res})
+
+            if path == "/api/screen":
+                action = data.get("action")
+                if action == "wake":
+                    screen.wake()
+                elif action == "sleep":
+                    screen.sleep()
+                else:
+                    return self._json({"ok": False, "error": "bad_action"}, 400)
+                return self._json({"ok": True, "screen": screen.state})
+
+            if path == "/api/screen/touch":
+                if self.client_address[0] not in LOOPBACK:
+                    return self._json({"ok": False, "error": "local_only"}, 403)
+                return self._json({"ok": True, "screen": screen.touch()})
+
+            if path == "/api/auto_shutdown":
+                if data.get("cancel"):
+                    res = power.cancel()
+                    return self._json(res, 200 if res.get("ok") else 409)
+                on, pct = data.get("on"), data.get("pct")
+                res = power.configure(on=None if on is None else bool(on), pct=pct)
+                return self._json({"ok": True, **res})
+
             if path == "/api/alerts/read":
                 ids = data.get("ids")
                 res = engine.mark_read(
@@ -457,8 +492,8 @@ def restart_process(delay=0.6):
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
-def serve(engine, port=8080):
-    server = QuietServer(("0.0.0.0", port), make_handler(engine))
+def serve(engine, port=8080, ups=None, screen=None, power=None):
+    server = QuietServer(("0.0.0.0", port), make_handler(engine, ups=ups, screen=screen, power=power))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

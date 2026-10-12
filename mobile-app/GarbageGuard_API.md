@@ -2,7 +2,16 @@
 
 Everything the mobile app needs to talk to the Raspberry Pi. App developer: Brian.
 
-**What changed in this version:** auto-mute (`POST /api/auto_mute`, the
+**What changed in this version (Pi update after 7.0):** a Pi screen saver
+(`POST /api/screen_saver`, `POST /api/screen`, and six `screen*` fields in
+`/api/state`) and a low-battery auto shutdown (`POST /api/auto_shutdown`, and
+five new fields in `/api/battery`). A new history event, `low_battery_shutdown`,
+is written just before the Pi powers itself off. The Firebase commands
+`screen_saver`, `screen` and `auto_shutdown` run the same endpoints. Details
+under "Screen saver" and "Low battery shutdown" below. Everything else is
+unchanged.
+
+**Earlier version:** auto-mute (`POST /api/auto_mute`, the
 `auto_mute`, `auto_mute_s`, `auto_muted` and `mute_total` state fields, and
 an `auto_muted` history event), plus the FPS fields `fps` and `cam_fps`.
 Detection labels on `/frame.jpg` are now numbered from 1 for the objects in
@@ -114,6 +123,12 @@ Poll about once per second. This drives the whole main screen.
 | `auto_mute` | Auto-mute is switched on. |
 | `auto_mute_s` | How long auto-mute silences each new alert. `0` means until someone unmutes. |
 | `auto_muted` | The current mute was applied by auto-mute rather than by hand. |
+| `screen` | What the Pi's own screen is doing now: `"on"`, `"dim"` or `"off"`. Detection and alerts keep running in every case. |
+| `screen_mode` | `"off"` (backlight off after the timer, the default), `"dim"` (dark layer over the dashboard) or `"never"`. |
+| `screen_timeout_s` | Seconds without a touch before the screen sleeps while on the charger. 60 to 3600, default 600. |
+| `screen_timeout_battery_s` | The same, while the Pi runs on battery. 30 to 3600, default 60. |
+| `screen_dim_pct` | Brightness kept in Dim mode. 5 to 50, default 20. |
+| `screen_wake_on_alert` | A new accumulation alert wakes the screen. Default `true`. |
 | `cloud` | Firebase sync status: `{"enabled", "ok", "error", "watchers", "usage"}`. `watchers` is how many phones are watching through Firebase. `usage` is the Pi's estimate of this month's free allowance (same object as `/gg/usage`), or `null`. See `FIREBASE.md`. |
 | `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`, and `via`: `direct` (the IP and MAC are the phone's own), `shared` (several phones arrive from one address, so the IP and MAC belong to a router in between, such as a second Wi-Fi router), `remote` (Tailscale or the internet; `mac` is null), or `cloud` (the phone reaches the Pi through Firebase; `ip` is `"Firebase"`, `mac` and `hostname` are null). Show a short note for `shared`, `remote` and `cloud` so the numbers are not mistaken for the phone's own. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
 
@@ -170,6 +185,7 @@ Newest first. Six `event` values:
 | `muted` | An operator silenced the alert. | Grey row |
 | `auto_muted` | Auto-mute silenced a new alert. The `accumulation` row before it is still recorded. | Grey row |
 | `unmuted` | The mute was lifted, by hand or automatically. | Grey row |
+| `low_battery_shutdown` | The Pi shut itself down because the battery was low. Written once, just before power off. | Orange row, battery icon |
 
 `read` is `0` or `1`. Show unread rows at full weight and read rows dimmed,
 and put the unread count on the history tab or badge.
@@ -316,6 +332,59 @@ an auto-mute lifts itself when the count falls below the re-arm value.
 
 ---
 
+### `POST /api/screen_saver`
+
+Saves the Pi screen saver settings. Any field may be sent alone; values are
+clamped on the Pi and kept across restarts.
+
+```json
+{ "mode": "dim", "timeout_s": 600, "timeout_battery_s": 60, "dim_pct": 20, "wake_on_alert": true }
+```
+
+Returns `{"ok": true, "screen_mode": "dim", "screen_timeout_s": 600,
+"screen_timeout_battery_s": 60, "screen_dim_pct": 20, "screen_wake_on_alert": true}`.
+
+Off mode turns the HDMI output off, which turns the backlight off on most of
+these boards. Dim mode cannot change the real backlight (the board has no
+brightness control), so the Pi dashboard draws a dark layer and the power
+saving is small. Changing the mode wakes a sleeping screen.
+
+### `POST /api/screen`
+
+Sleeps or wakes the Pi's screen now.
+
+```json
+{ "action": "wake" }
+{ "action": "sleep" }
+```
+
+Returns `{"ok": true, "screen": "on"}`. Any other `action` returns `400`.
+`sleep` works in every mode, including `never`. Handy for a "Wake the Pi"
+button on the Monitor screen. Taps on the Pi's own screen go through
+`POST /api/screen/touch`, which answers only to the Pi itself (`403 local_only`).
+
+---
+
+### `POST /api/auto_shutdown`
+
+Settings and Cancel for the low-battery shutdown (see "Low battery shutdown"
+below).
+
+```json
+{ "on": true, "pct": 15 }
+{ "cancel": true }
+```
+
+Either field of the first form may be sent alone; `pct` is clamped to 10 to 50.
+`{"cancel": true}` stops a running countdown and pauses auto shutdown. It
+returns `409 {"ok": false, "error": "floor"}` if the battery is at the 5%
+floor, because that shutdown cannot be cancelled. Switching `on` to `true`
+re-arms a paused shutdown. Other answers: `{"ok": true, "auto_shutdown": true,
+"auto_shutdown_pct": 15, "shutdown_state": "armed", "shutdown_in_s": null,
+"shutdown_floor": false}`.
+
+---
+
 ### `POST /api/alerts/read`
 
 ```json
@@ -432,6 +501,43 @@ are not in the mock server. The app should not call them.
 Pi's own screen. The app uses `/api/battery` for its header battery indicator
 and does not call `/api/window`. `/api/battery` is read-only and returns
 `{"ok": false, "error": ...}` when no UPS is attached.
+
+## Low battery shutdown
+
+The Pi runs on a UPS HAT. A sudden power cut can corrupt the SD card and the
+history database, so the Pi shuts itself down cleanly first. `/api/battery`
+(and the `battery` block in Firebase `/gg/state`) carries these extra fields,
+present even when the UPS cannot be read:
+
+| Field | Values | Meaning |
+|---|---|---|
+| `auto_shutdown` | bool | Feature switched on (default `true`) |
+| `auto_shutdown_pct` | int, 10 to 50 | Threshold, default 15 |
+| `shutdown_state` | `"off"`, `"boot_grace"`, `"armed"`, `"counting"`, `"paused"` | Where the logic is now. `off` also means the battery gauge cannot be read, in which case nothing will ever shut down |
+| `shutdown_in_s` | int or `null` | Seconds left while `counting` |
+| `shutdown_floor` | bool | The countdown is the 5% one, which cannot be cancelled. Hide the Cancel button |
+
+How it behaves:
+
+- On battery (`on_ac` false) at or below the threshold for 30 seconds in a
+  row, a 5 minute countdown starts. Show a banner with the time left and a
+  Cancel button on every screen while `shutdown_state` is `counting`.
+- Plugging in the charger cancels it. Cancel pauses it; it re-arms when the
+  charger is plugged in, when the battery rises 5% above the threshold, or
+  when `on` is sent again.
+- At 5% or lower the shutdown shortens to 60 seconds and cannot be cancelled
+  (the charger still stops it).
+- Nothing is checked for 3 minutes after the Pi boots, and the gauge must give
+  three good readings in a row first. Booting at 12% with a 15% threshold
+  therefore shuts down about 8 minutes later unless someone cancels or plugs in.
+- Just before powering off, the Pi writes a history row with the event
+  `low_battery_shutdown` and sends the history and state to Firebase, so the
+  app can say why the Pi went offline. It stays off until someone presses its
+  power button.
+- Over Firebase the Pi sends state immediately when `shutdown_state` changes
+  and every 3 seconds while `counting`, and checks for commands every 2 seconds
+  meanwhile, so a Cancel from the app arrives quickly. A closed app cannot be
+  woken by the database; see `FIREBASE.md` for the notification note.
 
 `GET /api/cloud`, `POST /api/cloud` and `POST /api/cloud/restore` hold the
 Pi's own Firebase settings (Network → Firebase on the Pi screen). They answer

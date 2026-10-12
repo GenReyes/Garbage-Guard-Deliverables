@@ -288,6 +288,9 @@ time-ordered key:
 | `alerts_read` | `{"ids": [42]}` or `{"all": true}` |
 | `alerts_delete` | `{"ids": [42]}`, `{"from": "...", "to": "..."}` or `{"all": true}` |
 | `camera_reconnect` | `{}` |
+| `screen_saver` | `{"mode": "dim", "timeout_s": 600, "timeout_battery_s": 60, "dim_pct": 20, "wake_on_alert": true}` (any field) |
+| `screen` | `{"action": "wake"}` or `{"action": "sleep"}` |
+| `auto_shutdown` | `{"on": true, "pct": 15}` or `{"cancel": true}` |
 
 The Pi checks every 2 s, deletes the command first (so it runs at most once,
 even if the Pi crashes halfway), runs it, and writes the local endpoint's
@@ -413,3 +416,24 @@ The mock server does not talk to Firebase. To test Firebase mode, run the
 real Pi code with a test project, or fill a test database by hand in the
 Firebase console using the layout above (a `gg/state` and a couple of
 `gg/alerts` rows are enough to draw the screens).
+
+## Screen saver and low-battery shutdown over Firebase
+
+The new fields ride on `/gg/state`: `screen`, `screen_mode`, `screen_timeout_s`,
+`screen_timeout_battery_s`, `screen_dim_pct`, `screen_wake_on_alert`, plus the
+extra `battery` fields `auto_shutdown`, `auto_shutdown_pct`, `shutdown_state`,
+`shutdown_in_s` and `shutdown_floor`. Field meanings are in `GarbageGuard_API.md`.
+No rules change is needed.
+
+Timing: a change in `screen` or `shutdown_state` is written at once, even in
+standby. While `shutdown_state` is `counting` the Pi writes state every 3
+seconds and polls commands every 2 seconds, so show `shutdown_in_s` as a local
+countdown from the last value and send `auto_shutdown` with `{"cancel": true}`
+for Cancel.
+
+Notifications: the Realtime Database cannot wake a closed app. A phone in a
+pocket only sees the countdown if the app is running a foreground service that
+keeps its listener alive. Firebase Cloud Messaging with a Cloud Function would
+fix that properly but needs the paid Blaze plan, so for the demo use the
+foreground service and show the last Pi heartbeat (`/gg/pi/ts`) so a stale
+banner is obvious.

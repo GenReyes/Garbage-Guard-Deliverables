@@ -1089,6 +1089,15 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 
   if(isStart)startMode();else listMode();
 })();
+
+/* The Wi-Fi screens count as touches, so the screen saver does not blank the screen mid-setup. */
+let lastTouchPing = 0;
+document.addEventListener("pointerdown", () => {
+  const now = Date.now();
+  if(now - lastTouchPing < 15000) return;
+  lastTouchPing = now;
+  fetch("/api/screen/touch", {method: "POST"}).catch(() => {});
+}, true);
 </script>
 </body>
 </html>

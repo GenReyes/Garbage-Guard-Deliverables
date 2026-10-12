@@ -29,6 +29,9 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
 | `gg_usage.py` | Estimates how much of Firebase's free monthly allowance has been used, and slows or stops the preview before it runs out. |
 | `test_usage.py` | Unit tests for `gg_usage.py`. |
+| `gg_screen.py` | The Pi screen saver: turns the HDMI output off (or dims) after a timer, shorter on battery, wakes on touch or alert. |
+| `gg_power.py` | Clean shutdown before the UPS battery runs flat: debounce, 5 minute countdown, Cancel, 5% floor, boot grace. |
+| `test_screen.py`, `test_power.py` | Unit tests for the two above, with a fake `wlopm` and a fake UPS. |
 | `firebase.rules.json` | Security rules to paste into the Firebase console. |
 | `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
@@ -97,9 +100,46 @@ python3 test_snapcard.py
 python3 test_web.py
 python3 test_cloud.py
 python3 test_usage.py
+python3 test_screen.py
+python3 test_power.py
 ```
 
-Expect `Ran 5 tests`, `Ran 8 tests`, `Ran 13 tests` and `Ran 11 tests`, all `OK`.
+Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 13 tests` and `Ran 20 tests`, all `OK`.
+
+## Screen saver and low-battery shutdown
+
+Both live in the Power card on the dashboard (scroll the right-hand column).
+
+**One-time setup on the Pi**
+
+```bash
+sudo apt install wlopm
+sudo raspi-config        # Display Options > Screen Blanking > No
+```
+
+Then test Off mode by hand before relying on it:
+
+```bash
+wlr-randr
+wlopm --off '*'; sleep 10; wlopm --on '*'
+```
+
+Check whether the panel goes fully dark, and whether a tap on the screen is
+still received while the output is off. If the cheap board keeps its backlight
+lit, use Dim and note it as a hardware limitation. If `wlopm` is missing or
+fails, the Pi falls back to Dim by itself and prints `[SCREEN]` in the log.
+
+Auto shutdown calls `systemctl poweroff`. Test it once from the way the
+program is really started (the autostart entry), not from your own terminal. If
+it is refused, the log shows `[POWER] ... refused` and you add a sudoers line:
+
+```bash
+echo 'pi ALL=(root) NOPASSWD: /sbin/poweroff' | sudo tee /etc/sudoers.d/gg-poweroff
+```
+
+(replace `pi` with the Pi's user name). The Pi stays off after a low-battery
+shutdown until the power button is pressed; it does not restart by itself when
+the charger returns.
 
 ## Starting at boot, and Wi-Fi setup
 

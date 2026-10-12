@@ -4,6 +4,36 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi screen saver and low-battery shutdown (2026-10-12)
+
+Pi side of the plan. The app needs the matching changes (see
+`mobile-app/GarbageGuard_API.md`, sections "Screen saver" and "Low battery
+shutdown", and `mobile-app/SCREEN_SAVER_PLAN.md`).
+
+### Pi
+
+- Screen saver with three modes: Off (HDMI output off, backlight off on most
+  boards), Dim (a dark layer; the board has no real brightness control, so it
+  saves little) and Never. Timer 1 to 60 minutes on the charger and a shorter
+  one (30 seconds to 60 minutes, default 1 minute) on battery. The first tap
+  only wakes the screen, a new alert wakes it, and detection, alerts and
+  Firebase keep running. If `wlopm` is missing the Pi falls back to Dim.
+- Low-battery auto shutdown at a chosen percentage (default 15, range 10 to 50):
+  30 second debounce, a 5 minute countdown with a Cancel banner on the Pi and
+  in the app, automatic cancel when the charger is plugged in, a 5% floor that
+  cannot be cancelled, a 3 minute boot grace, and no action at all if the
+  battery gauge cannot be read. A `low_battery_shutdown` history row is sent to
+  Firebase before power off.
+- New Power card on the dashboard with all of the above, plus a "Sleep now"
+  button. New endpoints `POST /api/screen_saver`, `/api/screen`,
+  `/api/auto_shutdown` (and the Pi-only `/api/screen/touch`), new state and
+  battery fields, and three new Firebase commands.
+- Firebase sync: a change of screen state or shutdown state is written at
+  once, even in standby; during a countdown state is written every 3 seconds
+  and commands are polled every 2 seconds. The cloud thread can now send
+  everything immediately (`flush`), which the shutdown uses.
+- History shows the new event with an orange "Low battery shutdown" tag.
+
 ## Pi update after 7.0 (2026-10-12)
 
 Pi dashboard and network screen only. The app and the Firebase data are
