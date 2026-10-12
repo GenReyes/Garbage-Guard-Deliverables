@@ -76,6 +76,8 @@ fun eventIcon(e: EventType): ImageVector = when (e) {
     EventType.SUPPRESSED, EventType.MUTED, EventType.AUTO_MUTED -> GgIcons.EyeOff
     EventType.TEST -> GgIcons.Wrench
     EventType.MANUAL -> GgIcons.Shutter
+    EventType.LOW_BATTERY_SHUTDOWN -> GgIcons.Battery
+    EventType.MANUAL_SHUTDOWN -> GgIcons.Power
 }
 
 /** A stored snapshot, drawn the way the mockup draws thumbnails. */
@@ -174,6 +176,7 @@ fun EventPill(event: EventType) {
         EventType.SUPPRESSED -> { bg = c.sunk; fg = c.muted }
         EventType.TEST -> { bg = c.warn; fg = Color(0xFF16130F) }
         EventType.MANUAL -> { bg = c.teal; fg = c.onTeal }
+        EventType.LOW_BATTERY_SHUTDOWN, EventType.MANUAL_SHUTDOWN -> { bg = c.cloud; fg = Color(0xFF16130F) }
         else -> { bg = c.raised; fg = c.text }
     }
     Row(

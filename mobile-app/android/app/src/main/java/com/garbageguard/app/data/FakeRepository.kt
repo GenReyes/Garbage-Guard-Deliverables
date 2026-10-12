@@ -31,6 +31,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
 
     private val _state = MutableStateFlow(
         LiveState(
+            screenMode = "off",
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
                 RoiPoint(0.55f, 0.92f), RoiPoint(0.08f, 0.82f),
@@ -54,14 +55,14 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         val volts = 14.2f + 2.4f * percent / 100f
         val amps = if (charging) 1.15f + 0.1f * sin(tick / 3.0).toFloat() else -0.78f - 0.08f * sin(tick / 3.0).toFloat()
         val cell = volts / 4f
-        _battery.value = Battery(
+        _battery.value = withPower(Battery(
             ok = true, percent = percent, voltage = volts, current = amps, power = volts * amps,
             onAc = charging, charging = charging,
             minutesLeft = if (charging) ((100 - percent) * 2.1f).roundToInt() else (percent * 4.3f).roundToInt(),
             capacityMah = 5000 * percent / 100,
             cells = listOf(cell, cell + 0.004f, cell - 0.006f, cell + 0.002f),
             inputV = if (charging) 15.1f else 0f, inputA = if (charging) 2.2f else 0f, inputW = if (charging) 33.2f else 0f,
-        )
+        ))
     }
 
     init {
@@ -162,6 +163,58 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         _state.update { it.copy(conn = ConnState.NO_CAMERA, reconnects = it.reconnects + 1) }
         scope.launch {
             delay(3000)
+            _state.update { it.copy(conn = ConnState.ONLINE) }
+        }
+    }
+
+    // ---------- Pi power, invented so the demo can show it ----------
+
+    private var autoShutdown = true
+    private var autoShutdownPct = 15
+    private var shutdownState = "armed"
+
+    /** Adds the power fields to a fresh battery reading. */
+    private fun withPower(b: Battery) = b.copy(
+        autoShutdown = autoShutdown, autoShutdownPct = autoShutdownPct,
+        shutdownState = if (autoShutdown || shutdownState == "powering_off") shutdownState else "off",
+    )
+
+    override suspend fun setScreenSaver(mode: String?, timeoutS: Int?, timeoutBatteryS: Int?, dimPct: Int?, wakeOnAlert: Boolean?) {
+        _state.update {
+            it.copy(
+                screenMode = mode ?: it.screenMode,
+                screenTimeoutS = (timeoutS ?: it.screenTimeoutS).coerceIn(60, 3600),
+                screenTimeoutBatteryS = (timeoutBatteryS ?: it.screenTimeoutBatteryS).coerceIn(30, 3600),
+                screenDimPct = (dimPct ?: it.screenDimPct).coerceIn(5, 50),
+                screenWakeOnAlert = wakeOnAlert ?: it.screenWakeOnAlert,
+                // Changing the mode wakes a sleeping screen, as on the Pi.
+                screen = if (mode != null) "on" else it.screen,
+            )
+        }
+    }
+
+    override suspend fun screen(action: String) {
+        _state.update { it.copy(screen = if (action == "sleep") (if (it.screenMode == "dim") "dim" else "off") else "on") }
+    }
+
+    override suspend fun setAutoShutdown(on: Boolean?, pct: Int?) {
+        if (on != null) autoShutdown = on
+        if (pct != null) autoShutdownPct = pct.coerceIn(10, 50)
+        _battery.update { withPower(it) }
+    }
+
+    override suspend fun cancelShutdown(): Boolean = true
+
+    override suspend fun shutdown() {
+        log(EventType.MANUAL_SHUTDOWN, _state.value)
+        shutdownState = "powering_off"
+        _battery.update { withPower(it) }
+        scope.launch {
+            delay(5000)
+            _state.update { it.copy(conn = ConnState.NO_PI) }
+            // The demo Pi comes back by itself so the rest of the demo can go on.
+            delay(9000)
+            shutdownState = "armed"
             _state.update { it.copy(conn = ConnState.ONLINE) }
         }
     }

@@ -305,6 +305,12 @@ object GgIcons {
             p("M12 16v5")
         }
     }
+    val Power by lazy {
+        icon("power") {
+            p("M12 3v8.5")
+            p("M6.7 6.6a7.5 7.5 0 1 0 10.6 0")
+        }
+    }
     val Bolt by lazy { icon("bolt") { fill("M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z") } }
     val BoltEdge by lazy { icon("boltedge", 2.6f) { p("M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z") } }
     val Link by lazy {

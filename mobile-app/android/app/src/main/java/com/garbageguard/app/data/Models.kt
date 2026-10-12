@@ -47,6 +47,16 @@ data class LiveState(
     val cloudUsage: CloudUsage? = null,
     /** Set in Firebase mode when the Pi's heartbeat has stopped: the clock time it was last seen. */
     val piOfflineSince: String? = null,
+    /** The Pi's screen saver. [screenMode] is null on an older Pi that has none: "off", "dim" or "never". */
+    val screenMode: String? = null,
+    val screenTimeoutS: Int = 600,
+    val screenTimeoutBatteryS: Int = 60,
+    val screenDimPct: Int = 20,
+    val screenWakeOnAlert: Boolean = true,
+    /** What the Pi's own screen is doing now: "on", "dim" or "off". */
+    val screen: String = "on",
+    /** A sentence from the Pi when the screen could not do what was asked. */
+    val screenNote: String? = null,
 )
 
 /** One phone or browser from the "viewers" list in GET /api/state. */
@@ -68,7 +78,7 @@ data class Viewer(
     val via: String = "",
 )
 
-/** The seven event values a history row can carry. */
+/** The event values a history row can carry. */
 enum class EventType(val api: String, val label: String) {
     ACCUMULATION("accumulation", "Limit reached"),
     SUPPRESSED("suppressed", "Suppressed"),
@@ -76,7 +86,9 @@ enum class EventType(val api: String, val label: String) {
     MANUAL("manual", "Manual capture"),
     MUTED("muted", "Alert muted"),
     AUTO_MUTED("auto_muted", "Auto-muted"),
-    UNMUTED("unmuted", "Alert unmuted");
+    UNMUTED("unmuted", "Alert unmuted"),
+    LOW_BATTERY_SHUTDOWN("low_battery_shutdown", "Low battery shutdown"),
+    MANUAL_SHUTDOWN("manual_shutdown", "Pi shut down");
 
     val isMuteEvent get() = this == MUTED || this == AUTO_MUTED || this == UNMUTED
 
@@ -126,6 +138,15 @@ data class Battery(
     val inputV: Float? = null,
     val inputA: Float? = null,
     val inputW: Float? = null,
+    /** Low-battery shutdown. [autoShutdown] is null on an older Pi without it. */
+    val autoShutdown: Boolean? = null,
+    val autoShutdownPct: Int = 15,
+    /** "off", "boot_grace", "armed", "counting", "paused" or "powering_off". */
+    val shutdownState: String = "off",
+    /** Seconds left while counting. */
+    val shutdownInS: Int? = null,
+    /** The countdown is the 5% one, which cannot be cancelled. */
+    val shutdownFloor: Boolean = false,
 )
 /** One adapter from GET /api/net/details. */
 data class NetInterface(

@@ -118,6 +118,20 @@ fun OverlayHost(
                 GgButton("Restart", vm::restartPi, Modifier.weight(1f), icon = GgIcons.Refresh, kind = BtnKind.DANGER)
             }
         }
+        Overlay.Shutdown -> GgSheet(close) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Ico(GgIcons.Power, size = 30.dp, tint = Gg.colors.bad)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SheetTitle("Shut down the Pi?")
+                    SheetText("Detection, alerts and the dashboard stop. The Pi goes offline within a minute.")
+                    SheetText("It can only be started again with the power switch on the UPS HAT, at the Pi.", mutedSmall = true)
+                }
+            }
+            Acts {
+                GgButton("Cancel", close, Modifier.weight(1f))
+                GgButton("Shut down", vm::shutdownPi, Modifier.weight(1f), icon = GgIcons.Power, kind = BtnKind.DANGER)
+            }
+        }
         Overlay.Filter -> FilterSheet(vm, close)
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
         is Overlay.Viewer -> {

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.CloudUsage
 import com.garbageguard.app.data.ConnState
 import androidx.compose.foundation.background
@@ -54,6 +55,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
     val limit = vm.draftLimit ?: state.threshold
     val dirty = conf != savedConf || limit != state.threshold
     val hasArea = state.roi.size >= 3
+    val battery by vm.battery.collectAsState()
 
     Column(
         Modifier
@@ -102,6 +104,8 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 icon = GgIcons.Poly,
             )
         }
+
+        PowerCard(vm, state, battery)
 
         GgCard {
             Hd(GgIcons.Bell, "Alerts")
@@ -299,5 +303,104 @@ private fun SettingRow(label: String, sub: String, icon: ImageVector, trailing: 
             T(sub, size = 0.78f, weight = FontWeight.Bold, color = Gg.colors.muted, fit = true)
         }
         trailing()
+    }
+}
+
+/**
+ * The Pi's power settings, the phone's twin of the dashboard's Power card:
+ * the screen saver, the low-battery shutdown, and Shut down. Each part is
+ * left out when the Pi does not report it, so an older Pi shows nothing odd.
+ */
+@Composable
+private fun PowerCard(vm: AppViewModel, state: LiveState, battery: Battery) {
+    val c = Gg.colors
+    val hasScreen = state.screenMode != null
+    val hasShutdown = battery.autoShutdown != null
+    if (!hasScreen && !hasShutdown) return
+    val reachable = state.conn != ConnState.NO_PI
+    val poweringOff = battery.shutdownState == "powering_off"
+
+    GgCard {
+        Hd(GgIcons.Power, "Pi power") {
+            if (vm.powerDirty) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Ico(GgIcons.Warn, size = 13.dp, tint = c.warnText)
+                    T("UNSAVED", size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
+                }
+            } else if (hasScreen) {
+                Tag("Screen ${screenWord(state.screen)}", if (state.screen == "on") Tone.OK else Tone.WARN, if (state.screen == "on") GgIcons.Sun else GgIcons.Moon)
+            }
+        }
+
+        if (hasScreen) {
+            val modes = listOf("off", "dim", "never")
+            val mode = vm.draftScreenMode ?: state.screenMode ?: "off"
+            Field(GgIcons.Moon, "Screen saver") {
+                Segmented(
+                    listOf("Off", "Dim", "Never"),
+                    icons = listOf(GgIcons.Moon, GgIcons.SunMoon, GgIcons.Sun),
+                    selected = modes.indexOf(mode).coerceAtLeast(0),
+                    onSelect = { vm.draftScreenMode = modes[it].takeIf { m -> m != state.screenMode } },
+                )
+            }
+            if (mode != "never") {
+                val minutes = (vm.draftScreenTimeout ?: state.screenTimeoutS) / 60
+                fun setMinutes(m: Int) {
+                    vm.draftScreenTimeout = (m.coerceIn(1, 60) * 60).takeIf { it != state.screenTimeoutS }
+                }
+                Field(GgIcons.Clock, "Turn off after") {
+                    Stepper(minutes, "min", onMinus = { setMinutes(minutes - 1) }, onPlus = { setMinutes(minutes + 1) })
+                }
+                val seconds = vm.draftScreenBattery ?: state.screenTimeoutBatteryS
+                fun setSeconds(s: Int) {
+                    vm.draftScreenBattery = s.coerceIn(30, 3600).takeIf { it != state.screenTimeoutBatteryS }
+                }
+                Field(GgIcons.Battery, "On battery, turn off after") {
+                    Stepper(seconds, "sec", onMinus = { setSeconds(seconds - 30) }, onPlus = { setSeconds(seconds + 30) })
+                }
+            }
+            if (mode == "dim") {
+                val dim = vm.draftScreenDim ?: state.screenDimPct
+                fun setDim(p: Int) {
+                    vm.draftScreenDim = p.coerceIn(5, 50).takeIf { it != state.screenDimPct }
+                }
+                Field(GgIcons.SunMoon, "Dim level") {
+                    Stepper(dim, "%", onMinus = { setDim(dim - 5) }, onPlus = { setDim(dim + 5) })
+                }
+            }
+            SettingRow("Wake on alert", "A new alert wakes the Pi screen", GgIcons.Bell) {
+                AutoSwitch(state.screenWakeOnAlert, vm::toggleWakeOnAlert, label = null, icon = null)
+            }
+        }
+
+        if (hasShutdown) {
+            val on = battery.autoShutdown == true
+            SettingRow("Auto shutdown", "Shuts down cleanly on low battery", GgIcons.Battery) {
+                AutoSwitch(on, vm::toggleAutoShutdown, label = null, icon = null)
+            }
+            if (on) {
+                val pct = vm.draftShutdownPct ?: battery.autoShutdownPct
+                fun setPct(p: Int) {
+                    vm.draftShutdownPct = p.coerceIn(10, 50).takeIf { it != battery.autoShutdownPct }
+                }
+                Field(GgIcons.Gauge, "Shut down at") {
+                    Stepper(pct, "%", onMinus = { setPct(pct - 5) }, onPlus = { setPct(pct + 5) })
+                }
+            }
+        }
+
+        Pair2 {
+            GgButton("Save", vm::savePower, Modifier.weight(1f), icon = GgIcons.Save, kind = BtnKind.INK, enabled = vm.powerDirty && reachable)
+            if (hasScreen) {
+                if (state.screen == "on") GgButton("Sleep now", vm::sleepPi, Modifier.weight(1f), icon = GgIcons.Moon, enabled = reachable)
+                else GgButton("Wake", vm::wakePi, Modifier.weight(1f), icon = GgIcons.Sun, kind = BtnKind.TEAL, enabled = reachable)
+            }
+        }
+        GgButton(
+            if (poweringOff) "Shutting down" else "Shut down the Pi", { vm.overlay = Overlay.Shutdown }, Modifier.fillMaxWidth(),
+            icon = GgIcons.Power, kind = BtnKind.DANGER, enabled = reachable && !poweringOff,
+        )
+        if (state.screenNote != null) Hint(state.screenNote, icon = GgIcons.Warn, wrap = true)
+        Hint("Touch the Pi screen to wake it. The first tap only wakes.", icon = GgIcons.Ok)
     }
 }

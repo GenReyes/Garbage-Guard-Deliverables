@@ -134,6 +134,8 @@ A `screen_off` / `screen_on` row is not needed and would clutter the log. Leave 
 
 ## 6. App side (Brian)
 
+**Status: built in app version 8**, with the mock server changes. Sections 6 and 7 below are kept as the record of what was agreed.
+
 1. **Models**: add `screenMode`, `screenTimeoutS`, `screenTimeoutBatteryS`, `screenDimPct`, `screenWakeOnAlert`, `screen` to the state model, with defaults so older Pi builds without these fields still parse.
 2. **Repository**: `setScreenSaver(mode, timeoutS, timeoutBatteryS, dimPct, wakeOnAlert)` and `screen(action)` over LAN, and the `screen_saver` / `screen` Firebase commands for remote.
 3. **Settings screen**: a "Pi screen saver" card with the same controls and limits as the dashboard card. Hide the card if `screen_mode` is missing from state (older Pi).

@@ -411,6 +411,44 @@ class CloudRepository(
         onNotice("Restart only works on the Pi's own Wi-Fi.")
     }
 
+    // ---------- Pi power, the same commands the Pi's own endpoints take ----------
+
+    override suspend fun setScreenSaver(mode: String?, timeoutS: Int?, timeoutBatteryS: Int?, dimPct: Int?, wakeOnAlert: Boolean?) {
+        val args = JSONObject()
+        if (mode != null) args.put("mode", mode)
+        if (timeoutS != null) args.put("timeout_s", timeoutS)
+        if (timeoutBatteryS != null) args.put("timeout_battery_s", timeoutBatteryS)
+        if (dimPct != null) args.put("dim_pct", dimPct)
+        if (wakeOnAlert != null) args.put("wake_on_alert", wakeOnAlert)
+        command("screen_saver", args)
+        pollState()
+    }
+
+    override suspend fun screen(action: String) {
+        command("screen", JSONObject().put("action", action))
+        pollState()
+    }
+
+    override suspend fun setAutoShutdown(on: Boolean?, pct: Int?) {
+        val args = JSONObject()
+        if (on != null) args.put("on", on)
+        if (pct != null) args.put("pct", pct)
+        command("auto_shutdown", args)
+        pollState()
+    }
+
+    override suspend fun cancelShutdown(): Boolean {
+        val result = command("auto_shutdown", JSONObject().put("cancel", true))
+        pollState()
+        return result?.optBoolean("ok", false) == true
+    }
+
+    override suspend fun shutdown() {
+        command("shutdown", JSONObject().put("confirm", true))
+        pollState()
+        pollAlerts()
+    }
+
     /** The Pi's network screen is local only. */
     override suspend fun networkDetails(): NetDetails? = null
 

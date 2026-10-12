@@ -90,7 +90,77 @@ STATE = {
     "auto_mute_s": 900,
     "auto_muted": False,
     "in_alert": False,
+    # Screen saver (pi/gg_screen.py). The mock has no real screen; it only keeps the state.
+    "screen_mode": "off",
+    "screen_timeout_s": 600,
+    "screen_timeout_battery_s": 60,
+    "screen_dim_pct": 20,
+    "screen_wake_on_alert": True,
+    "screen": "on",
+    "screen_touched": time.time(),
+    # Low-battery shutdown (pi/gg_power.py).
+    "auto_shutdown": True,
+    "auto_shutdown_pct": 15,
+    "shutdown_paused": False,
+    "low_until": 0.0,        # a pretend low battery lasts until this time
+    "low_floor": False,      # the pretend low battery is the 5% one
+    "count_until": 0.0,      # the countdown ends at this time
+    "powering_off_until": 0.0,
+    "off_until": 0.0,        # the pretend Pi is switched off until this time
 }
+
+
+def screen_now():
+    """What the pretend screen is doing, after applying the idle timer."""
+    if STATE["screen"] == "on" and STATE["screen_mode"] != "never":
+        on_battery = not build_battery_core()["on_ac"]
+        limit = STATE["screen_timeout_battery_s"] if on_battery else STATE["screen_timeout_s"]
+        if time.time() - STATE["screen_touched"] > limit:
+            STATE["screen"] = "dim" if STATE["screen_mode"] == "dim" else "off"
+    return STATE["screen"]
+
+
+def wake_screen():
+    STATE["screen"] = "on"
+    STATE["screen_touched"] = time.time()
+
+
+def shutdown_fields():
+    """The low-battery state machine, cut down to what the app needs to see."""
+    now = time.time()
+    low = now < STATE["low_until"]
+    if now < STATE["powering_off_until"]:
+        state = "powering_off"
+    elif not STATE["auto_shutdown"] and not (low and STATE["low_floor"]):
+        state = "off"
+    elif low and STATE["shutdown_paused"] and not STATE["low_floor"]:
+        state = "paused"
+    elif low:
+        state = "counting"
+        if STATE["count_until"] <= now:
+            # The countdown ran out: write the row, then go dark for a while.
+            add_row("low_battery_shutdown", 0, 0, 0, 0, None, datetime.now(), False)
+            STATE["low_until"] = 0.0
+            STATE["powering_off_until"] = now + 4
+            STATE["off_until"] = now + 4 + 25
+            state = "powering_off"
+    else:
+        STATE["shutdown_paused"] = False
+        state = "armed"
+    left = int(STATE["count_until"] - now) if state == "counting" else None
+    return {
+        "auto_shutdown": STATE["auto_shutdown"],
+        "auto_shutdown_pct": STATE["auto_shutdown_pct"],
+        "shutdown_state": state,
+        "shutdown_in_s": max(0, left) if left is not None else None,
+        "shutdown_floor": bool(low and STATE["low_floor"]),
+    }
+
+
+def switched_off():
+    """True while the pretend Pi is powered off. It boots again by itself so testing can go on."""
+    now = time.time()
+    return STATE["powering_off_until"] <= now < STATE["off_until"]
 
 
 def muted():
@@ -187,6 +257,13 @@ def build_state():
         "auto_mute_s": STATE["auto_mute_s"],
         "frames": int((time.time() - STATE["started"]) * 14),
         "uptime_s": int(time.time() - STATE["started"]),
+        "screen_mode": STATE["screen_mode"],
+        "screen_timeout_s": STATE["screen_timeout_s"],
+        "screen_timeout_battery_s": STATE["screen_timeout_battery_s"],
+        "screen_dim_pct": STATE["screen_dim_pct"],
+        "screen_wake_on_alert": STATE["screen_wake_on_alert"],
+        "screen": screen_now(),
+        "screen_note": None,
     }
 
 
@@ -211,13 +288,25 @@ def build_net_details():
 
 
 def build_battery():
+    """The UPS readout plus the low-battery shutdown fields, as /api/battery gives them."""
+    out = build_battery_core()
+    out.update(shutdown_fields())
+    return out
+
+
+def build_battery_core():
     """Invented UPS HAT readout, same fields as pi/gg_ups.py. Two minutes on
-    battery, then two minutes charging, so both looks can be seen."""
+    battery, then two minutes charging, so both looks can be seen. During a
+    pretend low battery (POST /api/mock/low_battery) it sits just under the
+    shutdown threshold, on battery."""
     t = time.time()
     phase = int(t // 120) % 2
     step = (t % 120) / 120.0
     charging = phase == 1
     percent = int(round(58 + 30 * step)) if charging else int(round(88 - 30 * step))
+    if t < STATE["low_until"] or t < STATE["powering_off_until"]:
+        charging = False
+        percent = 4 if STATE["low_floor"] else max(1, STATE["auto_shutdown_pct"] - 1)
     volts = round(14.2 + 2.4 * percent / 100.0, 3)
     amps = round(1.15 + 0.1 * math.sin(t / 3), 3) if charging else round(-0.78 - 0.08 * math.sin(t / 3), 3)
     cell = round(volts / 4, 3)
@@ -283,6 +372,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         q = parse_qs(urlparse(self.path).query)
+        if switched_off():
+            # A Pi that is powered off answers nothing. The mock says so with a 503.
+            return self._send(503, "text/plain", "powered off")
 
         if path == "/api/state":
             ip = self.client_address[0]
@@ -336,6 +428,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = urlparse(self.path).path
         data = self._body()
+        if switched_off():
+            return self._send(503, "text/plain", "powered off")
 
         if path == "/api/settings":
             conf = data.get("conf")
@@ -425,6 +519,71 @@ class Handler(BaseHTTPRequestHandler):
             files = sum(1 for r in LOG if r not in keep and r["snapshot"])
             LOG[:] = keep
             return self._json({"ok": True, "deleted": gone, "files_removed": files})
+
+        if path == "/api/screen_saver":
+            if data.get("mode") in ("off", "dim", "never"):
+                STATE["screen_mode"] = data["mode"]
+                wake_screen()  # changing the mode wakes a sleeping screen
+            if data.get("timeout_s") is not None:
+                STATE["screen_timeout_s"] = min(3600, max(60, int(data["timeout_s"])))
+            if data.get("timeout_battery_s") is not None:
+                STATE["screen_timeout_battery_s"] = min(3600, max(30, int(data["timeout_battery_s"])))
+            if data.get("dim_pct") is not None:
+                STATE["screen_dim_pct"] = min(50, max(5, int(data["dim_pct"])))
+            if data.get("wake_on_alert") is not None:
+                STATE["screen_wake_on_alert"] = bool(data["wake_on_alert"])
+            return self._json({"ok": True, **{k: STATE[k] for k in (
+                "screen_mode", "screen_timeout_s", "screen_timeout_battery_s",
+                "screen_dim_pct", "screen_wake_on_alert")}})
+
+        if path == "/api/screen":
+            action = data.get("action")
+            if action == "wake":
+                wake_screen()
+            elif action == "sleep":
+                STATE["screen"] = "dim" if STATE["screen_mode"] == "dim" else "off"
+            else:
+                return self._send(400, "application/json", json.dumps({"ok": False, "error": "bad_action"}))
+            return self._json({"ok": True, "screen": STATE["screen"]})
+
+        if path == "/api/auto_shutdown":
+            if data.get("cancel"):
+                if time.time() < STATE["low_until"] and STATE["low_floor"]:
+                    return self._send(409, "application/json", json.dumps({"ok": False, "error": "floor"}))
+                STATE["shutdown_paused"] = True
+            if data.get("on") is not None:
+                STATE["auto_shutdown"] = bool(data["on"])
+                if STATE["auto_shutdown"] and STATE["shutdown_paused"]:
+                    # Switching it on again re-arms a paused shutdown.
+                    STATE["shutdown_paused"] = False
+                    STATE["count_until"] = time.time() + 300
+            if data.get("pct") is not None:
+                STATE["auto_shutdown_pct"] = min(50, max(10, int(data["pct"])))
+            return self._json({"ok": True, **shutdown_fields()})
+
+        if path == "/api/shutdown":
+            if data.get("confirm") is not True:
+                return self._send(400, "application/json", json.dumps({"ok": False, "error": "confirm_required"}))
+            if time.time() < STATE["powering_off_until"]:
+                return self._json({"ok": True, "already": True})
+            add_row("manual_shutdown", 0, 0, 0, 0, None, datetime.now(), False)
+            STATE["powering_off_until"] = time.time() + 6
+            STATE["off_until"] = time.time() + 6 + 25
+            return self._json({"ok": True})
+
+        # Mock only: pretend the battery has just dropped under the threshold,
+        # so the countdown, Cancel and the shutdown row can be tested with no Pi.
+        # Body (all optional): {"seconds": 300, "floor": false}. The real Pi
+        # counts 300 seconds, or 60 at the 5% floor.
+        if path == "/api/mock/low_battery":
+            floor = bool(data.get("floor"))
+            seconds = int(data.get("seconds") or (60 if floor else 300))
+            STATE["low_floor"] = floor
+            STATE["shutdown_paused"] = False
+            STATE["count_until"] = time.time() + seconds
+            STATE["low_until"] = time.time() + seconds + 120
+            wake_screen()
+            return self._json({"ok": True, **shutdown_fields()})
 
         if path in ("/api/test_alert", "/api/capture"):
             s = build_state()

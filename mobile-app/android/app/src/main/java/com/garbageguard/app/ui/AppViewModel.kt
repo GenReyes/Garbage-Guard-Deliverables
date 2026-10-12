@@ -81,6 +81,9 @@ sealed interface Overlay {
     data object Network : Overlay
     /** Confirmation before restarting Garbage-Guard on the Pi. */
     data object Restart : Overlay
+
+    /** Asks before powering the Pi off. */
+    data object Shutdown : Overlay
     /** Who is connected to the Pi right now. */
     data object Viewers : Overlay
     /** The Firebase settings page. */
@@ -514,6 +517,65 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Restarts detection, camera and server on the Pi. Settings and history are kept. */
+    // ---------- Pi power: screen saver, wake, auto shutdown, shut down ----------
+
+    /** Edits in the Pi power card that are not saved yet. Null means "as on the Pi". */
+    var draftScreenMode by mutableStateOf<String?>(null)
+    var draftScreenTimeout by mutableStateOf<Int?>(null)
+    var draftScreenBattery by mutableStateOf<Int?>(null)
+    var draftScreenDim by mutableStateOf<Int?>(null)
+    var draftShutdownPct by mutableStateOf<Int?>(null)
+
+    val powerDirty: Boolean
+        get() = draftScreenMode != null || draftScreenTimeout != null || draftScreenBattery != null ||
+            draftScreenDim != null || draftShutdownPct != null
+
+    fun savePower() {
+        val mode = draftScreenMode
+        val timeout = draftScreenTimeout
+        val onBattery = draftScreenBattery
+        val dim = draftScreenDim
+        val pct = draftShutdownPct
+        launchAction("Power settings saved") {
+            if (mode != null || timeout != null || onBattery != null || dim != null) {
+                repo.setScreenSaver(mode, timeout, onBattery, dim, null)
+            }
+            if (pct != null) repo.setAutoShutdown(null, pct)
+            draftScreenMode = null
+            draftScreenTimeout = null
+            draftScreenBattery = null
+            draftScreenDim = null
+            draftShutdownPct = null
+        }
+    }
+
+    fun toggleWakeOnAlert() {
+        val on = !state.value.screenWakeOnAlert
+        launchAction(if (on) "Alerts wake the Pi screen" else "Alerts leave the Pi screen asleep") {
+            repo.setScreenSaver(null, null, null, null, on)
+        }
+    }
+
+    fun toggleAutoShutdown() {
+        val on = battery.value.autoShutdown != true
+        launchAction(if (on) "Auto shutdown on" else "Auto shutdown off") { repo.setAutoShutdown(on, null) }
+    }
+
+    fun wakePi() = launchAction("Waking the Pi screen") { repo.screen("wake") }
+
+    fun sleepPi() = launchAction("Pi screen going to sleep") { repo.screen("sleep") }
+
+    fun cancelShutdown() {
+        viewModelScope.launch {
+            showToast(if (repo.cancelShutdown()) "Shutdown cancelled" else "This shutdown cannot be cancelled")
+        }
+    }
+
+    fun shutdownPi() {
+        overlay = null
+        launchAction("The Pi is shutting down") { repo.shutdown() }
+    }
+
     fun restartPi() {
         overlay = null
         launchAction("Restarting Garbage-Guard on the Pi") { repo.restart() }

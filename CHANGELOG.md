@@ -4,6 +4,47 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 8: Pi power in the app (2026-10-12)
+
+App side of the screen saver and low-battery shutdown plan
+(`mobile-app/SCREEN_SAVER_PLAN.md`, sections 6 and 7). Works on the Pi's Wi-Fi
+and through Firebase.
+
+### App
+
+- New "Pi power" card in Settings, the twin of the dashboard's Power card:
+  screen saver mode (Off, Dim, Never), the two timers, the dim level, wake on
+  alert, the auto shutdown switch and its percentage, Save, and Sleep now or
+  Wake. The card and each part of it are left out on a Pi that does not report
+  them.
+- Monitor page: a line showing whether the Pi screen is on, dimmed or off,
+  with a Wake or Sleep key.
+- A countdown banner over every page while the Pi counts down to a low-battery
+  shutdown, with Cancel. The time is counted down on the phone between
+  readings. Cancel is hidden for the 5% shutdown that cannot be stopped. The
+  same banner says "The Pi is shutting down" while it powers off.
+- A notification when the countdown starts and the app is not on screen, and
+  one for a `low_battery_shutdown` row. It needs the app's watch service to be
+  running; a fully closed app cannot be woken by the database.
+- "Shut down the Pi" button with a confirmation that says the Pi can only be
+  started again with the switch on the UPS HAT.
+- History shows `low_battery_shutdown` (battery symbol) and `manual_shutdown`
+  (power symbol) as orange rows.
+- Version 7.1, included here: the app no longer closes when the phone has no
+  internet and Firebase is set up. A failed Firebase read in the background
+  had nothing to catch it.
+
+### Mock server
+
+- `gg_mock_server.py` has the six screen fields, the five shutdown fields,
+  `POST /api/screen_saver`, `/api/screen`, `/api/auto_shutdown` and
+  `/api/shutdown`, and the two new history rows.
+- `POST /api/mock/low_battery` (mock only) pretends the battery has dropped
+  under the threshold, so the countdown, Cancel and the shutdown row can be
+  tested with no Pi. Body, all optional: `{"seconds": 300, "floor": false}`.
+  After a shutdown the mock answers 503 for about 25 seconds, then "boots"
+  again.
+
 ## Pi screen saver and low-battery shutdown (2026-10-12)
 
 Pi side of the plan. The app needs the matching changes (see

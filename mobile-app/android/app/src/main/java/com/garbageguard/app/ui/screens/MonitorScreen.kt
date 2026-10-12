@@ -127,6 +127,7 @@ fun MonitorScreen(vm: AppViewModel, state: LiveState) {
         Hero(state)
         Counts(state)
         MuteBar(vm, state)
+        PiScreenChip(vm, state)
         FeedCard(vm, state)
     }
 }

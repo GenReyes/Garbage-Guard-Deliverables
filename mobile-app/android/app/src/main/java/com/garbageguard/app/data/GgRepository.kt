@@ -69,4 +69,19 @@ interface GgRepository {
 
     /** GET /api/net/details. Null when the Pi does not answer or is too old to have it. */
     suspend fun networkDetails(): NetDetails?
+
+    /** POST /api/screen_saver. Any value may be left null to keep it as it is. */
+    suspend fun setScreenSaver(mode: String?, timeoutS: Int?, timeoutBatteryS: Int?, dimPct: Int?, wakeOnAlert: Boolean?) {}
+
+    /** POST /api/screen with "wake" or "sleep". */
+    suspend fun screen(action: String) {}
+
+    /** POST /api/auto_shutdown with the switch, the percentage, or both. */
+    suspend fun setAutoShutdown(on: Boolean?, pct: Int?) {}
+
+    /** POST /api/auto_shutdown {"cancel": true}. False when the Pi refuses. */
+    suspend fun cancelShutdown(): Boolean = true
+
+    /** POST /api/shutdown {"confirm": true}. Powers the Pi off. */
+    suspend fun shutdown() {}
 }

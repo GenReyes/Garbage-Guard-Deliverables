@@ -71,6 +71,14 @@ object Alerts {
             "gg_unmute_v3", "Alert unmuted", "The mute was lifted.",
             R.raw.gg_unmute, NotificationManager.IMPORTANCE_DEFAULT, "Alert unmuted", routine = true,
         ),
+        EventType.LOW_BATTERY_SHUTDOWN to Kind(
+            "gg_lowbattery_v1", "Low battery shutdown", "The Pi shut itself down, or is about to, because its battery is low.",
+            R.raw.gg_buzzer, NotificationManager.IMPORTANCE_HIGH, "Pi shut down: battery low", routine = false,
+        ),
+        EventType.MANUAL_SHUTDOWN to Kind(
+            "gg_shutdown_v1", "Pi shut down", "Someone pressed Shut down.",
+            R.raw.gg_mute, NotificationManager.IMPORTANCE_DEFAULT, "Pi shut down", routine = true,
+        ),
     )
 
     private var source: String? = null
@@ -156,6 +164,8 @@ object Alerts {
             EventType.ACCUMULATION, EventType.TEST -> "$items on the water, limit is ${row.thresholdUsed}."
             EventType.AUTO_MUTED -> "$items on the water. Auto-mute silenced the alert."
             EventType.MANUAL -> "$items in view when the snapshot was taken."
+            EventType.LOW_BATTERY_SHUTDOWN -> "The battery ran low. Switch the UPS HAT off and on at the Pi to start it again."
+            EventType.MANUAL_SHUTDOWN -> "Someone pressed Shut down. Switch the UPS HAT off and on at the Pi to start it again."
             else -> "Changed on the Pi or another phone."
         }
         val high = kind.importance >= NotificationManager.IMPORTANCE_HIGH
@@ -188,6 +198,45 @@ object Alerts {
             // Permission was withdrawn between the check and the post.
         }
     }
+
+    /**
+     * The low-battery countdown has started. With the app on screen the banner
+     * says so, and this only sounds the buzzer; otherwise it raises a notification.
+     */
+    fun countdown(context: Context, seconds: Int?, percent: Int, foreground: Boolean) {
+        val kind = kinds.getValue(EventType.LOW_BATTERY_SHUTDOWN)
+        if (foreground) {
+            Sounds.play(kind.sound)
+            return
+        }
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return
+        val open = PendingIntent.getActivity(
+            context, 0,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val left = seconds ?: 300
+        val time = "${left / 60}:${(left % 60).toString().padStart(2, '0')}"
+        val notification = NotificationCompat.Builder(context, kind.channel)
+            .setSmallIcon(R.drawable.ic_stat_gg)
+            .setColor(0xFF128C84.toInt())
+            .setContentTitle("Pi battery low: shutting down in $time")
+            .setContentText("Battery at $percent%. Plug in the charger, or open the app to cancel.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setAutoCancel(true)
+            .setContentIntent(open)
+            .build()
+        try {
+            manager.notify(COUNTDOWN_ID, notification)
+        } catch (_: SecurityException) {
+            // Permission was withdrawn between the check and the post.
+        }
+    }
+
+    private const val COUNTDOWN_ID = 7002
 
     private suspend fun fetch(url: String): Bitmap? {
         val cloudScheme = com.garbageguard.app.ui.components.RemoteImages.CLOUD

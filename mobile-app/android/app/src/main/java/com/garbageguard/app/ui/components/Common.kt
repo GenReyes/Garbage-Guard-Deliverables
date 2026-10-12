@@ -337,7 +337,7 @@ fun accentOf(icon: ImageVector): Color {
         "shutter", "cam", "eye", "check", "ok", "refresh", "gear", "pen", "save", "shield", "target" -> c.teal
         "link", "edit", "signal", "filter", "layers", "bottle", "expand", "shrink" -> c.bottle
         "clock", "moon", "sunmoon", "phone", "cal", "bag", "activity", "mail" -> c.bag
-        "cloud", "key" -> c.cloud
+        "cloud", "key", "power" -> c.cloud
         "battery", "plug", "container", "up" -> c.container
         else -> c.text
     }

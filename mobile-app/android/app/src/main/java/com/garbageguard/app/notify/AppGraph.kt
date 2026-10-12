@@ -129,6 +129,25 @@ object AppGraph {
         scope.launch {
             cloud.localUrls.collect { CloudStore.rememberUrls(app, it) }
         }
+        // The low-battery countdown is announced once, at the moment it starts.
+        scope.launch {
+            var last = ""
+            pi.battery.collect { b ->
+                if (mode.value == LinkMode.LOCAL) {
+                    if (b.shutdownState == "counting" && last != "counting") Alerts.countdown(app, b.shutdownInS, b.percent, pi.foreground)
+                    last = b.shutdownState
+                }
+            }
+        }
+        scope.launch {
+            var last = ""
+            cloud.battery.collect { b ->
+                if (mode.value == LinkMode.CLOUD) {
+                    if (b.shutdownState == "counting" && last != "counting") Alerts.countdown(app, b.shutdownInS, b.percent, cloud.foreground)
+                    last = b.shutdownState
+                }
+            }
+        }
         // A change of network (joining or leaving the Pi's Wi-Fi) is the moment to look again.
         runCatching {
             val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

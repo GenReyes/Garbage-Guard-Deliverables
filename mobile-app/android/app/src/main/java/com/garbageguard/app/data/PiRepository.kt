@@ -155,10 +155,18 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     internal fun parseBattery(o: JSONObject): Battery {
-        if (!o.optBoolean("ok", false)) return Battery()
+        // The shutdown fields arrive even when the gauge cannot be read.
+        val power = Battery(
+            autoShutdown = if (o.has("auto_shutdown")) o.optBoolean("auto_shutdown") else null,
+            autoShutdownPct = o.optInt("auto_shutdown_pct", 15),
+            shutdownState = text(o, "shutdown_state").ifEmpty { "off" },
+            shutdownInS = if (o.isNull("shutdown_in_s")) null else o.optInt("shutdown_in_s"),
+            shutdownFloor = o.optBoolean("shutdown_floor", false),
+        )
+        if (!o.optBoolean("ok", false)) return power
         val cells = o.optJSONArray("cells_v")
         fun f(key: String): Float? = if (o.isNull(key)) null else o.optDouble(key).toFloat()
-        return Battery(
+        return power.copy(
             ok = true,
             percent = o.optInt("percent").coerceIn(0, 100),
             voltage = o.optDouble("voltage_v", 0.0).toFloat(),
@@ -280,6 +288,52 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     override suspend fun restart() {
         post("/api/restart", null)
+    }
+
+    // ---------- Pi power ----------
+
+    override suspend fun setScreenSaver(mode: String?, timeoutS: Int?, timeoutBatteryS: Int?, dimPct: Int?, wakeOnAlert: Boolean?) {
+        val body = JSONObject()
+        if (mode != null) body.put("mode", mode)
+        if (timeoutS != null) body.put("timeout_s", timeoutS)
+        if (timeoutBatteryS != null) body.put("timeout_battery_s", timeoutBatteryS)
+        if (dimPct != null) body.put("dim_pct", dimPct)
+        if (wakeOnAlert != null) body.put("wake_on_alert", wakeOnAlert)
+        post("/api/screen_saver", body)
+        pollState()
+    }
+
+    override suspend fun screen(action: String) {
+        post("/api/screen", JSONObject().put("action", action))
+        pollState()
+    }
+
+    override suspend fun setAutoShutdown(on: Boolean?, pct: Int?) {
+        val body = JSONObject()
+        if (on != null) body.put("on", on)
+        if (pct != null) body.put("pct", pct)
+        post("/api/auto_shutdown", body)
+        pollBattery()
+    }
+
+    /** False when the Pi refuses, which it does for the 5% shutdown that cannot be stopped. */
+    override suspend fun cancelShutdown(): Boolean {
+        val ok = try {
+            request("POST", "/api/auto_shutdown", JSONObject().put("cancel", true))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            false
+        }
+        pollBattery()
+        return ok
+    }
+
+    override suspend fun shutdown() {
+        post("/api/shutdown", JSONObject().put("confirm", true))
+        pollBattery()
+        refreshAlerts()
     }
 
     override suspend fun networkDetails(): NetDetails? = try {
@@ -413,6 +467,13 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             autoMute = o.optBoolean("auto_mute", false),
             autoMuteS = o.optInt("auto_mute_s", 900),
             autoMuted = o.optBoolean("auto_muted", false),
+            screenMode = if (o.has("screen_mode")) text(o, "screen_mode").ifEmpty { null } else null,
+            screenTimeoutS = o.optInt("screen_timeout_s", 600),
+            screenTimeoutBatteryS = o.optInt("screen_timeout_battery_s", 60),
+            screenDimPct = o.optInt("screen_dim_pct", 20),
+            screenWakeOnAlert = o.optBoolean("screen_wake_on_alert", true),
+            screen = text(o, "screen").ifEmpty { "on" },
+            screenNote = text(o, "screen_note").ifEmpty { null },
         )
     }
 

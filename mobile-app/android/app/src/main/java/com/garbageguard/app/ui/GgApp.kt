@@ -50,6 +50,8 @@ import com.garbageguard.app.ui.screens.FullscreenScreen
 import com.garbageguard.app.ui.screens.HistoryScreen
 import com.garbageguard.app.ui.screens.MonitorScreen
 import com.garbageguard.app.ui.screens.OverlayHost
+import com.garbageguard.app.ui.screens.ShutdownBanner
+import androidx.compose.foundation.layout.padding
 import com.garbageguard.app.ui.screens.SettingsScreen
 import com.garbageguard.app.ui.screens.SetupScreen
 import com.garbageguard.app.ui.theme.GarbageGuardTheme
@@ -146,6 +148,12 @@ fun GgApp(vm: AppViewModel) {
                         }
                     }
                 }
+
+                // The low-battery countdown shows over every page, under any open sheet.
+                ShutdownBanner(
+                    vm, battery,
+                    Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp).widthIn(max = 456.dp),
+                )
 
                 OverlayHost(
                     vm, alerts, battery, state.viewers,
