@@ -400,6 +400,12 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None):
                 res = power.configure(on=None if on is None else bool(on), pct=pct)
                 return self._json({"ok": True, **res})
 
+            if path == "/api/shutdown":
+                if not data.get("confirm"):
+                    return self._json({"ok": False, "error": "confirm_required"}, 400)
+                res = power.manual_shutdown()
+                return self._json(res, 200 if res.get("ok") else 500)
+
             if path == "/api/alerts/read":
                 ids = data.get("ids")
                 res = engine.mark_read(

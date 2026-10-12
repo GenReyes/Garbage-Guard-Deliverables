@@ -47,6 +47,7 @@ COMMANDS = {
     "screen_saver": "/api/screen_saver",
     "screen": "/api/screen",
     "auto_shutdown": "/api/auto_shutdown",
+    "shutdown": "/api/shutdown",
 }
 
 STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "roi", "latency_ms",

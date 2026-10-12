@@ -112,6 +112,9 @@ Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 17 te
 ## Screen saver and low-battery shutdown
 
 Both live in the Power card on the dashboard (scroll the right-hand column).
+The card also has a red **Shut down** button. It asks "Shut down the Pi?", writes
+a "Manual shutdown" row to History, sends it to Firebase and powers off. Start
+the Pi again with the switch on the UPS HAT.
 
 **One-time setup on the Pi**
 

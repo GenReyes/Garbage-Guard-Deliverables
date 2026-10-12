@@ -89,7 +89,10 @@ class ApiTests(unittest.TestCase):
         ups = FakeUps()
         self.screen = gg_screen.Screen(self.engine.settings, ups=ups, run=lambda c, e: (True, "HDMI-A-2 x\n  Enabled: yes\n" if c == ["wlr-randr"] else ""),
                                        have=lambda n: "/x")
-        self.power = gg_power.Power(self.engine.settings, ups=ups, screen=self.screen)
+        self.offs = []
+        self.power = gg_power.Power(self.engine.settings, ups=ups, screen=self.screen,
+                                    shutdown=lambda: self.offs.append(1) or True,
+                                    spawn=lambda f: f())
         self.server = w.QuietServer(("127.0.0.1", 0), w.make_handler(
             self.engine, net=object(), ups=ups, screen=self.screen, power=self.power))
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
@@ -126,6 +129,12 @@ class ApiTests(unittest.TestCase):
         w.LOOPBACK = ()
         self.addCleanup(setattr, w, "LOOPBACK", old)
         self.assertEqual(self.call("/api/screen/touch", {})[0], 403)
+
+    def test_shutdown_needs_confirmation(self):
+        self.assertEqual(self.call("/api/shutdown", {})[0], 400)
+        self.assertEqual(self.offs, [])
+        self.assertEqual(self.call("/api/shutdown", {"confirm": True})[0], 200)
+        self.assertEqual(self.offs, [1])
 
     def test_battery_has_shutdown_fields_and_settings_endpoint(self):
         code, b = self.call("/api/battery")

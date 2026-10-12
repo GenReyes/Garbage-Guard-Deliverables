@@ -138,7 +138,8 @@ A `screen_off` / `screen_on` row is not needed and would clutter the log. Leave 
 2. **Repository**: `setScreenSaver(mode, timeoutS, timeoutBatteryS, dimPct, wakeOnAlert)` and `screen(action)` over LAN, and the `screen_saver` / `screen` Firebase commands for remote.
 3. **Settings screen**: a "Pi screen saver" card with the same controls and limits as the dashboard card. Hide the card if `screen_mode` is missing from state (older Pi).
 4. **Monitor screen**: a small chip "Pi screen: On / Dimmed / Off" with a Wake button when it is not on. Handy for the defence demo: wake the Pi from the phone.
-5. **Mock server**: add the fields and both endpoints to `gg_mock_server.py` so the app can be built before Genesis finishes.
+5. **Shut down button** (Pi side is done): a "Shut down the Pi" button in Settings, with a confirmation dialog that says it can only be restarted with the UPS HAT switch. LAN: `POST /api/shutdown` with `{"confirm": true}`. Remote: the `shutdown` Firebase command with the same body. Afterwards show "Pi is shutting down" (`shutdown_state` is `powering_off`) and expect it to go offline in 30 to 60 seconds. Add `manual_shutdown` (orange row, power icon) to the history event labels. See `GarbageGuard_API.md`, `POST /api/shutdown`.
+6. **Mock server**: add the fields and both endpoints to `gg_mock_server.py` so the app can be built before Genesis finishes.
 
 ## 7. Low battery auto shutdown
 

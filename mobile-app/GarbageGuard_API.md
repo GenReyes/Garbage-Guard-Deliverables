@@ -187,6 +187,7 @@ Newest first. Six `event` values:
 | `auto_muted` | Auto-mute silenced a new alert. The `accumulation` row before it is still recorded. | Grey row |
 | `unmuted` | The mute was lifted, by hand or automatically. | Grey row |
 | `low_battery_shutdown` | The Pi shut itself down because the battery was low. Written once, just before power off. | Orange row, battery icon |
+| `manual_shutdown` | Someone pressed Shut down on the dashboard or in the app. Written once, just before power off. | Orange row, power icon |
 
 `read` is `0` or `1`. Show unread rows at full weight and read rows dimmed,
 and put the unread count on the history tab or badge.
@@ -387,6 +388,24 @@ floor, because that shutdown cannot be cancelled. Switching `on` to `true`
 re-arms a paused shutdown. Other answers: `{"ok": true, "auto_shutdown": true,
 "auto_shutdown_pct": 15, "shutdown_state": "armed", "shutdown_in_s": null,
 "shutdown_floor": false}`.
+
+---
+
+### `POST /api/shutdown`
+
+Powers the Pi off now. The body must be `{"confirm": true}`; anything else
+answers `400 {"ok": false, "error": "confirm_required"}`, so a stray request
+cannot switch the Pi off. The app should ask "Shut down the Pi?" first and say
+that it can only be started again with the switch on the UPS HAT.
+
+The Pi writes a `manual_shutdown` history row, answers `{"ok": true}` at once,
+then sends the history and state to Firebase and powers off a moment later.
+`/api/battery` reports `shutdown_state: "powering_off"` in between. Expect the
+Pi to go offline 30 to 60 seconds later, so show "Pi is shutting down" rather
+than an error. If the Pi cannot power off, the state returns to normal and
+nothing else changes. A second request while it is powering off answers
+`{"ok": true, "already": true}`. Over Firebase this is the `shutdown` command
+with `{"confirm": true}`.
 
 ---
 

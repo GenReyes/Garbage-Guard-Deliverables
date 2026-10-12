@@ -53,7 +53,8 @@ def poweroff():
 
 class Power:
     def __init__(self, settings, save=None, ups=None, screen=None, shutdown=poweroff,
-                 log=None, flush=None, clock=time.monotonic, uptime=system_uptime):
+                 log=None, flush=None, clock=time.monotonic, uptime=system_uptime,
+                 spawn=None):
         self.settings = settings
         for k, v in DEFAULTS.items():
             settings.setdefault(k, v)
@@ -65,6 +66,7 @@ class Power:
         self._flush = flush
         self.clock = clock
         self._uptime = uptime
+        self._spawn = spawn or (lambda f: threading.Thread(target=f, daemon=True).start())
         self.born = clock()
         self.lock = threading.RLock()
         self.state = "off"
@@ -102,6 +104,37 @@ class Power:
                 self._reset("paused")
             return {"ok": True, **self.fields()}
 
+    def manual_shutdown(self):
+        """Power off now because a person asked (dashboard button or phone).
+
+        The history row is written first and the reply goes back at once; the
+        send to Firebase and the power off follow a moment later on their own
+        thread. A phone command is answered from inside the cloud loop, which
+        holds the lock the send needs, so waiting here would only time out.
+        """
+        with self.lock:
+            if self.shutting:
+                return {"ok": True, "already": True}
+            self.shutting = True
+            print("[POWER] manual shutdown requested", flush=True)
+            try:
+                if self._log:
+                    self._log("manual_shutdown")
+            except Exception as e:
+                print(f"[POWER] could not record the shutdown: {e}", flush=True)
+        self._spawn(self._finish_manual)
+        return {"ok": True}
+
+    def _finish_manual(self):
+        try:
+            if self._flush:
+                self._flush(8)
+        except Exception as e:
+            print(f"[POWER] could not send the shutdown: {e}", flush=True)
+        if not self._shutdown():
+            print("[POWER] shutdown was refused", flush=True)
+            self.shutting = False
+
     def _reset(self, state):
         self.state = state
         self.deadline = None
@@ -119,7 +152,7 @@ class Power:
         s = self.settings
         return {"auto_shutdown": bool(s["auto_shutdown"]),
                 "auto_shutdown_pct": int(s["auto_shutdown_pct"]),
-                "shutdown_state": self.state,
+                "shutdown_state": "powering_off" if self.shutting else self.state,
                 "shutdown_in_s": self.left(now),
                 "shutdown_floor": bool(self.floor and self.state == "counting")}
 

@@ -90,6 +90,7 @@ button,input{font:inherit;color:inherit}
 .btn:active{transform:translate(3px,3px);box-shadow:var(--press);background:var(--sunk)}
 .btn.teal{background:linear-gradient(162deg, var(--teal-lt) 0%, var(--teal) 62%);color:#fff;
   border-color:var(--edge)}
+.btn.bad{background:var(--bad);color:#fff;border-color:var(--edge)}
 .btn.ink{background:linear-gradient(162deg, #45413B 0%, var(--text) 62%);color:var(--base)}
 [data-theme="dark"] .btn.ink{background:linear-gradient(162deg,#FFF 0%, var(--text) 62%)}
 .btn.teal:active,.btn.ink:active{filter:brightness(.9)}
@@ -779,14 +780,14 @@ main{flex:1;min-height:0;display:flex}
 .urgent .ev.accumulation{font-size:13px;padding:4px 12px;box-shadow:3px 3px 0 var(--edge)}
 .urgent .ev.accumulation .ico{animation:ring 1.1s ease-in-out infinite}
 .ev.suppressed{background:var(--slate);color:#fff}
-.ev.low_battery_shutdown{background:var(--orange);color:#fff}
+.ev.low_battery_shutdown,.ev.manual_shutdown{background:var(--orange);color:#fff}
 .ev.test{background:var(--warn);color:#16130F}
 .ev.manual{background:var(--teal);color:#fff}
 .ev.muted{background:var(--purple);color:#fff}
 .ev.auto_muted{background:var(--indigo);color:#fff}
 .ev.unmuted{background:var(--ok);color:#fff}
 [data-theme="dark"] .ev.muted,[data-theme="dark"] .ev.auto_muted,[data-theme="dark"] .ev.unmuted,
-[data-theme="dark"] .ev.suppressed,[data-theme="dark"] .ev.low_battery_shutdown{color:#16130F}
+[data-theme="dark"] .ev.suppressed,[data-theme="dark"] .ev.low_battery_shutdown,[data-theme="dark"] .ev.manual_shutdown{color:#16130F}
 .rowbtns{display:flex;gap:5px}
 .noimg{color:var(--muted);font-size:12px}
 .pager{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1176,6 +1177,9 @@ a.btn{text-decoration:none}
   <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-batt" viewBox="0 0 24 24">
     <rect x="2.5" y="7" width="17" height="10" rx="2.4"/><path d="M21.5 10.5v3"/><path d="M6 10.5v3M9.5 10.5v3"/>
   </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-power" viewBox="0 0 24 24">
+    <path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>
+  </symbol>
   <symbol stroke-linejoin="round" id="i-bolt" viewBox="0 0 24 24">
     <path fill="currentColor" d="M13.4 2.5 5 13.6h6l-1.4 7.9L19 10.3h-6.1z"/>
   </symbol>
@@ -1402,6 +1406,7 @@ a.btn{text-decoration:none}
           <button class="btn ink" id="pwrSave" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
           <button class="btn" id="scrSleep" type="button"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
         </div>
+        <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:8px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
         <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
           Tap to wake. The first tap only wakes.</p>
         <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
@@ -1581,6 +1586,18 @@ a.btn{text-decoration:none}
   <div class="pl" id="phnList"></div>
 </dialog>
 
+<dialog id="offDlg" aria-label="Shut down the Pi" style="width:min(420px,92vw)">
+  <div class="vh">
+    <svg class="ico" style="width:18px;height:18px;color:var(--bad)"><use href="#i-power"/></svg>
+    <h3 id="offHead">Shut down the Pi?</h3>
+  </div>
+  <p id="offText" style="margin:12px 14px;font-size:14px;line-height:1.4">Detection and alerts stop. To start it again, use the switch on the UPS HAT.</p>
+  <div class="pair" style="margin:0 14px 14px">
+    <button class="btn" id="offNo" type="button">Cancel</button>
+    <button class="btn bad" id="offYes" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
+  </div>
+</dialog>
+
 <dialog id="battDlg" aria-label="Pi battery details">
   <div class="vh">
     <svg class="ico" id="bdIco" style="width:18px;height:18px"><use href="#i-batt"/></svg>
@@ -1637,7 +1654,8 @@ const esc = t => t.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'
 const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed","i-eyeoff"],
                 test:["Test alert","i-wrench"], manual:["Manual capture","i-shutter"],
                 muted:["Alert muted","i-belloff"], auto_muted:["Auto-muted","i-bellauto"], unmuted:["Alert unmuted","i-bellon"],
-                low_battery_shutdown:["Low battery shutdown","i-batt"]};
+                low_battery_shutdown:["Low battery shutdown","i-batt"],
+                manual_shutdown:["Manual shutdown","i-power"]};
 let PAGE = 5, draft=null, editing=false, last=null, rows=[], page=0, prevCounts={};
 
 function toast(m, icon){
@@ -2514,6 +2532,20 @@ function tickPower(){
   $("pwrBanner").classList.toggle("floor", pwrFloor);
 }
 setInterval(tickPower, 500);
+$("pwrOff").onclick = () => $("offDlg").showModal();
+$("offNo").onclick = () => $("offDlg").close();
+$("offYes").onclick = async () => {
+  $("offYes").disabled = $("offNo").disabled = true;
+  $("offHead").textContent = "Shutting down";
+  $("offText").textContent = "Saving the history, then powering off. This takes up to a minute. When the screen goes dark, it is safe to switch off the UPS HAT.";
+  const j = await post("/api/shutdown", {confirm: true});
+  if(!j.ok){
+    $("offDlg").close();
+    $("offYes").disabled = $("offNo").disabled = false;
+    $("offHead").textContent = "Shut down the Pi?";
+    toast(j.message || "The Pi would not shut down", "i-warn");
+  }
+};
 $("pbCancel").onclick = async () => {
   const j = await post("/api/auto_shutdown", {cancel: true});
   toast(j.ok ? "Auto shutdown paused until the charger is plugged in" : (j.message || "Cannot cancel"), j.ok ? "i-ok" : "i-warn");

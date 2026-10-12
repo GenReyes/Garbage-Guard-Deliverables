@@ -291,6 +291,7 @@ time-ordered key:
 | `screen_saver` | `{"mode": "dim", "timeout_s": 600, "timeout_battery_s": 60, "dim_pct": 20, "wake_on_alert": true}` (any field) |
 | `screen` | `{"action": "wake"}` or `{"action": "sleep"}` |
 | `auto_shutdown` | `{"on": true, "pct": 15}` or `{"cancel": true}` |
+| `shutdown` | `{"confirm": true}`. Powers the Pi off; the app must ask first. The result is written before the Pi goes offline, and the `manual_shutdown` history row follows within a few seconds. |
 
 The Pi checks every 2 s, deletes the command first (so it runs at most once,
 even if the Pi crashes halfway), runs it, and writes the local endpoint's

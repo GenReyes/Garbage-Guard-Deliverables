@@ -34,6 +34,10 @@ shutdown", and `mobile-app/SCREEN_SAVER_PLAN.md`).
   button. New endpoints `POST /api/screen_saver`, `/api/screen`,
   `/api/auto_shutdown` (and the Pi-only `/api/screen/touch`), new state and
   battery fields, and three new Firebase commands.
+- Shut down button in the Power card, with an "Are you sure?" dialog. It writes
+  a `manual_shutdown` history row ("Manual shutdown"), sends it to Firebase and
+  powers off. New `POST /api/shutdown` (needs `{"confirm": true}`), a new
+  `shutdown` Firebase command, and `shutdown_state: "powering_off"`.
 - Firebase sync: a change of screen state or shutdown state is written at
   once, even in standby; during a countdown state is written every 3 seconds
   and commands are polled every 2 seconds. The cloud thread can now send

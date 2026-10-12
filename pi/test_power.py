@@ -34,7 +34,8 @@ class Rig:
         self.power = p.Power(self.settings, ups=self.ups, screen=self.screen,
                              shutdown=self._off, log=lambda e: self.events.append(("log", e)),
                              flush=lambda s: self.events.append(("flush", s)),
-                             clock=lambda: self.t, uptime=lambda: self.t + self.offset)
+                             clock=lambda: self.t, uptime=lambda: self.t + self.offset,
+                             spawn=lambda f: f())
 
     def _off(self):
         self.events.append(("poweroff",))
@@ -241,6 +242,26 @@ class PowerTests(unittest.TestCase):
         r.run(340)
         self.assertEqual(poweroffs(r), 1)
         r.run(40)
+        self.assertEqual(poweroffs(r), 2)
+
+    def test_manual_shutdown_logs_sends_then_powers_off(self):
+        r = Rig()
+        self.assertTrue(r.power.manual_shutdown()["ok"])
+        self.assertEqual([e[0] for e in r.events], ["log", "flush", "poweroff"])
+        self.assertEqual(r.events[0], ("log", "manual_shutdown"))
+        self.assertEqual(r.power.fields()["shutdown_state"], "powering_off")
+
+    def test_manual_shutdown_twice_powers_off_once(self):
+        r = Rig()
+        r.power.manual_shutdown()
+        self.assertTrue(r.power.manual_shutdown()["already"])
+        self.assertEqual(poweroffs(r), 1)
+
+    def test_a_refused_manual_shutdown_can_be_tried_again(self):
+        r = Rig(refuse=1)
+        r.power.manual_shutdown()
+        self.assertNotEqual(r.power.fields()["shutdown_state"], "powering_off")
+        r.power.manual_shutdown()
         self.assertEqual(poweroffs(r), 2)
 
     def test_fields_when_idle(self):
