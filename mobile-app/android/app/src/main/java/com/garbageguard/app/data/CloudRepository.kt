@@ -96,6 +96,11 @@ class CloudRepository(
     private var backgroundSince = 0L
     private var watching = false
 
+    // /gg/pi/alerts_rev changes whenever the Pi changes the history, so the
+    // whole list is downloaded only then. Null on a Pi that does not write it.
+    private var alertsRev: Long? = null
+    private var alertsRevLoaded: Long? = null
+
     override val frameUrl: String?
         get() = if (running) PREVIEW_URL else null
 
@@ -117,9 +122,10 @@ class CloudRepository(
                 if (!away) backgroundSince = 0L
                 val asleep = away && System.currentTimeMillis() - backgroundSince > 60_000
 
-                if (tick % 30 == 0) pollPi()
+                val slow = tick % (if (asleep) 30 else 10) == 0
+                if (slow) pollPi()
                 if (!asleep && tick % 3 == 0) pollState()
-                if (tick % (if (asleep) 30 else 10) == 0) pollAlerts()
+                if (slow && (alertsRev == null || alertsRev != alertsRevLoaded)) pollAlerts()
                 if (!asleep && tick % 10 == 0) putWatcher()
                 if (asleep && watching) deleteWatcher()
                 if (!asleep && tick % 60 == 0) pollUsage()
@@ -142,6 +148,7 @@ class CloudRepository(
     private suspend fun pollPi() {
         val pi = getObject("gg/pi") ?: return
         piSeenAt = pi.optLong("ts")
+        alertsRev = if (pi.has("alerts_rev")) pi.optLong("alerts_rev") else null
         val urls = pi.optJSONArray("local_urls")
         if (urls != null) localUrls.value = (0 until urls.length()).map { urls.optString(it) }.filter { it.startsWith("http") }
     }
@@ -183,8 +190,10 @@ class CloudRepository(
 
     private suspend fun pollAlerts() {
         try {
+            val rev = alertsRev
             val raw = rest("GET", "gg/alerts", query = "&orderBy=" + enc("\"\$key\"") + "&limitToLast=200")
             _alerts.value = if (raw == null) emptyList() else parseAlertNode(raw)
+            alertsRevLoaded = rev
             loaded.value = true
         } catch (e: CancellationException) {
             throw e
@@ -251,7 +260,7 @@ class CloudRepository(
             .put("app_version", about["app_version"].orEmpty())
             .put("mode", if (foreground) "foreground" else "background")
         try {
-            rest("PUT", "gg/watchers/$clientId", body.toString())
+            rest("PUT", "gg/watchers/$clientId", body.toString(), query = "&print=silent")
             watching = true
         } catch (e: CancellationException) {
             throw e
@@ -263,7 +272,7 @@ class CloudRepository(
         watching = false
         if (clientId.isEmpty()) return
         try {
-            rest("DELETE", "gg/watchers/$clientId")
+            rest("DELETE", "gg/watchers/$clientId", query = "&print=silent")
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -274,8 +283,9 @@ class CloudRepository(
 
     /**
      * Writes a command for the Pi and waits for its answer. The Pi checks
-     * every 2 s, so this takes a moment; ten seconds without an answer is
-     * reported rather than left hanging.
+     * every 2 s while a phone watches and every 10 s otherwise, so this takes
+     * a moment; fifteen seconds without an answer is reported rather than
+     * left hanging.
      */
     private suspend fun command(cmd: String, args: JSONObject): JSONObject? {
         val body = JSONObject()
@@ -294,7 +304,7 @@ class CloudRepository(
             onNotice("Could not send that through Firebase.")
             return null
         }
-        repeat(10) {
+        repeat(15) {
             delay(1000)
             val result = try {
                 getObject("gg/results/$pushId")
@@ -447,11 +457,13 @@ class CloudRepository(
     }
 
     private suspend fun http(method: String, url: String, body: String?): String = withContext(Dispatchers.IO) {
+        // No disconnect() once the answer is read: the connection goes back to the pool and
+        // the next request skips the TLS handshake, which Firebase bills as a download.
         val conn = URL(url).openConnection() as HttpURLConnection
+        conn.requestMethod = method
+        conn.connectTimeout = 8000
+        conn.readTimeout = 10000
         try {
-            conn.requestMethod = method
-            conn.connectTimeout = 8000
-            conn.readTimeout = 10000
             if (body != null) {
                 val bytes = body.toByteArray()
                 conn.doOutput = true
@@ -464,8 +476,9 @@ class CloudRepository(
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             if (code !in 200..299) throw IOException(errorOf(text, code))
             text
-        } finally {
+        } catch (e: IOException) {
             conn.disconnect()
+            throw e
         }
     }
 

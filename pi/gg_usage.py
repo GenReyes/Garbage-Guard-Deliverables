@@ -3,7 +3,8 @@
 Firebase counts downloads exactly, but only the console can see that number:
 reading it needs a Google Cloud service account, which is not something to
 keep on the Pi. So the Pi counts what it sends instead, multiplied by how many
-phones were watching at the time, since each watching phone downloads it. The
+phones were watching at the time, since each watching phone downloads it, plus
+what the Pi itself downloads (answers, headers and TLS handshakes). The
 result is an estimate, roughly within a third of the real figure, and it is
 labelled as such everywhere it is shown.
 
@@ -28,7 +29,7 @@ STORE_LIMIT = 1 * GB
 WARN, HIGH = 0.70, 0.90
 DAY_PREVIEW_MB = 300
 
-KINDS = ("state", "preview", "snaps", "alerts", "other")
+KINDS = ("state", "preview", "snaps", "alerts", "pi", "other")
 
 
 def _month(ts):
@@ -89,6 +90,15 @@ class Usage:
         d["by_kind"][kind if kind in KINDS else "other"] += down
         if kind == "preview":
             d["day_preview"] += down
+        self._dirty = True
+
+    def add_down(self, kind, nbytes):
+        """Count bytes the Pi itself downloads (answers, headers, TLS handshakes)."""
+        if nbytes <= 0:
+            return
+        self.data = self._roll(self.data)
+        self.data["down"] += int(nbytes)
+        self.data["by_kind"][kind if kind in KINDS else "other"] += int(nbytes)
         self._dirty = True
 
     # ---------- what the rest of the Pi asks ----------

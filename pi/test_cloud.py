@@ -105,7 +105,46 @@ class CloudTests(unittest.TestCase):
         self.assertFalse(self.c.push_state())
         self.w.state["smoothed"] = 22
         self.w.state["counts"] = {"bottle": 10}
+        self.assertFalse(self.c.push_state())
+        self.w.state["muted"] = True
         self.assertTrue(self.c.push_state())
+
+    def test_counts_are_pushed_only_while_watched(self):
+        self.c.watchers = {"p1": {"ts": 1}}
+        self.assertTrue(self.c.push_state())
+        self.w.state["smoothed"] = 22
+        self.assertTrue(self.c.push_state())
+
+    def test_writes_are_silent(self):
+        urls = []
+        http = self.w.http
+        self.c.http = lambda m, u, b=None, timeout=15: (urls.append((m, u)), http(m, u, b))[1]
+        self.c.push_state()
+        self.c.read_watchers()
+        self.assertTrue(all("print=silent" in u for m, u in urls if m in ("PUT", "PATCH", "DELETE")))
+        self.assertTrue(all("print=silent" not in u for m, u in urls if m == "GET"))
+
+    def test_slow_polling_when_nobody_watches(self):
+        gets = []
+        http = self.w.http
+        self.c.http = lambda m, u, b=None, timeout=15: (gets.append(u) if m == "GET" and "watchers" in u else None,
+                                                         http(m, u, b))[1]
+        for _ in range(60):
+            self.c.tick()
+            self.t[0] += 1
+        self.assertLessEqual(len(gets), 6)
+        self.assertIn("pi", self.w.db["gg"])
+
+    def test_alert_changes_bump_the_revision(self):
+        self.c.push_pi()
+        first = self.w.db["gg"]["pi"]["alerts_rev"]
+        self.t[0] += 5
+        self.c.tick()
+        self.assertGreater(self.w.db["gg"]["pi"]["alerts_rev"], first)
+        rev = self.w.db["gg"]["pi"]["alerts_rev"]
+        self.t[0] += 11
+        self.c.tick()
+        self.assertEqual(self.w.db["gg"]["pi"]["alerts_rev"], rev)
 
     def test_alerts_and_snapshots(self):
         changed, up = self.c.sync_alerts()
@@ -216,11 +255,12 @@ class UsageWiring(unittest.TestCase):
     def test_pushes_are_counted(self):
         self.c.push_state()
         self.assertGreater(self.u.data["up"], 0)
-        self.assertEqual(self.u.data["down"], 0)
+        self.assertEqual(self.u.data["by_kind"]["state"], 0)
+        self.assertGreater(self.u.data["by_kind"]["pi"], 0)
         self.c.watchers = {"a": {"ts": 1}, "b": {"ts": 1}}
         self.w.state["smoothed"] = 99
         self.c.push_state()
-        self.assertGreater(self.u.data["down"], 0)
+        self.assertGreater(self.u.data["by_kind"]["state"], 0)
 
     def test_preview_stops_when_month_is_spent(self):
         self.c.watchers = {"a": {"ts": 1}}

@@ -12,12 +12,14 @@ and can be restored. Off until enabled there. See pi/README.md.
 """
 
 import base64
+import http.client
 import json
 import os
 import re
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -53,21 +55,64 @@ ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bott
 STATUS = {"enabled": False, "ok": False, "error": None, "last_ok": None, "watchers": 0,
           "usage": None}
 
-DEFAULTS = {"root": "gg", "enabled": True, "state_s": 3, "idle_state_s": 30,
-            "alerts_s": 10, "commands_s": 2, "preview_s": 3, "preview_width": 480,
+DEFAULTS = {"root": "gg", "enabled": True, "state_s": 3, "idle_state_s": 120,
+            "alerts_s": 10, "commands_s": 2, "idle_commands_s": 10, "pi_s": 30, "idle_pi_s": 60,
+            "preview_s": 3, "preview_width": 480,
             "snap_width": 960, "snap_max_kb": 300, "history": 200, "watch_window_s": 30,
             "month_limit_gb": 10, "day_preview_mb": 300, "usage_s": 600}
 
 
+# Firebase bills the TLS handshake of every new connection (about 3.5 KB), so
+# the HTTPS connections are kept open and reused, one per thread and host.
+HANDSHAKE_BYTES = 3500
+NET = {"handshakes": 0}
+_conns = threading.local()
+
+
+def _https(host, timeout):
+    pool = getattr(_conns, "pool", None)
+    if pool is None:
+        pool = _conns.pool = {}
+    conn = pool.get(host)
+    if conn is None:
+        conn = pool[host] = http.client.HTTPSConnection(host, timeout=timeout)
+        NET["handshakes"] += 1
+    conn.timeout = timeout
+    return conn
+
+
+def _drop(host):
+    conn = getattr(_conns, "pool", {}).pop(host, None)
+    if conn:
+        conn.close()
+
+
 def http_call(method, url, body=None, timeout=15):
     data = None if body is None else json.dumps(body).encode()
-    req = urllib.request.Request(url, data=data, method=method,
-                                 headers={"Content-Type": "application/json"} if data else {})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.status, r.read()
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()
+    headers = {"Content-Type": "application/json"} if data else {}
+    u = urllib.parse.urlsplit(url)
+    if u.scheme != "https":
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, e.read()
+    path = u.path + ("?" + u.query if u.query else "")
+    for attempt in (0, 1):
+        conn = _https(u.netloc, timeout)
+        try:
+            conn.request(method, path, body=data, headers=headers)
+            r = conn.getresponse()
+            raw = r.read()
+            if r.will_close:
+                _drop(u.netloc)
+            return r.status, raw
+        except (http.client.HTTPException, OSError):
+            # A kept-alive connection the server already closed fails once; retry on a new one.
+            _drop(u.netloc)
+            if attempt:
+                raise
 
 
 def shrink_jpeg(raw, width, max_kb):
@@ -197,6 +242,10 @@ def public_config():
             "status": dict(STATUS)}
 
 
+# Rough size of Firebase's response headers, counted with each answer the Pi downloads.
+RESPONSE_HEADERS = 400
+
+
 class Cloud:
     def __init__(self, cfg, token=None, http=http_call, local=LOCAL, clock=time.time, note=None,
                  usage=None):
@@ -214,6 +263,8 @@ class Cloud:
         self.sent_alerts = None
         self.sent_snaps = None
         self.sent_usage = None
+        self.alerts_rev = int(self.clock() * 1000)
+        self.handshakes = NET["handshakes"]
         self.watchers = {}
         self.usage = usage if usage is not None else gg_usage.Usage(
             clock=clock, limit=int(self.cfg["month_limit_gb"] * gg_usage.GB),
@@ -224,11 +275,15 @@ class Cloud:
     def _fb(self, method, path, body=None, query=""):
         url = f"{self.url}/{self.root}/{path}.json"
         params = [query] if query else []
+        if method != "GET":
+            # Without this Firebase sends every write straight back, and that download is billed.
+            params.append("print=silent")
         if self.token:
             params.append("auth=" + self.token())
         if params:
             url += "?" + "&".join(params)
         status, raw = self.http(method, url, body)
+        self.usage.add_down("pi", len(raw or b"") + RESPONSE_HEADERS)
         if status >= 300:
             raise RuntimeError(f"Firebase {method} {path}: HTTP {status} {raw[:120]!r}")
         return json.loads(raw or b"null")
@@ -260,9 +315,12 @@ class Cloud:
     def push_state(self, force=False):
         st = json.loads(self._get_local("/api/state"))
         slim = {k: st.get(k) for k in STATE_KEYS}
-        key = json.dumps({k: slim[k] for k in ("counts", "smoothed", "alert_active", "muted", "connected",
-                                                "threshold", "auto_mute")}, sort_keys=True)
-        every = self.cfg["state_s"] if self.watching() else self.cfg["idle_state_s"]
+        # With nobody watching, a changing count is not worth a write; alert and mute changes still are.
+        watched = self.watching()
+        fields = ("counts", "smoothed") if watched else ()
+        key = json.dumps({k: slim[k] for k in fields + ("alert_active", "muted", "connected",
+                                                         "threshold", "auto_mute")}, sort_keys=True)
+        every = self.cfg["state_s"] if watched else self.cfg["idle_state_s"]
         if not force and key == self.sent_state and not self._due("state_beat", every):
             return False
         try:
@@ -286,7 +344,8 @@ class Cloud:
         except Exception:
             pass
         self._fb("PUT", "pi", {"online": True, "ts": int(self.clock() * 1000), "local_urls": urls,
-                               "version": "2026.10.12"})
+                               "version": "2026.10.12", "alerts_rev": self.alerts_rev})
+        self.next["pi"] = self.clock() + (self.cfg["pi_s"] if self.watching() else self.cfg["idle_pi_s"])
 
     def sync_alerts(self):
         rows = json.loads(self._get_local(f"/api/alerts?limit={self.cfg['history']}")).get("alerts", [])
@@ -321,6 +380,10 @@ class Cloud:
         if gone:
             self._fb("PATCH", "snaps", gone)
             self.sent_snaps -= set(gone)
+        if patch or gone:
+            # Phones read /gg/pi often and fetch the whole history only when this number moves.
+            self.alerts_rev = int(self.clock() * 1000)
+            self.next["pi"] = 0
         uploaded = 0
         for k, row in now.items():
             if uploaded >= 2:
@@ -403,14 +466,19 @@ class Cloud:
 
     # ---------- loop ----------
     def tick(self):
-        if self._due("commands", self.cfg["commands_s"]):
+        every = self.cfg["commands_s"] if self.watching() else self.cfg["idle_commands_s"]
+        if self._due("commands", every):
             self.read_watchers()
             self.run_commands()
         self.push_state()
-        if self._due("pi", 30):
-            self.push_pi()
         if self._due("alerts", self.cfg["alerts_s"]):
             self.sync_alerts()
+        if self.clock() >= self.next.get("pi", 0):
+            self.push_pi()
+        made = NET["handshakes"] - self.handshakes
+        if made > 0:
+            self.usage.add_down("pi", made * HANDSHAKE_BYTES)
+            self.handshakes = NET["handshakes"]
         every = self.usage.preview_every(self.cfg["preview_s"])
         if self.watching() and every and self._due("preview", every):
             self.push_preview()

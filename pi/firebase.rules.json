@@ -12,6 +12,7 @@
       "alerts":  { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
       "snaps":   { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
       "preview": { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
+      "usage":   { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
       "results": { ".write": "auth != null && root.child('gg_users').child(auth.uid).val() === 'pi'" },
       "commands": {
         "$c": {
