@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +24,7 @@ import com.garbageguard.app.ui.components.BtnKind
 import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.Ico
+import com.garbageguard.app.ui.components.LocalOnColour
 import com.garbageguard.app.ui.components.Soft
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.breathe
@@ -65,7 +67,9 @@ fun PiScreenChip(vm: AppViewModel, state: LiveState) {
             )
         }
         if (awake) GgButton("Sleep", vm::sleepPi, icon = GgIcons.Moon, small = true)
-        else GgButton("Wake", vm::wakePi, icon = GgIcons.Sun, kind = BtnKind.TEAL, small = true)
+        else CompositionLocalProvider(LocalOnColour provides true) {
+            GgButton("Wake", vm::wakePi, icon = GgIcons.Sun, kind = BtnKind.TEAL, small = true)
+        }
     }
 }
 
@@ -112,6 +116,8 @@ fun ShutdownBanner(vm: AppViewModel, battery: Battery, modifier: Modifier = Modi
                 size = 0.76f, weight = FontWeight.Bold, color = c.onBad, fit = true,
             )
         }
-        if (counting && !battery.shutdownFloor) GgButton("Cancel", vm::cancelShutdown, icon = GgIcons.X, small = true)
+        if (counting && !battery.shutdownFloor) CompositionLocalProvider(LocalOnColour provides true) {
+            GgButton("Cancel", vm::cancelShutdown, icon = GgIcons.X, small = true)
+        }
     }
 }

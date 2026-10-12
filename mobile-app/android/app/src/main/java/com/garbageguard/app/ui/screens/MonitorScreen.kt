@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +58,7 @@ import com.garbageguard.app.ui.components.Ico
 import com.garbageguard.app.ui.components.RollingText
 import com.garbageguard.app.ui.components.Skeleton
 import com.garbageguard.app.ui.components.Soft
+import com.garbageguard.app.ui.components.LocalOnColour
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.TvFeed
 import com.garbageguard.app.ui.components.breathe
@@ -282,6 +284,8 @@ private fun MuteBar(vm: AppViewModel, s: LiveState) {
             T(title, size = 0.72f, weight = FontWeight.Black, color = if (tint == c.muted) c.text else tint, spacing = 0.03f, fit = true)
             T(detail, size = 0.64f, weight = FontWeight.Bold, color = c.muted, tnum = true, fit = true)
         }
+        // The bar is tinted in most of its states, so its keys keep only their hard shadow.
+        CompositionLocalProvider(LocalOnColour provides (fill != c.base2)) {
         if (noPi) {
             GgButton("Retry", vm::retry, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Refresh, small = true)
         } else {
@@ -295,6 +299,7 @@ private fun MuteBar(vm: AppViewModel, s: LiveState) {
                     icon = GgIcons.EyeOff, small = true, enabled = !idle,
                 )
             }
+        }
         }
     }
 }

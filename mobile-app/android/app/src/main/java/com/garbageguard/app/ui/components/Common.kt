@@ -292,7 +292,7 @@ fun GgButton(
         modifier = modifier
             .alpha(if (enabled) 1f else 0.4f)
             .offset { if (down) IntOffset(hard.roundToPx(), hard.roundToPx()) else IntOffset.Zero }
-            .then(if (down) Modifier else Modifier.neuShadow(c, radius, hard, Soft.SM))
+            .then(if (down) Modifier else Modifier.neuShadow(c, radius, hard, if (LocalOnColour.current) Soft.NONE else Soft.SM))
             .clip(shape)
             .then(if (down) Modifier.background(c.sunk).neuInset(c, radius) else Modifier.background(fill))
             .border(2.dp, c.edge, shape)

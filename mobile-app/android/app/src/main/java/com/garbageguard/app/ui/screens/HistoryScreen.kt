@@ -177,7 +177,8 @@ fun EventPill(event: EventType) {
     }
     Row(
         Modifier
-            .neuShadow(c, 12.dp, 2.dp, Soft.SM)
+            // Hard shadow only, in the pill's own shape. The soft pair showed as a pale box on tinted rows.
+            .neuShadow(c, 50.dp, 2.dp, Soft.NONE)
             .clip(CircleShape)
             .background(bg)
             .border(2.dp, c.edge, CircleShape)

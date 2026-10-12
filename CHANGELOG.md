@@ -4,6 +4,16 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.5: no pale halo on coloured surfaces (2026-10-12)
+
+### App
+
+- The soft shadow pair is made for the page colour, and its pale half showed
+  as a square halo behind anything standing on a coloured surface. Event
+  labels in History now carry only a hard shadow in their own pill shape,
+  and keys on the mute bar, the sleeping-screen line and the countdown
+  banner drop the soft pair while those surfaces are tinted.
+
 ## App version 9.4: tabs as the bottom edge of the screen (2026-10-12)
 
 ### App

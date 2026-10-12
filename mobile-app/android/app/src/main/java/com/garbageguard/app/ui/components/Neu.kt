@@ -4,6 +4,7 @@ import android.graphics.BlurMaskFilter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -36,6 +37,14 @@ import com.garbageguard.app.ui.theme.GgColors
  * depth. The hard offset block and the 2 dp border are the Neo-Brutalism
  * part. These modifiers draw both the way the CSS variables do.
  */
+
+/**
+ * True inside a surface that is not the page's own colour: a red banner, a
+ * teal bar, a tinted history row. The soft shadow pair is made for the page
+ * colour, and its pale half shows as a square halo on anything else, so
+ * keys and pills on such a surface keep only their hard shadow.
+ */
+val LocalOnColour = compositionLocalOf { false }
 
 /** Matches --soft and --soft-sm. */
 enum class Soft(val dark: Dp, val darkBlur: Dp, val light: Dp, val lightBlur: Dp) {
