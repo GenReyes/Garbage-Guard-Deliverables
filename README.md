@@ -46,6 +46,7 @@ rather than duplicating it, so there's only ever one copy to go stale.
 | Install the app on a phone | [`mobile-app/Garbage-Guard v7.apk`](mobile-app/Garbage-Guard%20v7.apk) |
 | Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
 | Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
+| See what changed in each version | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ## Not in this repo, on purpose
 
