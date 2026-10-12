@@ -133,6 +133,12 @@ come back. The Pi's own screen found this way is switched automatically; the
 name is never typed into the program. After it comes back, check that the
 dashboard still fills the screen and that touch lands where you tap.
 
+Waking is checked, not assumed: the Pi reads back whether the screen really
+came on, and tries a plain switch-on, then the screen's own mode, then an
+off-and-on cycle. If all three fail it keeps retrying, shows a red line in the
+Power card, and uses Dim instead of Off until someone taps Off again. A screen
+left off when the program starts is switched back on.
+
 While the output is off the desktop may not pass taps on, so `gg_touch.py`
 reads the touchscreen itself. It needs read access to `/dev/input`, which the
 default Pi user has through the `input` group (check with `groups`). If no

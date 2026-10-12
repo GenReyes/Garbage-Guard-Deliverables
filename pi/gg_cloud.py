@@ -53,7 +53,7 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
               "avg_latency_ms", "fps", "cam_fps", "alert_active", "muted", "mute_left", "mute_total",
               "auto_mute", "auto_mute_s", "auto_muted", "frames", "uptime_s", "reconnects",
               "screen", "screen_mode", "screen_timeout_s", "screen_timeout_battery_s",
-              "screen_dim_pct", "screen_wake_on_alert")
+              "screen_dim_pct", "screen_wake_on_alert", "screen_note")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 
@@ -332,7 +332,7 @@ class Cloud:
         watched = self.watching()
         fields = ("counts", "smoothed") if watched else ()
         key = json.dumps({k: slim[k] for k in fields + ("alert_active", "muted", "connected",
-                                                         "threshold", "auto_mute", "screen", "screen_mode")}
+                                                         "threshold", "auto_mute", "screen", "screen_mode", "screen_note")}
                          | {"shutdown": shutdown}, sort_keys=True)
         every = self.cfg["state_s"] if watched else self.cfg["idle_state_s"]
         if self.counting:

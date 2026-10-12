@@ -3,7 +3,13 @@
 Off mode switches the HDMI output off with wlr-randr (the cheap 7 inch board
 then turns its backlight off); wlopm does not work on this Pi's display
 driver. While the output is off the compositor may not pass taps on, so
-gg_touch watches the touchscreen directly and wakes it. Dim mode only reports
+gg_touch watches the touchscreen directly and wakes it.
+
+Waking is the part that must never fail: a screen left off cannot be brought
+back by the person standing in front of it. So wake checks what the screen is
+really doing, tries three ways to bring it back, keeps retrying in the
+background, and refuses to use Off mode again until someone chooses it, so one
+bad wake cannot repeat. Dim mode only reports
 "dim" and the dashboard page draws a dark layer over itself, because these
 boards have no software brightness control. Detection, alerts and Firebase
 are never touched.
@@ -19,6 +25,8 @@ import time
 DEFAULTS = {"screen_mode": "off", "screen_timeout_s": 600, "screen_timeout_battery_s": 60,
             "screen_dim_pct": 20, "screen_wake_on_alert": True}
 MODES = ("off", "dim", "never")
+BROKEN = ("The screen did not come back last time, so Dim is used instead. "
+          "Tap Off to try again.")
 LIMITS = {"screen_timeout_s": (60, 3600), "screen_timeout_battery_s": (30, 3600),
           "screen_dim_pct": (5, 50)}
 
@@ -54,6 +62,8 @@ class Screen:
         self.note = None
         self.off_outputs = []
         self.wake_source = None
+        self.off_broken = False
+        self.recovering = False
 
     def _env(self):
         env = dict(self.environ)
@@ -62,29 +72,40 @@ class Screen:
         return env
 
     def _outputs(self):
+        """[{name, enabled, mode}] from wlr-randr, or None if it cannot be read."""
         ok, text = self._runner(["wlr-randr"], self._env())
         if not ok:
             return None
         rows = []
         for line in text.splitlines():
             if line and not line[0].isspace():
-                rows.append([line.split()[0], False])
-            elif rows and line.strip().startswith("Enabled:"):
-                rows[-1][1] = line.split(":", 1)[1].strip().lower() == "yes"
-        return [(n, e) for n, e in rows]
+                rows.append({"name": line.split()[0], "enabled": False, "mode": None})
+            elif not rows:
+                continue
+            elif line.strip().startswith("Enabled:"):
+                rows[-1]["enabled"] = line.split(":", 1)[1].strip().lower() == "yes"
+            elif "current" in line and " px," in line:
+                rows[-1]["mode"] = line.strip().split(" px,")[0]
+        return rows
 
-    def _switch(self, names, flag):
-        done = []
-        for n in names:
-            ok, msg = self._runner(["wlr-randr", "--output", n, flag], self._env())
-            if not ok:
-                self.note = msg or f"wlr-randr {flag} failed"
-                print(f"[SCREEN] wlr-randr {n} {flag} failed: {self.note}", flush=True)
-                return False, done
-            done.append(n)
-        return True, done
+    def _enabled_now(self, names):
+        """True when every one of these outputs reads as enabled right now."""
+        rows = self._outputs()
+        if rows is None:
+            return None
+        state = {r["name"]: r["enabled"] for r in rows}
+        return all(state.get(n) for n in names)
+
+    def _try(self, args, why):
+        ok, msg = self._runner(["wlr-randr"] + args, self._env())
+        if not ok:
+            print(f"[SCREEN] {why} failed: {msg or 'wlr-randr returned an error'}", flush=True)
+        return ok, msg
 
     def _power_off(self):
+        if self.off_broken:
+            self.note = BROKEN
+            return False
         if not self.have("wlr-randr"):
             self.note = "wlr-randr is not installed"
             return False
@@ -92,28 +113,63 @@ class Screen:
             self.note = "no touchscreen could be read, so a tap could not wake it"
             return False
         rows = self._outputs()
-        names = [n for n, e in rows or [] if e]
-        if not names:
+        if rows is None:
+            self.note = "the screen could not be read"
+            return False
+        live = [r for r in rows if r["enabled"]]
+        if not live:
             self.note = "no enabled screen found"
             return False
-        ok, done = self._switch(names, "--off")
-        if not ok:
-            self._switch(done, "--on")
-            return False
-        self.off_outputs = names
+        self.off_outputs = [(r["name"], r["mode"]) for r in live]
+        for name, _mode in self.off_outputs:
+            ok, msg = self._try(["--output", name, "--off"], f"switching {name} off")
+            if not ok:
+                self.note = msg or "the screen could not be switched off"
+                self._power_on()
+                return False
         self.note = None
         return True
 
     def _power_on(self):
-        names = list(self.off_outputs)
-        if not names:
-            names = [n for n, e in self._outputs() or [] if not e]
-        ok, _ = self._switch(names, "--on")
-        self.off_outputs = [] if ok else names
-        return ok
+        """Bring the screen back. Tries three ways and checks the result each time."""
+        pairs = list(self.off_outputs)
+        if not pairs:
+            rows = self._outputs() or []
+            pairs = [(r["name"], r["mode"]) for r in rows if not r["enabled"]]
+        if not pairs:
+            self.off_outputs, self.recovering = [], False
+            return True
+        names = [n for n, _ in pairs]
+        if self._enabled_now(names):
+            self.off_outputs, self.recovering = [], False
+            return True
+        for name, mode in pairs:
+            plans = [(["--output", name, "--on"], "switching it on")]
+            if mode:
+                plans.append((["--output", name, "--on", "--mode", mode],
+                              f"switching it on at {mode}"))
+            plans.append((["--output", name, "--off", "--output", name, "--on"],
+                          "switching it off and on again"))
+            for args, why in plans:
+                self._try(args, why)
+                if self._enabled_now([name]) is not False:
+                    break
+            else:
+                self.recovering = True
+                self.note = "The screen will not come back on. Trying again."
+                print(f"[SCREEN] {name} is still off after three tries", flush=True)
+                return False
+        self.off_outputs, self.recovering = [], False
+        self.note = BROKEN if self.off_broken else None
+        return True
 
     def recover(self):
-        if self.have("wlr-randr") and any(not e for n, e in self._outputs() or []):
+        """Turn a screen left off (a crash, a failed wake) back on at start-up."""
+        if not self.have("wlr-randr"):
+            return
+        rows = self._outputs()
+        if rows and any(not r["enabled"] for r in rows):
+            print("[SCREEN] a screen was left off, switching it back on", flush=True)
             self._power_on()
 
     def on_battery(self):
@@ -135,8 +191,10 @@ class Screen:
 
     def wake(self):
         with self.lock:
-            if self.state == "off":
-                self._power_on()
+            if self.state == "off" and not self._power_on():
+                # The screen is still dark and nobody can reach it. Keep trying,
+                # and do not use Off mode again until someone asks for it.
+                self.off_broken = True
             self.state = "on"
             self.last_touch = self.clock()
             return self.state
@@ -158,6 +216,8 @@ class Screen:
 
     def tick(self):
         with self.lock:
+            if self.recovering:
+                self._power_on()
             if self.settings["screen_mode"] == "never":
                 return self.state
             if self.state == "on" and self.clock() - self.last_touch >= self.timeout():
@@ -171,6 +231,10 @@ class Screen:
             if mode in MODES:
                 if mode != s["screen_mode"] and self.state != "on":
                     self.wake()
+                if mode == "off":
+                    # Choosing Off again is a deliberate retry after a bad wake.
+                    self.off_broken = False
+                    self.note = None
                 s["screen_mode"] = mode
             for key, v in (("screen_timeout_s", timeout_s),
                            ("screen_timeout_battery_s", timeout_battery_s),
@@ -190,6 +254,7 @@ class Screen:
         out = {k: s[k] for k in DEFAULTS}
         if not settings_only:
             out["screen"] = self.state
+            out["screen_note"] = self.note if (self.off_broken or self.recovering) else None
         return out
 
     def start(self):

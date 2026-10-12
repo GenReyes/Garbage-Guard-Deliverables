@@ -18,6 +18,12 @@ shutdown", and `mobile-app/SCREEN_SAVER_PLAN.md`).
   one (30 seconds to 60 minutes, default 1 minute) on battery. The first tap
   only wakes the screen, a new alert wakes it, and detection, alerts and
   Firebase keep running. Off uses `wlr-randr` (`wlopm` was tried and does not work on this Pi's display driver), and a touchscreen watcher wakes the screen because the desktop may not pass taps on while the output is off. If `wlr-randr` or the touchscreen cannot be used, the Pi falls back to Dim.
+- Waking is verified and retried (plain switch-on, the screen's own mode, then
+  an off-and-on cycle). If the screen still will not come back the Pi keeps
+  retrying, warns in the Power card and on the phone (`screen_note`), and uses
+  Dim until someone picks Off again. A screen left off is switched on at
+  start-up. This follows a case on the test Pi where the panel stayed dark
+  after sleeping with a Raspberry Pi Connect screen share open.
 - Low-battery auto shutdown at a chosen percentage (default 15, range 10 to 50):
   30 second debounce, a 5 minute countdown with a Cancel banner on the Pi and
   in the app, automatic cancel when the charger is plugged in, a 5% floor that

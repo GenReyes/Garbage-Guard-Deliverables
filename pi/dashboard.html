@@ -1060,6 +1060,8 @@ a.btn{text-decoration:none}
   margin:8px 0 3px;display:flex;align-items:center;gap:5px}
 .card-pow .sub .ico{width:12px;height:12px}
 .card-pow .hint{margin-top:10px}
+.card-pow .hint.bad{color:var(--bad);font-weight:800}
+.card-pow .hint.bad .ico{color:var(--bad)}
 #saver{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;
   border:0;background:#000;overflow:hidden;cursor:default;touch-action:none}
 #saver[hidden]{display:none}
@@ -1401,6 +1403,8 @@ a.btn{text-decoration:none}
         </div>
         <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
           Tap to wake. The first tap only wakes.</p>
+        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
+          <span></span></p>
       </section>
     </div>
   </section>
@@ -2455,6 +2459,9 @@ function pickMode(m){
   $("scrDimRow").style.display = m === "dim" ? "" : "none";
 }
 function fillPower(s){
+  const note = $("scrNote");
+  note.hidden = !s.screen_note;
+  if(s.screen_note) note.querySelector("span").textContent = s.screen_note;
   if(pwrDirty || s.screen_mode == null) return;
   pickMode(s.screen_mode);
   $("scrMin").value = Math.round(s.screen_timeout_s / 60);

@@ -129,6 +129,7 @@ Poll about once per second. This drives the whole main screen.
 | `screen_timeout_battery_s` | The same, while the Pi runs on battery. 30 to 3600, default 60. |
 | `screen_dim_pct` | Brightness kept in Dim mode. 5 to 50, default 20. |
 | `screen_wake_on_alert` | A new accumulation alert wakes the screen. Default `true`. |
+| `screen_note` | `null` normally. A sentence to show when the screen could not be switched back on: the Pi keeps retrying and stops using Off mode until someone taps Off again. Show it as a warning next to the screen saver settings. |
 | `cloud` | Firebase sync status: `{"enabled", "ok", "error", "watchers", "usage"}`. `watchers` is how many phones are watching through Firebase. `usage` is the Pi's estimate of this month's free allowance (same object as `/gg/usage`), or `null`. See `FIREBASE.md`. |
 | `viewers` | Devices that polled `/api/state` in the last 4 s: `{"apps", "browsers", "list": [...]}`. Each list entry has `ip`, `kind` (`app` or `browser`), `id`, `device`, `os`, `browser`, `app_version`, `mode`, `since_s` (connected for), `age_s` (last poll), `hits`, `mac`, `hostname`, `ua`, and `via`: `direct` (the IP and MAC are the phone's own), `shared` (several phones arrive from one address, so the IP and MAC belong to a router in between, such as a second Wi-Fi router), `remote` (Tailscale or the internet; `mac` is null), or `cloud` (the phone reaches the Pi through Firebase; `ip` is `"Firebase"`, `mac` and `hostname` are null). Show a short note for `shared`, `remote` and `cloud` so the numbers are not mistaken for the phone's own. The Pi screen shows a phone badge with the count, and tapping it shows these details. See "Telling the Pi who you are" below. |
 
@@ -345,7 +346,11 @@ Returns `{"ok": true, "screen_mode": "dim", "screen_timeout_s": 600,
 "screen_timeout_battery_s": 60, "screen_dim_pct": 20, "screen_wake_on_alert": true}`.
 
 Off mode switches the HDMI output off (with `wlr-randr`), which turns the backlight off on most of
-these boards. Dim mode cannot change the real backlight (the board has no
+these boards. Waking checks that the screen really came back: it tries a plain
+switch-on, then the screen's own mode, then an off-and-on cycle, and keeps
+retrying in the background. If it still cannot, `screen_note` explains it and
+the Pi uses Dim until someone picks Off again, so a screen cannot be left dark
+with no way to wake it. Dim mode cannot change the real backlight (the board has no
 brightness control), so the Pi dashboard draws a dark layer and the power
 saving is small. Changing the mode wakes a sleeping screen.
 
