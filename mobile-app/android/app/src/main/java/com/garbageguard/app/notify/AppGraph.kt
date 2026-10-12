@@ -10,6 +10,7 @@ import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.FirebaseConfig
 import com.garbageguard.app.data.LinkMode
 import com.garbageguard.app.data.PiRepository
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,7 +37,10 @@ object AppGraph {
     const val KEY_ADDRESS = "pi_address"
     const val KEY_THEME = "theme_mode"
 
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    // A failed network call in the background must never close the app, with
+    // or without a connection. Anything a caller did not catch ends here.
+    private val quiet = CoroutineExceptionHandler { _, e -> android.util.Log.w("GgApp", "background task failed", e) }
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + quiet)
     val pi = PiRepository(scope)
     val cloud = CloudRepository(scope, pi)
 

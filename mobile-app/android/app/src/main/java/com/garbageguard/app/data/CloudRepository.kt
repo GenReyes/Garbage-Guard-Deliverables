@@ -146,7 +146,15 @@ class CloudRepository(
     // ---------- reading ----------
 
     private suspend fun pollPi() {
-        val pi = getObject("gg/pi") ?: return
+        // With no internet this read fails. That must never stop the app; the
+        // state poll is what reports the lost link.
+        val pi = try {
+            getObject("gg/pi")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        } ?: return
         piSeenAt = pi.optLong("ts")
         alertsRev = if (pi.has("alerts_rev")) pi.optLong("alerts_rev") else null
         val urls = pi.optJSONArray("local_urls")
