@@ -52,6 +52,8 @@ import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.zIndex
 import com.garbageguard.app.ui.theme.GgColors
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -782,17 +784,19 @@ fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggle
 @Composable
 fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
     val c = Gg.colors
-    Column(Modifier.fillMaxWidth().background(c.raised)) {
+    // The tabs are the bottom of the screen itself, not a bar set inside it:
+    // three cells from edge to edge under one ink line, with no frame of
+    // their own. Each cell runs on down behind Android's own buttons or
+    // gesture handle, so nothing is cut off and there is no second border.
+    Column(Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-        // The three tabs are one bar, like the choice bars: the page in view is the raised cell.
-        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 12.dp, top = 7.dp, bottom = 8.dp).barFrame(c, 15.dp)) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(c.sunk)) {
             NavItem(GgIcons.Eye, "Monitor", tab == Tab.MONITOR, 0) { onSelect(Tab.MONITOR) }
-            Box(Modifier.width(2.dp).height(52.dp).background(c.edge))
+            Box(Modifier.width(2.dp).fillMaxHeight().background(c.edge))
             NavItem(GgIcons.Clock, "History", tab == Tab.HISTORY, unread) { onSelect(Tab.HISTORY) }
-            Box(Modifier.width(2.dp).height(52.dp).background(c.edge))
+            Box(Modifier.width(2.dp).fillMaxHeight().background(c.edge))
             NavItem(GgIcons.Gear, "Settings", tab == Tab.SETTINGS, 0) { onSelect(Tab.SETTINGS) }
         }
-        Spacer(Modifier.navigationBarsPadding())
     }
 }
 
@@ -800,10 +804,10 @@ fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
 private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean, badge: Int, onClick: () -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
-    Box(
+    Column(
         Modifier
             .weight(1f)
-            .height(52.dp)
+            .fillMaxHeight()
             .zIndex(if (selected) 1f else 0f)
             .then(if (selected) Modifier.barRaised(c) else Modifier.barSunk(c))
             .clickable(
@@ -813,25 +817,29 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
                 if (!selected) Feel.toggle(view)
                 onClick()
             },
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Ico(icon, size = 18.dp, tint = if (selected) accentOf(icon) else c.muted)
-            T(label.uppercase(), size = 0.7f, color = if (selected) c.text else c.muted, spacing = 0.06f, maxLines = 1)
+        Box(Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Ico(icon, size = 19.dp, tint = if (selected) accentOf(icon) else c.muted)
+                T(label.uppercase(), size = 0.7f, color = if (selected) c.text else c.muted, spacing = 0.06f, maxLines = 1)
+            }
+            if (badge > 0) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = 17.dp, y = 5.dp)
+                        .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                        .clip(CircleShape)
+                        .background(c.bad)
+                        .border(2.dp, c.edge, CircleShape)
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) { T(if (badge > 99) "99+" else "$badge", size = 0.62f, weight = FontWeight.Black, color = c.onBad, maxLines = 1) }
+            }
         }
-        if (badge > 0) {
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(x = 17.dp, y = 3.dp)
-                    .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
-                    .clip(CircleShape)
-                    .background(c.bad)
-                    .border(2.dp, c.edge, CircleShape)
-                    .padding(horizontal = 4.dp),
-                contentAlignment = Alignment.Center,
-            ) { T(if (badge > 99) "99+" else "$badge", size = 0.62f, weight = FontWeight.Black, color = c.onBad, maxLines = 1) }
-        }
+        // The cell's own face carries on under Android's buttons or gesture handle.
+        Spacer(Modifier.navigationBarsPadding())
     }
 }
 

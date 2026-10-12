@@ -4,6 +4,17 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.4: tabs as the bottom edge of the screen (2026-10-12)
+
+### App
+
+- The Monitor, History and Settings tabs are no longer a bar set inside a
+  strip. They are three cells from edge to edge under one ink line, with no
+  frame of their own, and each cell runs on down behind Android's three
+  buttons or its gesture handle. The open page is still the raised cell.
+- Android's grey veil behind its three buttons is switched off, so the
+  buttons sit on the tabs themselves.
+
 ## App version 9.3: bars for tabs and steppers, a look for every event (2026-10-12)
 
 ### App

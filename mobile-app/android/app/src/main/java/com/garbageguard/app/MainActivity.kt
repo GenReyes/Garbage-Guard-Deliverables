@@ -26,6 +26,10 @@ class MainActivity : ComponentActivity() {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         enableEdgeToEdge()
+        // Android lays a grey veil behind its three buttons by default. The tabs
+        // are drawn right down to the edge, so the veil is switched off and the
+        // buttons sit on the tabs themselves.
+        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         setContent { GgApp(vm) }
     }
 
