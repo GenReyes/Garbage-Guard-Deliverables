@@ -151,8 +151,11 @@ echo 'pi ALL=(root) NOPASSWD: /sbin/poweroff' | sudo tee /etc/sudoers.d/gg-power
 ```
 
 (replace `pi` with the Pi's user name). The Pi stays off after a low-battery
-shutdown until the power button is pressed; it does not restart by itself when
-the charger returns.
+shutdown until someone switches the Waveshare UPS HAT's own power switch off and
+on again; it does not restart by itself when the charger returns. The full
+shutdown takes 30 to 60 seconds on the test Pi (the screen goes dark 2 to 3
+seconds after the countdown reaches 0:00, and the board and its peripherals take
+longer to finish).
 
 ## Starting at boot, and Wi-Fi setup
 

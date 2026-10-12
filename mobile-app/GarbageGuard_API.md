@@ -532,8 +532,8 @@ How it behaves:
   therefore shuts down about 8 minutes later unless someone cancels or plugs in.
 - Just before powering off, the Pi writes a history row with the event
   `low_battery_shutdown` and sends the history and state to Firebase, so the
-  app can say why the Pi went offline. It stays off until someone presses its
-  power button.
+  app can say why the Pi went offline. It stays off until someone switches the
+  UPS HAT's power switch off and on again.
 - Over Firebase the Pi sends state immediately when `shutdown_state` changes
   and every 3 seconds while `counting`, and checks for commands every 2 seconds
   meanwhile, so a Cancel from the app arrives quickly. A closed app cannot be

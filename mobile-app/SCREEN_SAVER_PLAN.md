@@ -169,7 +169,7 @@ The only case where the Pi turns off soon after boot is booting on battery below
 
 **What Brian will see in testing.** Booting on battery at 12% with a 15% setting is not a bug: the Pi shuts down about 8 minutes later (3 minutes grace + 30 seconds debounce + 5 minute countdown) unless someone taps Cancel or plugs in.
 
-**Open decision: restarting after a low-battery shutdown.** The HAT keeps the Pi powered while halted, so it stays off even after the charger returns, until someone presses the power button. That is fine for the lab, but a monitoring device left alone stays dead. Decide before the defence whether to leave it (simplest) or add an auto-restart when the charger returns, and write the choice in the thesis either way.
+**Open decision: restarting after a low-battery shutdown.** The HAT keeps the Pi powered while halted, so it stays off even after the charger returns, until someone switches the Waveshare UPS HAT's power switch off and on again (this is how the Pi is started on the real unit). That is fine for the lab, but a monitoring device left alone stays dead. Decide before the defence whether to leave it (simplest) or add an auto-restart when the charger returns, and write the choice in the thesis either way.
 
 ### Shared contract
 
