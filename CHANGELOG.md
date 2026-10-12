@@ -4,6 +4,40 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi update after 7.0 (2026-10-12)
+
+Pi dashboard and network screen only. The app and the Firebase data are
+unchanged.
+
+### Pi dashboard
+
+- The Firebase status has four states instead of three. Each has its own
+  symbol and colour, in both themes:
+
+  | State | When | Symbol | Colour |
+  |---|---|---|---|
+  | Firebase off | sync switched off or not set up | cloud with a slash | grey |
+  | Firebase on standby | signed in, but no phone on another network is watching | cloud with a pause sign | slate |
+  | Firebase active | at least one phone on another network is watching | cloud | orange |
+  | Firebase error | sign-in or a write failed | cloud with an exclamation mark | red |
+
+  Previously the chip said "Firebase synced" whenever the Pi was signed in,
+  even with nobody using Firebase. Standby matches the slow idle polling
+  added in 7.0; the Pi switches to active within a few seconds of a phone's
+  watcher entry appearing.
+- The chip in the phone panel shows the state, and "Firebase active · 2
+  phones" when more than one phone is watching. Its tooltip explains the
+  state.
+- The small cloud next to the phone badge follows the same states: slate on
+  standby, orange when active, red on error or when the month's allowance is
+  used up. It is hidden when Firebase is off.
+
+### Network screen
+
+- The Firebase card's chip reads Standby or Active instead of Syncing, and
+  the line under it says "Waiting for a phone away from this Wi-Fi" or how
+  many phones on another network are using it.
+
 ## Version 7.0 (2026-10-12)
 
 This release reduces the Firebase traffic that the system produces while no
@@ -88,6 +122,14 @@ still talks to the Pi directly.
 - Android app: the hidden game gains full-screen water and three boss types.
 - Pi dashboard: larger picture in fullscreen and full-size snapshots, and a
   slimmer snapshot card.
+  - Fullscreen: the screen fills the monitor's height and takes the camera's
+    own shape, so there are no black bars beside the picture. FPS, an items
+    gauge and the class counts move to the left bezel; Capture, Mute and
+    Auto-mute to the right; the status chip to the top bar.
+  - Full-size snapshot: the picture fills the screen height, with Close and
+    the details in a narrow column beside it.
+  - Snapshot card: one row about 7.5 % of the picture's width tall, instead
+    of 20 %. Snapshots saved before keep their old card.
 
 ## Version 5.0 (2026-10-12)
 
@@ -100,7 +142,8 @@ still talks to the Pi directly.
   still to Firebase Realtime Database and runs commands left there by phones.
 - Pi: `gg_usage.py` estimates the month's Firebase downloads; the preview
   slows at 90 % of the allowance and stops at 100 %.
-- Pi dashboard: Firebase card, settings page and usage bar.
+- Pi dashboard: Firebase card, settings page and usage bar, and a cloud
+  mark beside the phone badge. The Firebase fields accept pasted text.
 
 ## Version 4.0 (2026-10-12)
 
