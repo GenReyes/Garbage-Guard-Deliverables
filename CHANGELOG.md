@@ -4,6 +4,21 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.2: one-piece choice bars, stronger power rows (2026-10-12)
+
+### App
+
+- Choice bars (Appearance, Screen saver, the History symbols) are one bar
+  again: every option is a cell of the same outline, divided by the same ink
+  line. The chosen cell is the raised one, a lit face that casts a shadow on
+  its neighbours, and the cells not chosen are a shade deeper with their own
+  inner shadow. This replaces the separate key of 9.1, which looked detached
+  from the bar.
+- History rows for the two shutdown events sit between an alert and an
+  ordinary record: an orange edge, tint and shadow and a little more lift,
+  with no pulse. Their unread dot is orange, and the event's symbol takes the
+  place of the item count, which a shutdown does not have.
+
 ## App version 9.1: switches and choice bars (2026-10-12)
 
 ### App

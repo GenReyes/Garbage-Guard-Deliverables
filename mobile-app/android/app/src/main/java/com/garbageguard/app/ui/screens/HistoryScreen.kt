@@ -203,8 +203,13 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
     val unread = !row.read
     val alert = row.event == EventType.ACCUMULATION
     val urgent = unread && alert
+    // The two shutdown events sit between an alert and an ordinary record:
+    // an orange edge and tint and a little more lift, but no pulse.
+    val power = row.event == EventType.LOW_BATTERY_SHUTDOWN || row.event == EventType.MANUAL_SHUTDOWN
+    val notable = unread && power
+    val powerTint = lerp(c.raised, c.cloud, 0.2f)
     val fade = if (unread) 1f else 0.62f
-    val lift by animateDpAsState(if (urgent) 5.dp else if (unread) 3.dp else 0.dp, tween(240), label = "lift")
+    val lift by animateDpAsState(if (urgent) 5.dp else if (notable) 4.dp else if (unread) 3.dp else 0.dp, tween(240), label = "lift")
     val glow = if (urgent) breathe(1700) else 0f
 
     Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -243,12 +248,12 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         )
                     }
                 }
-                .neuShadow(c, 14.dp, lift, if (urgent) Soft.LG else Soft.SM)
+                .neuShadow(c, 14.dp, lift, if (urgent || notable) Soft.LG else Soft.SM, hardColor = if (notable) c.cloud else c.edge)
                 .clip(shape)
-                .background(if (alert) c.badTint else c.raised)
-                .border(2.dp, if (urgent) c.bad else c.edge, shape)
+                .background(if (alert) c.badTint else if (power) powerTint else c.raised)
+                .border(2.dp, if (urgent) c.bad else if (notable) c.cloud else c.edge, shape)
         } else {
-            Modifier.neuWell(c, 14.dp, if (alert) lerp(c.sunk, c.badTint, 0.3f) else c.sunk)
+            Modifier.neuWell(c, 14.dp, if (alert) lerp(c.sunk, c.badTint, 0.3f) else if (power) lerp(c.sunk, c.cloud, 0.12f) else c.sunk)
         }
 
         Row(
@@ -287,10 +292,10 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         .size(16.dp)
                         .alpha(if (row.read) 0.5f else 1f)
                         .drawBehind {
-                            if (!row.read) drawCircle(c.badTint, radius = size.minDimension / 2 + 3.dp.toPx())
+                            if (!row.read) drawCircle(if (power) c.cloud.copy(alpha = 0.3f) else c.badTint, radius = size.minDimension / 2 + 3.dp.toPx())
                         }
                         .clip(CircleShape)
-                        .background(if (row.read) Color.Transparent else c.bad)
+                        .background(if (row.read) Color.Transparent else if (power) c.cloud else c.bad)
                         .border(2.dp, c.edge, CircleShape),
                 )
             }
@@ -298,7 +303,9 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                 EventPill(row.event)
                 T(row.timestamp, size = 0.78f, weight = FontWeight.Bold, color = c.muted, tnum = true, maxLines = 1)
             }
-            T(
+            // A shutdown has no item count, so its place carries the event's symbol.
+            if (power) Ico(eventIcon(row.event), Modifier.alpha(fade), size = 24.dp, tint = c.cloud)
+            else T(
                 "${row.smoothedCount}", Modifier.widthIn(min = 30.dp).alpha(fade),
                 size = 1.3f, weight = FontWeight.Black, color = c.text, align = TextAlign.End, tnum = true,
             )

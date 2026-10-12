@@ -50,6 +50,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.zIndex
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -523,45 +524,74 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MU
 }
 
 /**
- * .seg, a choice of a few options. The tray is sunk into the page and the
- * chosen option is a raised key standing in it, with its own rounded shape
- * and shadow, so what is chosen is pushed out and the rest stay pushed in.
- * With empty labels it is a row of symbols.
+ * .seg, a choice of a few options, drawn as one bar. Every option is a cell
+ * of the same bar, sharing its outline and divided by the same ink line.
+ * The chosen cell is the raised one: a lit face that casts a shadow onto its
+ * neighbours. The others are sunk, each with its own inner shadow. With
+ * empty labels it is a row of symbols.
  */
 @Composable
 fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
-    Box(Modifier.fillMaxWidth()) {
-        Box(Modifier.matchParentSize().neuWell(c, 14.dp))
-        Row(
-            // A little more room on the right and bottom, where the raised key's hard shadow falls.
-            Modifier.fillMaxWidth().padding(start = 5.dp, top = 5.dp, end = 7.dp, bottom = 7.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            options.forEachIndexed { i, label ->
-                val on = i == selected
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .then(if (on) Modifier.neuRaised(c, 10.dp, hard = 2.dp, soft = Soft.SM, fill = raisedBrush(c)) else Modifier)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            if (!on) Feel.toggle(view)
-                            onSelect(i)
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        icons.getOrNull(i)?.let {
-                            val tint = accentOf(it)
-                            Ico(it, size = if (label.isEmpty()) 18.dp else 14.dp, tint = if (on) tint else tint.copy(alpha = 0.55f))
-                        }
-                        if (label.isNotEmpty()) T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f, maxLines = 1)
+    val shape = RoundedCornerShape(13.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .neuShadow(c, 13.dp, 2.dp, Soft.SM)
+            .clip(shape)
+            .background(c.sunk)
+            .border(2.dp, c.edge, shape),
+    ) {
+        options.forEachIndexed { i, label ->
+            val on = i == selected
+            if (i > 0) Box(Modifier.width(2.dp).height(44.dp).background(c.edge))
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    // The raised cell is drawn last, so its shadow lies over the cells beside it.
+                    .zIndex(if (on) 1f else 0f)
+                    .then(
+                        if (on) Modifier
+                            .drawBehind {
+                                val reach = 9.dp.toPx()
+                                val dark = Color.Black.copy(alpha = 0.3f)
+                                drawRect(
+                                    Brush.horizontalGradient(listOf(Color.Transparent, dark), startX = -reach, endX = 0f),
+                                    topLeft = Offset(-reach, 0f), size = Size(reach, size.height),
+                                )
+                                drawRect(
+                                    Brush.horizontalGradient(listOf(dark, Color.Transparent), startX = size.width, endX = size.width + reach),
+                                    topLeft = Offset(size.width, 0f), size = Size(reach, size.height),
+                                )
+                            }
+                            // In the dark theme the face is lifted a clear step above the tray, or it would not read as raised.
+                            .background(if (c.isDark) Brush.verticalGradient(listOf(androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.2f), androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.07f))) else raisedBrush(c))
+                            .drawBehind {
+                                // A lit line along the top and a shaded one along the bottom: the face of a key.
+                                val w = 2.dp.toPx()
+                                drawRect(c.lite.copy(alpha = c.lite.alpha * 0.9f), topLeft = Offset(0f, w), size = Size(size.width, w))
+                                drawRect(c.shade.copy(alpha = c.shade.alpha * 0.7f), topLeft = Offset(0f, size.height - w * 2.2f), size = Size(size.width, w * 1.2f))
+                            }
+                        // The cells not chosen are a shade deeper than the tray, under their own inner shadow.
+                        else Modifier.background(Color.Black.copy(alpha = if (c.isDark) 0.24f else 0.07f)).neuInset(c, 0.dp)
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        if (!on) Feel.toggle(view)
+                        onSelect(i)
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    icons.getOrNull(i)?.let {
+                        val tint = accentOf(it)
+                        Ico(it, size = if (label.isEmpty()) 18.dp else 14.dp, tint = if (on) tint else tint.copy(alpha = 0.5f))
                     }
+                    if (label.isNotEmpty()) T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f, maxLines = 1)
                 }
             }
         }
