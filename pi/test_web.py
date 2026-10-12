@@ -87,7 +87,7 @@ class ApiTests(unittest.TestCase):
     def setUp(self):
         self.engine = FakeEngine()
         ups = FakeUps()
-        self.screen = gg_screen.Screen(self.engine.settings, ups=ups, run=lambda c, e: (True, ""),
+        self.screen = gg_screen.Screen(self.engine.settings, ups=ups, run=lambda c, e: (True, "HDMI-A-2 x\n  Enabled: yes\n" if c == ["wlr-randr"] else ""),
                                        have=lambda n: "/x")
         self.power = gg_power.Power(self.engine.settings, ups=ups, screen=self.screen)
         self.server = w.QuietServer(("127.0.0.1", 0), w.make_handler(

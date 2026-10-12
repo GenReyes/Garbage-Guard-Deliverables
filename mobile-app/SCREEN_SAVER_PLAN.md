@@ -6,7 +6,7 @@ Hardware: Raspberry Pi 5 (Raspberry Pi OS Bookworm, labwc Wayland desktop), unbr
 
 | Question | Answer |
 |---|---|
-| Can the Pi 5 turn the HDMI output off? | Yes. `wlopm --off '*'` puts the HDMI output to sleep (DPMS) and `wlopm --on '*'` wakes it. Chromium keeps running, nothing restarts. |
+| Can the Pi 5 turn the HDMI output off? | Yes, with `wlr-randr --output <name> --off` and `--on` (tested on the real Pi, the panel goes dark and returns). `wlopm` does **not** work on this Pi: it reports the screen as off but then cannot turn it on. Chromium keeps running, nothing restarts. |
 | Does the screen go dark when HDMI is off? | Most of these boards turn the backlight off after a short "No Signal" message, but some keep it lit. **Test this first** (step 2). |
 | Can the Pi lower the real backlight? | Almost certainly not. Cheap HDMI boards have no software brightness control (no DDC/CI, no backlight driver). Brightness only changes with the board's own switch or buttons, if it has any. |
 | So how does "dim" work? | A black layer over the dashboard with adjustable transparency. It looks dimmer but the backlight draws the same power, so it saves almost no screen power. State this plainly in the thesis as a hardware limitation; the real saving comes from Off mode. |
@@ -18,9 +18,8 @@ Hardware: Raspberry Pi 5 (Raspberry Pi OS Bookworm, labwc Wayland desktop), unbr
 Run in a terminal on the Pi desktop:
 
 ```bash
-sudo apt install wlopm        # if not already there
 wlr-randr                     # note the output name, usually HDMI-A-1
-wlopm --off '*'; sleep 10; wlopm --on '*'
+wlr-randr --output HDMI-A-2 --off; sleep 10; wlr-randr --output HDMI-A-2 --on
 ```
 
 While it is off, check in a dim room whether the panel is fully black or still glowing / showing "No Signal". If a USB power meter is available, note the screen's current with the output on and off. Those numbers are useful for the thesis results chapter.
@@ -28,10 +27,10 @@ While it is off, check in a dim room whether the panel is fully black or still g
 Then test touch while the output is off, because wake-on-touch depends on it:
 
 1. Open the dashboard in Chromium. In the browser console run `addEventListener('pointerdown', () => console.log('tap'))`, or use any page that shows a tap.
-2. Run `wlopm --off '*'`, wait 5 seconds, tap the screen, then run `wlopm --on '*'` and check whether `tap` was logged.
+2. Run `wlr-randr --output HDMI-A-2 --off`, wait 5 seconds, tap the screen, then run `wlr-randr --output HDMI-A-2 --on` and check whether `tap` was logged. (The Pi code now reads the touchscreen directly in `gg_touch.py`, so this test is no longer needed for the feature to work.)
 3. If the tap was **not** received, wake-on-touch needs another route: a small thread that watches the touch device (`/dev/input/event*` with `evdev`) and calls `touch()`. Plan for that before building the page side.
 
-Also check the environment the app will run in. `wlopm` only works in a process that has `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` set. Run the command from `start.sh` or the autostart entry (not your own terminal) and confirm it still works.
+Also check the environment the app will run in. `wlr-randr` only works in a process that has `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` set. Run the command from `start.sh` or the autostart entry (not your own terminal) and confirm it still works.
 
 Also turn off the OS's own blanking so it does not fight ours: `sudo raspi-config` > Display Options > Screen Blanking > No.
 
@@ -103,12 +102,12 @@ A `screen_off` / `screen_on` row is not needed and would clutter the log. Leave 
 1. **`pi/gg_screen.py`** (new, same style as `gg_window.py`). Holds the timer and state.
    - `touch()`: record the time. If the screen is not `on`, wake it.
    - `tick()`: called about once a second (a small thread). When idle time passes `screen_timeout_s` and mode is not `never`, go to sleep.
-   - Sleep in Off mode runs `wlopm --off '*'` and sets `screen = "off"`. Sleep in Dim mode only sets `screen = "dim"` (the page draws the dimming).
-   - Wake runs `wlopm --on '*'` (harmless if already on), sets `screen = "on"` and resets the timer.
-   - If `wlopm` is missing, fall back to Dim so the feature still does something.
+   - Sleep in Off mode switches the enabled output off with `wlr-randr` and sets `screen = "off"`. Sleep in Dim mode only sets `screen = "dim"` (the page draws the dimming).
+   - Wake switches the same output back on, sets `screen = "on"` and resets the timer.
+   - If `wlr-randr` is missing or no touchscreen can be read, fall back to Dim so the feature still does something.
    - Read and save the five settings through the engine's settings file, the same way `auto_mute` is stored.
    - Pick the timer from the UPS: `screen_timeout_battery_s` when `ups.status()` says `ok` and `on_ac` is false, otherwise `screen_timeout_s`. Share the one `Ups` object created in `serve()` (section 7) instead of making another.
-   - Run `wlopm` with `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` set explicitly (for example `WAYLAND_DISPLAY=wayland-0` and `XDG_RUNTIME_DIR=/run/user/$UID`), because the process may not inherit them. Log a warning if the command fails instead of failing silently, and fall back to Dim.
+   - Run `wlr-randr` with `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` set explicitly (for example `WAYLAND_DISPLAY=wayland-0` and `XDG_RUNTIME_DIR=/run/user/$UID`), because the process may not inherit them. Log a warning if the command fails instead of failing silently, and fall back to Dim.
    - If step 2 showed taps are lost while the output is off, add the touch-device watcher thread described there.
    - When `screen` changes, ask the cloud thread to send state right away (section 4).
 2. **`gg_web.py`**: add the three endpoints above and put the screen fields into `/api/state`.
@@ -131,7 +130,7 @@ A `screen_off` / `screen_on` row is not needed and would clutter the log. Leave 
    - Wake on alert: switch, same as the auto-mute switch.
    - Buttons: Save, Sleep now.
    - Hint line: "Touch the screen to wake it. The first tap only wakes."
-6. **Docs and tests**: add the endpoints and fields to `mobile-app/GarbageGuard_API.md` (the "What changed" line at the top too), and a `test_screen.py` that fakes `wlopm` and checks timeout, the shorter on-battery timeout (and normal timeout when the UPS is unreadable), wake on touch, wake on alert, and clamping.
+6. **Docs and tests**: add the endpoints and fields to `mobile-app/GarbageGuard_API.md` (the "What changed" line at the top too), and a `test_screen.py` that fakes `wlr-randr` and checks timeout, the shorter on-battery timeout (and normal timeout when the UPS is unreadable), wake on touch, wake on alert, and clamping.
 
 ## 6. App side (Brian)
 

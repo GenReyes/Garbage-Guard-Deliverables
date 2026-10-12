@@ -30,6 +30,7 @@ from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
 import gg_cloud
 import gg_power
 import gg_screen
+import gg_touch
 import gg_ups
 import gg_web
 from gg_snapcard import add_card
@@ -762,6 +763,9 @@ def main():
         power = gg_power.Power(settings, save=save, ups=ups, screen=screen,
                                log=engine.log_note, flush=gg_cloud.flush)
         engine.on_alert = screen.alert
+        touch = gg_touch.Touch(screen.touch)
+        touch.start()
+        screen.wake_source = touch
         screen.start()
         power.start()
         gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power)

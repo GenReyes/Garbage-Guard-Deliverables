@@ -17,7 +17,7 @@ shutdown", and `mobile-app/SCREEN_SAVER_PLAN.md`).
   saves little) and Never. Timer 1 to 60 minutes on the charger and a shorter
   one (30 seconds to 60 minutes, default 1 minute) on battery. The first tap
   only wakes the screen, a new alert wakes it, and detection, alerts and
-  Firebase keep running. If `wlopm` is missing the Pi falls back to Dim.
+  Firebase keep running. Off uses `wlr-randr` (`wlopm` was tried and does not work on this Pi's display driver), and a touchscreen watcher wakes the screen because the desktop may not pass taps on while the output is off. If `wlr-randr` or the touchscreen cannot be used, the Pi falls back to Dim.
 - Low-battery auto shutdown at a chosen percentage (default 15, range 10 to 50):
   30 second debounce, a 5 minute countdown with a Cancel banner on the Pi and
   in the app, automatic cancel when the charger is plugged in, a 5% floor that

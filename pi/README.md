@@ -31,7 +31,9 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_usage.py` | Unit tests for `gg_usage.py`. |
 | `gg_screen.py` | The Pi screen saver: turns the HDMI output off (or dims) after a timer, shorter on battery, wakes on touch or alert. |
 | `gg_power.py` | Clean shutdown before the UPS battery runs flat: debounce, 5 minute countdown, Cancel, 5% floor, boot grace. |
-| `test_screen.py`, `test_power.py` | Unit tests for the two above, with a fake `wlopm` and a fake UPS. |
+| `test_screen.py`, `test_power.py` | Unit tests for the two above, with a fake `wlr-randr` and a fake UPS. |
+| `gg_touch.py` | Reads the touchscreen directly so a tap can wake the screen while the output is off. |
+| `test_touch.py` | Unit tests for `gg_touch.py`. |
 | `firebase.rules.json` | Security rules to paste into the Firebase console. |
 | `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
@@ -101,10 +103,11 @@ python3 test_web.py
 python3 test_cloud.py
 python3 test_usage.py
 python3 test_screen.py
+python3 test_touch.py
 python3 test_power.py
 ```
 
-Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 13 tests` and `Ran 20 tests`, all `OK`.
+Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 17 tests`, `Ran 7 tests` and `Ran 20 tests`, all `OK`.
 
 ## Screen saver and low-battery shutdown
 
@@ -113,21 +116,31 @@ Both live in the Power card on the dashboard (scroll the right-hand column).
 **One-time setup on the Pi**
 
 ```bash
-sudo apt install wlopm
 sudo raspi-config        # Display Options > Screen Blanking > No
 ```
 
-Then test Off mode by hand before relying on it:
+Off mode uses `wlr-randr`, which is already installed. (`wlopm` does not work
+on this Pi's display driver: it reports the screen as off but cannot turn it
+on, so it is not used.) Test it by hand before relying on it:
 
 ```bash
 wlr-randr
-wlopm --off '*'; sleep 10; wlopm --on '*'
+wlr-randr --output HDMI-A-2 --off; sleep 10; wlr-randr --output HDMI-A-2 --on
 ```
 
-Check whether the panel goes fully dark, and whether a tap on the screen is
-still received while the output is off. If the cheap board keeps its backlight
-lit, use Dim and note it as a hardware limitation. If `wlopm` is missing or
-fails, the Pi falls back to Dim by itself and prints `[SCREEN]` in the log.
+Replace `HDMI-A-2` with the name `wlr-randr` shows. The panel should go dark and
+come back. The Pi's own screen found this way is switched automatically; the
+name is never typed into the program. After it comes back, check that the
+dashboard still fills the screen and that touch lands where you tap.
+
+While the output is off the desktop may not pass taps on, so `gg_touch.py`
+reads the touchscreen itself. It needs read access to `/dev/input`, which the
+default Pi user has through the `input` group (check with `groups`). If no
+touchscreen can be read, the log shows `[TOUCH] no readable touchscreen` and Off
+mode uses Dim instead. If the output is still off when the program starts (for
+example after a crash), it is switched back on at start-up. If the cheap board
+keeps its backlight lit with the output off, use Dim and note it as a hardware
+limitation.
 
 Auto shutdown calls `systemctl poweroff`. Test it once from the way the
 program is really started (the autostart entry), not from your own terminal. If

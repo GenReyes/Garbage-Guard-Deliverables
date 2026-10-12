@@ -1,9 +1,12 @@
 """Screen saver for the Pi's own touchscreen.
 
-Off mode puts the HDMI output to sleep with wlopm (the cheap 7 inch board then
-turns its backlight off). Dim mode only reports "dim" and the dashboard page
-draws a dark layer over itself, because these boards have no software
-brightness control. Detection, alerts and Firebase are never touched.
+Off mode switches the HDMI output off with wlr-randr (the cheap 7 inch board
+then turns its backlight off); wlopm does not work on this Pi's display
+driver. While the output is off the compositor may not pass taps on, so
+gg_touch watches the touchscreen directly and wakes it. Dim mode only reports
+"dim" and the dashboard page draws a dark layer over itself, because these
+boards have no software brightness control. Detection, alerts and Firebase
+are never touched.
 
 The timer is shorter while the Pi runs on battery.
 """
@@ -49,6 +52,8 @@ class Screen:
         self.state = "on"
         self.last_touch = clock()
         self.note = None
+        self.off_outputs = []
+        self.wake_source = None
 
     def _env(self):
         env = dict(self.environ)
@@ -56,15 +61,60 @@ class Screen:
         env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
         return env
 
-    def _wlopm(self, flag):
-        if not self.have("wlopm"):
-            self.note = "wlopm is not installed"
-            return False
-        ok, msg = self._runner(["wlopm", flag, "*"], self._env())
-        self.note = None if ok else (msg or "wlopm failed")
+    def _outputs(self):
+        ok, text = self._runner(["wlr-randr"], self._env())
         if not ok:
-            print(f"[SCREEN] wlopm {flag} failed: {self.note}", flush=True)
+            return None
+        rows = []
+        for line in text.splitlines():
+            if line and not line[0].isspace():
+                rows.append([line.split()[0], False])
+            elif rows and line.strip().startswith("Enabled:"):
+                rows[-1][1] = line.split(":", 1)[1].strip().lower() == "yes"
+        return [(n, e) for n, e in rows]
+
+    def _switch(self, names, flag):
+        done = []
+        for n in names:
+            ok, msg = self._runner(["wlr-randr", "--output", n, flag], self._env())
+            if not ok:
+                self.note = msg or f"wlr-randr {flag} failed"
+                print(f"[SCREEN] wlr-randr {n} {flag} failed: {self.note}", flush=True)
+                return False, done
+            done.append(n)
+        return True, done
+
+    def _power_off(self):
+        if not self.have("wlr-randr"):
+            self.note = "wlr-randr is not installed"
+            return False
+        if self.wake_source is not None and not self.wake_source.ready:
+            self.note = "no touchscreen could be read, so a tap could not wake it"
+            return False
+        rows = self._outputs()
+        names = [n for n, e in rows or [] if e]
+        if not names:
+            self.note = "no enabled screen found"
+            return False
+        ok, done = self._switch(names, "--off")
+        if not ok:
+            self._switch(done, "--on")
+            return False
+        self.off_outputs = names
+        self.note = None
+        return True
+
+    def _power_on(self):
+        names = list(self.off_outputs)
+        if not names:
+            names = [n for n, e in self._outputs() or [] if not e]
+        ok, _ = self._switch(names, "--on")
+        self.off_outputs = [] if ok else names
         return ok
+
+    def recover(self):
+        if self.have("wlr-randr") and any(not e for n, e in self._outputs() or []):
+            self._power_on()
 
     def on_battery(self):
         if self.ups is None:
@@ -86,7 +136,7 @@ class Screen:
     def wake(self):
         with self.lock:
             if self.state == "off":
-                self._wlopm("--on")
+                self._power_on()
             self.state = "on"
             self.last_touch = self.clock()
             return self.state
@@ -97,7 +147,7 @@ class Screen:
                 return self.state
             how = self.settings["screen_mode"]
             if how == "off" or how == "never":
-                self.state = "off" if self._wlopm("--off") else "dim"
+                self.state = "off" if self._power_off() else "dim"
             else:
                 self.state = "dim"
             return self.state
@@ -143,6 +193,8 @@ class Screen:
         return out
 
     def start(self):
+        self.recover()
+
         def loop():
             while True:
                 try:

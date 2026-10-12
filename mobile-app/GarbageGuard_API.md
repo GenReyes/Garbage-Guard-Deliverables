@@ -344,7 +344,7 @@ clamped on the Pi and kept across restarts.
 Returns `{"ok": true, "screen_mode": "dim", "screen_timeout_s": 600,
 "screen_timeout_battery_s": 60, "screen_dim_pct": 20, "screen_wake_on_alert": true}`.
 
-Off mode turns the HDMI output off, which turns the backlight off on most of
+Off mode switches the HDMI output off (with `wlr-randr`), which turns the backlight off on most of
 these boards. Dim mode cannot change the real backlight (the board has no
 brightness control), so the Pi dashboard draws a dark layer and the power
 saving is small. Changing the mode wakes a sleeping screen.
