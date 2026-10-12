@@ -69,6 +69,8 @@ import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.ui.components.pressable
 import com.garbageguard.app.ui.components.rememberSnapshot
+import androidx.compose.ui.unit.Dp
+import com.garbageguard.app.ui.theme.GgColors
 import com.garbageguard.app.ui.theme.Gg
 
 fun eventIcon(e: EventType): ImageVector = when (e) {
@@ -188,6 +190,34 @@ fun EventPill(event: EventType) {
     }
 }
 
+/** How one kind of record looks, and how far it stands out of the page. */
+private class RowLook(
+    val accent: Color,
+    /** How much of the accent is mixed into the row's face. */
+    val tint: Float,
+    /** The urgent kinds carry their colour on the whole edge and hard shadow. */
+    val edged: Boolean,
+    val lift: Dp,
+    val soft: Soft,
+)
+
+/**
+ * The looks, in order of urgency. An accumulation alert stands furthest out
+ * and is the only one that pulses. A low-battery shutdown comes next, then a
+ * manual shutdown and an auto-mute. Tests and captures are routine, mutes
+ * and unmutes quieter still, and a suppressed spike is the faintest.
+ */
+private fun lookOf(e: EventType, c: GgColors): RowLook = when (e) {
+    EventType.ACCUMULATION -> RowLook(c.bad, 0.2f, true, 5.dp, Soft.LG)
+    EventType.LOW_BATTERY_SHUTDOWN -> RowLook(c.cloud, 0.22f, true, 4.dp, Soft.LG)
+    EventType.MANUAL_SHUTDOWN -> RowLook(c.cloud, 0.12f, true, 3.dp, Soft.SM)
+    EventType.AUTO_MUTED -> RowLook(c.warn, 0.16f, true, 3.dp, Soft.SM)
+    EventType.TEST -> RowLook(c.warn, 0.1f, false, 3.dp, Soft.SM)
+    EventType.MANUAL -> RowLook(c.teal, 0.1f, false, 3.dp, Soft.SM)
+    EventType.MUTED, EventType.UNMUTED -> RowLook(c.bag, 0.08f, false, 2.dp, Soft.SM)
+    EventType.SUPPRESSED -> RowLook(c.muted, 0.05f, false, 2.dp, Soft.SM)
+}
+
 /**
  * One history row, with Delete hidden behind it. Depth carries the
  * priority: an unread row stands out of the page, an unread alert stands
@@ -203,13 +233,12 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
     val unread = !row.read
     val alert = row.event == EventType.ACCUMULATION
     val urgent = unread && alert
-    // The two shutdown events sit between an alert and an ordinary record:
-    // an orange edge and tint and a little more lift, but no pulse.
     val power = row.event == EventType.LOW_BATTERY_SHUTDOWN || row.event == EventType.MANUAL_SHUTDOWN
-    val notable = unread && power
-    val powerTint = lerp(c.raised, c.cloud, 0.2f)
+    // Every kind of record has its own look, and how far it stands out follows how urgent it is.
+    val look = lookOf(row.event, c)
+    val face = if (alert) c.badTint else lerp(c.raised, look.accent, look.tint)
     val fade = if (unread) 1f else 0.62f
-    val lift by animateDpAsState(if (urgent) 5.dp else if (notable) 4.dp else if (unread) 3.dp else 0.dp, tween(240), label = "lift")
+    val lift by animateDpAsState(if (unread) look.lift else 0.dp, tween(240), label = "lift")
     val glow = if (urgent) breathe(1700) else 0f
 
     Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -248,12 +277,16 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         )
                     }
                 }
-                .neuShadow(c, 14.dp, lift, if (urgent || notable) Soft.LG else Soft.SM, hardColor = if (notable) c.cloud else c.edge)
+                .neuShadow(c, 14.dp, lift, look.soft, hardColor = if (look.edged && !alert) look.accent else c.edge)
                 .clip(shape)
-                .background(if (alert) c.badTint else if (power) powerTint else c.raised)
-                .border(2.dp, if (urgent) c.bad else if (notable) c.cloud else c.edge, shape)
+                .background(face)
+                .drawBehind {
+                    // The quieter kinds keep the ink edge and carry their colour as a band down the left.
+                    if (!look.edged) drawRect(look.accent, size = Size(5.dp.toPx(), size.height))
+                }
+                .border(2.dp, if (look.edged) look.accent else c.edge, shape)
         } else {
-            Modifier.neuWell(c, 14.dp, if (alert) lerp(c.sunk, c.badTint, 0.3f) else if (power) lerp(c.sunk, c.cloud, 0.12f) else c.sunk)
+            Modifier.neuWell(c, 14.dp, if (alert) lerp(c.sunk, c.badTint, 0.3f) else lerp(c.sunk, look.accent, look.tint * 0.6f))
         }
 
         Row(
@@ -292,10 +325,10 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                         .size(16.dp)
                         .alpha(if (row.read) 0.5f else 1f)
                         .drawBehind {
-                            if (!row.read) drawCircle(if (power) c.cloud.copy(alpha = 0.3f) else c.badTint, radius = size.minDimension / 2 + 3.dp.toPx())
+                            if (!row.read) drawCircle(look.accent.copy(alpha = 0.3f), radius = size.minDimension / 2 + 3.dp.toPx())
                         }
                         .clip(CircleShape)
-                        .background(if (row.read) Color.Transparent else if (power) c.cloud else c.bad)
+                        .background(if (row.read) Color.Transparent else look.accent)
                         .border(2.dp, c.edge, CircleShape),
                 )
             }

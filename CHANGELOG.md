@@ -4,6 +4,22 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.3: bars for tabs and steppers, a look for every event (2026-10-12)
+
+### App
+
+- The three bottom tabs are one bar, like the choice bars: the page in view
+  is the raised cell and the other two are sunk.
+- Steppers are one bar as well. Minus and plus are raised cells at its ends,
+  the number sits sunk between them, and a key sinks while it is held.
+- Every kind of History record has its own look, ranked by urgency:
+  accumulation (red edge, pulse, most lift), low-battery shutdown (orange
+  edge, strong tint), manual shutdown (orange edge, light tint), auto-mute
+  (amber edge), then test (amber band), capture (teal band), mute and unmute
+  (purple band) and suppressed (grey band). The first four carry their colour
+  on the whole edge; the rest keep the ink edge and show a colour band down
+  the left. The unread dot takes the same colour.
+
 ## App version 9.2: one-piece choice bars, stronger power rows (2026-10-12)
 
 ### App

@@ -51,6 +51,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.zIndex
+import com.garbageguard.app.ui.theme.GgColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -345,29 +346,6 @@ fun accentOf(icon: ImageVector): Color {
     }
 }
 
-/** The plus and minus keys inside a stepper well. */
-@Composable
-fun StepKey(label: String, onClick: () -> Unit) {
-    val c = Gg.colors
-    val view = LocalView.current
-    val src = remember { MutableInteractionSource() }
-    val pressed by src.collectIsPressedAsState()
-    val shape = RoundedCornerShape(11.dp)
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .then(if (pressed) Modifier else Modifier.neuShadow(c, 11.dp, 0.dp, Soft.SM))
-            .clip(shape)
-            .then(if (pressed) Modifier.background(c.sunk).neuInset(c, 11.dp) else Modifier.background(raisedBrush(c)))
-            .border(2.dp, c.edge, shape)
-            .clickable(interactionSource = src, indication = null) {
-                Feel.tap(view)
-                onClick()
-            },
-        contentAlignment = Alignment.Center,
-    ) { T(label, size = 1.15f, weight = FontWeight.Normal, color = c.text) }
-}
-
 // ---------- surfaces ----------
 
 /** .card */
@@ -523,26 +501,62 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MU
     }
 }
 
+/** The outline every bar shares: sunk floor, ink edge, a small hard drop. */
+fun Modifier.barFrame(c: GgColors, radius: Dp = 13.dp): Modifier {
+    val shape = RoundedCornerShape(radius)
+    return this
+        .neuShadow(c, radius, 2.dp, Soft.SM)
+        .clip(shape)
+        .background(c.sunk)
+        .border(2.dp, c.edge, shape)
+}
+
+/**
+ * A raised cell of a bar: a lit face with a bright line along the top and a
+ * shaded one along the bottom, throwing a soft shadow onto the cells beside
+ * it. Give it a higher zIndex than its neighbours so that shadow shows.
+ */
+fun Modifier.barRaised(c: GgColors): Modifier = this
+    .drawBehind {
+        val reach = 9.dp.toPx()
+        val dark = Color.Black.copy(alpha = 0.3f)
+        drawRect(
+            Brush.horizontalGradient(listOf(Color.Transparent, dark), startX = -reach, endX = 0f),
+            topLeft = Offset(-reach, 0f), size = Size(reach, size.height),
+        )
+        drawRect(
+            Brush.horizontalGradient(listOf(dark, Color.Transparent), startX = size.width, endX = size.width + reach),
+            topLeft = Offset(size.width, 0f), size = Size(reach, size.height),
+        )
+    }
+    // In the dark theme the face is lifted a clear step above the floor, or it would not read as raised.
+    .background(
+        if (c.isDark) Brush.verticalGradient(
+            listOf(androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.2f), androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.07f))
+        ) else raisedBrush(c)
+    )
+    .drawBehind {
+        val w = 2.dp.toPx()
+        drawRect(c.lite.copy(alpha = c.lite.alpha * 0.9f), topLeft = Offset(0f, w), size = Size(size.width, w))
+        drawRect(c.shade.copy(alpha = c.shade.alpha * 0.7f), topLeft = Offset(0f, size.height - w * 2.2f), size = Size(size.width, w * 1.2f))
+    }
+
+/** A sunk cell of a bar: a shade deeper than the floor, under its own inner shadow. */
+fun Modifier.barSunk(c: GgColors): Modifier = this
+    .background(Color.Black.copy(alpha = if (c.isDark) 0.24f else 0.07f))
+    .neuInset(c, 0.dp)
+
 /**
  * .seg, a choice of a few options, drawn as one bar. Every option is a cell
  * of the same bar, sharing its outline and divided by the same ink line.
- * The chosen cell is the raised one: a lit face that casts a shadow onto its
- * neighbours. The others are sunk, each with its own inner shadow. With
- * empty labels it is a row of symbols.
+ * The chosen cell is the raised one and the others are sunk. With empty
+ * labels it is a row of symbols.
  */
 @Composable
 fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
-    val shape = RoundedCornerShape(13.dp)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .neuShadow(c, 13.dp, 2.dp, Soft.SM)
-            .clip(shape)
-            .background(c.sunk)
-            .border(2.dp, c.edge, shape),
-    ) {
+    Row(Modifier.fillMaxWidth().barFrame(c)) {
         options.forEachIndexed { i, label ->
             val on = i == selected
             if (i > 0) Box(Modifier.width(2.dp).height(44.dp).background(c.edge))
@@ -550,33 +564,8 @@ fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = e
                 Modifier
                     .weight(1f)
                     .height(44.dp)
-                    // The raised cell is drawn last, so its shadow lies over the cells beside it.
                     .zIndex(if (on) 1f else 0f)
-                    .then(
-                        if (on) Modifier
-                            .drawBehind {
-                                val reach = 9.dp.toPx()
-                                val dark = Color.Black.copy(alpha = 0.3f)
-                                drawRect(
-                                    Brush.horizontalGradient(listOf(Color.Transparent, dark), startX = -reach, endX = 0f),
-                                    topLeft = Offset(-reach, 0f), size = Size(reach, size.height),
-                                )
-                                drawRect(
-                                    Brush.horizontalGradient(listOf(dark, Color.Transparent), startX = size.width, endX = size.width + reach),
-                                    topLeft = Offset(size.width, 0f), size = Size(reach, size.height),
-                                )
-                            }
-                            // In the dark theme the face is lifted a clear step above the tray, or it would not read as raised.
-                            .background(if (c.isDark) Brush.verticalGradient(listOf(androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.2f), androidx.compose.ui.graphics.lerp(c.raised, Color.White, 0.07f))) else raisedBrush(c))
-                            .drawBehind {
-                                // A lit line along the top and a shaded one along the bottom: the face of a key.
-                                val w = 2.dp.toPx()
-                                drawRect(c.lite.copy(alpha = c.lite.alpha * 0.9f), topLeft = Offset(0f, w), size = Size(size.width, w))
-                                drawRect(c.shade.copy(alpha = c.shade.alpha * 0.7f), topLeft = Offset(0f, size.height - w * 2.2f), size = Size(size.width, w * 1.2f))
-                            }
-                        // The cells not chosen are a shade deeper than the tray, under their own inner shadow.
-                        else Modifier.background(Color.Black.copy(alpha = if (c.isDark) 0.24f else 0.07f)).neuInset(c, 0.dp)
-                    )
+                    .then(if (on) Modifier.barRaised(c) else Modifier.barSunk(c))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -598,20 +587,49 @@ fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = e
     }
 }
 
-/** .well with a stepper in it. */
+/**
+ * A number with a minus and a plus, drawn as one bar like the choice bars.
+ * The two keys are raised cells at its ends and the number sits sunk between
+ * them. A key sinks while it is held, then rises again.
+ */
 @Composable
 fun Stepper(value: Int, unit: String, onMinus: () -> Unit, onPlus: () -> Unit) {
     val c = Gg.colors
-    Row(
-        Modifier.fillMaxWidth().neuWell(c, 12.dp).padding(start = 5.dp, end = 5.dp, top = 5.dp, bottom = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        StepKey("−", onMinus)
-        T("$value", Modifier.weight(1f), size = 1.35f, weight = FontWeight.Black, align = TextAlign.Center, tnum = true)
-        T(unit, size = 0.8f, color = c.muted)
-        StepKey("+", onPlus)
+    Row(Modifier.fillMaxWidth().barFrame(c), verticalAlignment = Alignment.CenterVertically) {
+        StepCell("−", onMinus)
+        Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
+        Row(
+            Modifier.weight(1f).height(48.dp).barSunk(c).padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // The unit is mirrored by an equal blank on the left, so the number stays in the middle.
+            Box(Modifier.width(44.dp))
+            T("$value", Modifier.weight(1f), size = 1.35f, weight = FontWeight.Black, align = TextAlign.Center, tnum = true)
+            T(unit, Modifier.width(44.dp), size = 0.8f, color = c.muted, align = TextAlign.End, maxLines = 1)
+        }
+        Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
+        StepCell("+", onPlus)
     }
+}
+
+/** One end key of a stepper. */
+@Composable
+private fun StepCell(label: String, onClick: () -> Unit) {
+    val c = Gg.colors
+    val view = LocalView.current
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    Box(
+        Modifier
+            .size(width = 54.dp, height = 48.dp)
+            .zIndex(if (pressed) 0f else 1f)
+            .then(if (pressed) Modifier.barSunk(c) else Modifier.barRaised(c))
+            .clickable(interactionSource = src, indication = null) {
+                Feel.tap(view)
+                onClick()
+            },
+        contentAlignment = Alignment.Center,
+    ) { T(label, size = 1.35f, weight = FontWeight.Bold, color = c.text) }
 }
 
 /** .inp */
@@ -766,12 +784,12 @@ fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
     val c = Gg.colors
     Column(Modifier.fillMaxWidth().background(c.raised)) {
         Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-        Row(
-            Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        // The three tabs are one bar, like the choice bars: the page in view is the raised cell.
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 12.dp, top = 7.dp, bottom = 8.dp).barFrame(c, 15.dp)) {
             NavItem(GgIcons.Eye, "Monitor", tab == Tab.MONITOR, 0) { onSelect(Tab.MONITOR) }
+            Box(Modifier.width(2.dp).height(52.dp).background(c.edge))
             NavItem(GgIcons.Clock, "History", tab == Tab.HISTORY, unread) { onSelect(Tab.HISTORY) }
+            Box(Modifier.width(2.dp).height(52.dp).background(c.edge))
             NavItem(GgIcons.Gear, "Settings", tab == Tab.SETTINGS, 0) { onSelect(Tab.SETTINGS) }
         }
         Spacer(Modifier.navigationBarsPadding())
@@ -782,15 +800,12 @@ fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
 private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean, badge: Int, onClick: () -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
-    val shape = RoundedCornerShape(14.dp)
     Box(
         Modifier
             .weight(1f)
             .height(52.dp)
-            .then(
-                if (selected) Modifier.neuRaised(c, 14.dp, fill = raisedBrush(c))
-                else Modifier.clip(shape)
-            )
+            .zIndex(if (selected) 1f else 0f)
+            .then(if (selected) Modifier.barRaised(c) else Modifier.barSunk(c))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -808,7 +823,7 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
             Box(
                 Modifier
                     .align(Alignment.TopCenter)
-                    .offset(x = 17.dp, y = 2.dp)
+                    .offset(x = 17.dp, y = 3.dp)
                     .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
                     .clip(CircleShape)
                     .background(c.bad)
