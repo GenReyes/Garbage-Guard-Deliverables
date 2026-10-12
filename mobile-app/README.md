@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v8.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
+| `Garbage-Guard v9.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
@@ -25,8 +25,9 @@ few seconds.
 - **Fullscreen:** the picture takes the full height of the phone at the
   camera's own shape, with readouts and keys on the bezel either side.
   Tapping the picture hides them.
-- **History:** every alert, capture, test and mute event with its snapshot,
-  read and unread state, filters, and deletion.
+- **History:** every alert, capture, test, mute and shutdown event with its
+  snapshot. A row of symbols filters by kind and a calendar sets a date
+  range; Mark read and Delete then act on exactly the records shown.
 - **Settings:** detection confidence, accumulation limit, the monitored
   area (drawn on the live picture), light and dark theme, network details,
   connected phones, and restarting Garbage-Guard on the Pi.
@@ -89,7 +90,7 @@ gg.fb.password=<phone account password>
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v8.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v9.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 

@@ -106,13 +106,7 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
             GgButton(null, vm::refreshHistory, icon = GgIcons.Refresh, small = true, square = true)
         }
 
-        // .tools2
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(vm.filter.label, GgIcons.Filter, on = vm.filter != HistFilter.ALL) { vm.overlay = Overlay.Filter }
-            FilterChip("Dates", GgIcons.Calendar, on = false) { vm.overlay = Overlay.Filter }
-            Spacer(Modifier.weight(1f))
-            GgButton("Mark all read", vm::markAllRead, icon = GgIcons.Check, small = true, enabled = unread > 0)
-        }
+        HistoryTools(vm, all)
 
         when {
             vm.loading -> repeat(3) { Skeleton(64.dp) }
@@ -123,7 +117,7 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
             ) {
                 Ico(GgIcons.Clock, size = 34.dp, tint = c.muted.copy(alpha = 0.5f))
                 T(
-                    "No events yet. Alerts, captures and tests appear here.",
+                    if (alerts.isEmpty()) "No events yet. Alerts, captures and tests appear here." else "No records match. Change the filter or the dates.",
                     weight = FontWeight.Bold, color = c.muted, align = TextAlign.Center,
                 )
             }

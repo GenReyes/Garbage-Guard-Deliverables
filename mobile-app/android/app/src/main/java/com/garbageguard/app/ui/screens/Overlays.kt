@@ -132,8 +132,8 @@ fun OverlayHost(
                 GgButton("Shut down", vm::shutdownPi, Modifier.weight(1f), icon = GgIcons.Power, kind = BtnKind.DANGER)
             }
         }
-        Overlay.Filter -> FilterSheet(vm, close)
-        is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, close)
+        Overlay.Filter -> DateSheet(vm, close)
+        is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, vm.visibleRows(alerts).size, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
             if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), { vm.overlay = Overlay.Delete(row.id) }, close)
@@ -497,60 +497,14 @@ private fun MuteSheet(vm: AppViewModel, close: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FilterSheet(vm: AppViewModel, close: () -> Unit) {
-    GgSheet(close) {
-        SheetTitle("Filter history")
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            HistFilter.entries.forEach { f ->
-                val symbol = when (f) {
-                    HistFilter.ALL -> GgIcons.Layers
-                    HistFilter.ALERTS -> GgIcons.Bell
-                    HistFilter.CAPTURES -> GgIcons.Shutter
-                    HistFilter.TESTS -> GgIcons.Wrench
-                    HistFilter.MUTED -> GgIcons.EyeOff
-                }
-                FilterChip(f.label, icon = symbol, on = vm.filter == f) {
-                    vm.filter = f
-                    vm.shown = 6
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Ico(GgIcons.Calendar, size = 13.dp, tint = Gg.colors.bag)
-                    T("FROM", size = 0.76f, spacing = 0.05f)
-                }
-                GgInput(vm.dateFrom, { vm.dateFrom = it }, "yyyy-mm-dd")
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Ico(GgIcons.Calendar, size = 13.dp, tint = Gg.colors.bag)
-                    T("TO", size = 0.76f, spacing = 0.05f)
-                }
-                GgInput(vm.dateTo, { vm.dateTo = it }, "yyyy-mm-dd")
-            }
-        }
-        Acts {
-            GgButton("Reset", { vm.filter = HistFilter.ALL }, Modifier.weight(1f))
-            GgButton("Apply", close, Modifier.weight(1f), icon = GgIcons.Check, kind = BtnKind.INK)
-        }
-        GgButton(
-            "Delete this range", { vm.overlay = Overlay.Delete(null) }, Modifier.fillMaxWidth(),
-            icon = GgIcons.Trash, kind = BtnKind.DANGER,
-        )
-    }
-}
-
-@Composable
-private fun DeleteSheet(vm: AppViewModel, row: AlertRow?, range: Boolean, close: () -> Unit) {
+private fun DeleteSheet(vm: AppViewModel, row: AlertRow?, range: Boolean, count: Int, close: () -> Unit) {
     val c = Gg.colors
     GgSheet(close) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Ico(GgIcons.Warn, size = 30.dp, tint = c.bad)
             SheetTextIn(
                 when {
-                    range -> "Delete all records in this range and their snapshot images? This cannot be undone."
+                    range -> "Delete ${vm.scopeWords(count)} and their snapshot images? This cannot be undone."
                     row != null -> "Delete this ${row.event.label.lowercase()} from ${row.timestamp}?"
                     else -> "Delete this record?"
                 },

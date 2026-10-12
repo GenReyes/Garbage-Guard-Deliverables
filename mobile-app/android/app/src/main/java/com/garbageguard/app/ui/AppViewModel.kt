@@ -55,7 +55,7 @@ enum class SetupState { EMPTY, TESTING, FAILED, OK }
 
 /** The filter chips on the History sheet. */
 enum class HistFilter(val label: String) {
-    ALL("All events"), ALERTS("Alerts"), CAPTURES("Captures"), TESTS("Tests"), MUTED("Muted");
+    ALL("All events"), ALERTS("Alerts"), CAPTURES("Captures"), TESTS("Tests"), MUTED("Mutes"), POWER("Power");
 
     fun matches(row: AlertRow) = when (this) {
         ALL -> true
@@ -63,6 +63,7 @@ enum class HistFilter(val label: String) {
         CAPTURES -> row.event == EventType.MANUAL
         TESTS -> row.event == EventType.TEST
         MUTED -> row.event.isMuteEvent
+        POWER -> row.event == EventType.LOW_BATTERY_SHUTDOWN || row.event == EventType.MANUAL_SHUTDOWN
     }
 }
 
@@ -339,8 +340,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // History view.
     var filter by mutableStateOf(HistFilter.ALL)
-    var dateFrom by mutableStateOf(LocalDate.now().minusDays(5).toString())
-    var dateTo by mutableStateOf(LocalDate.now().toString())
+    /** The date range of the History page. Null means no limit on that side. */
+    var dateFrom by mutableStateOf<LocalDate?>(null)
+        private set
+    var dateTo by mutableStateOf<LocalDate?>(null)
+        private set
     var shown by mutableIntStateOf(6)
     var swipedId by mutableStateOf<Long?>(null)
 
@@ -672,21 +676,132 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------- history ----------
 
-    fun visibleRows(all: List<AlertRow>): List<AlertRow> = all.filter { filter.matches(it) }
+    val rangeOn: Boolean get() = dateFrom != null || dateTo != null
+
+    fun chooseFilter(f: HistFilter) {
+        filter = f
+        shown = 6
+        swipedId = null
+    }
+
+    /** Sets the first day. A day after To pulls To along, so the range never runs backwards. */
+    fun pickFrom(day: LocalDate?) {
+        val d = day?.coerceAtMost(LocalDate.now())
+        dateFrom = d
+        val end = dateTo
+        if (d != null && end != null && end.isBefore(d)) dateTo = d
+        shown = 6
+    }
+
+    /** Sets the last day. A day before From pulls From along. */
+    fun pickTo(day: LocalDate?) {
+        val d = day?.coerceAtMost(LocalDate.now())
+        dateTo = d
+        val start = dateFrom
+        if (d != null && start != null && start.isAfter(d)) dateFrom = d
+        shown = 6
+    }
+
+    /** Today and the days before it, [days] in all. */
+    fun lastDays(days: Int) {
+        val today = LocalDate.now()
+        dateTo = today
+        dateFrom = today.minusDays((days - 1).toLong())
+        shown = 6
+    }
+
+    fun clearDates() {
+        dateFrom = null
+        dateTo = null
+        shown = 6
+    }
+
+    private fun dayOf(row: AlertRow): LocalDate? = runCatching { LocalDate.parse(row.timestamp.take(10)) }.getOrNull()
+
+    private fun inRange(row: AlertRow): Boolean {
+        if (!rangeOn) return true
+        val d = dayOf(row) ?: return false
+        val start = dateFrom
+        val end = dateTo
+        return (start == null || !d.isBefore(start)) && (end == null || !d.isAfter(end))
+    }
+
+    /** The records the filter and the date range leave on the page. */
+    fun visibleRows(all: List<AlertRow>): List<AlertRow> = all.filter { filter.matches(it) && inRange(it) }
+
+    private fun short(d: LocalDate): String {
+        val month = d.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+        return if (d.year == LocalDate.now().year) "${d.dayOfMonth} $month" else "${d.dayOfMonth} $month ${d.year}"
+    }
+
+    /** The date chip: "Any date", "12 Oct", "10 Oct to 12 Oct", "From 10 Oct" or "Up to 12 Oct". */
+    fun rangeLabel(): String {
+        val start = dateFrom
+        val end = dateTo
+        return when {
+            start == null && end == null -> "Any date"
+            start != null && end != null && start == end -> short(start)
+            start != null && end != null -> "${short(start)} to ${short(end)}"
+            start != null -> "From ${short(start)}"
+            else -> "Up to ${short(end!!)}"
+        }
+    }
+
+    /** What Mark read and Delete will act on, in words: "all 7 records", "3 alerts from 10 Oct to 12 Oct". */
+    fun scopeWords(count: Int): String {
+        val one = count == 1
+        val what = when (filter) {
+            HistFilter.ALL -> if (one) "record" else "records"
+            HistFilter.ALERTS -> if (one) "alert" else "alerts"
+            HistFilter.CAPTURES -> if (one) "capture" else "captures"
+            HistFilter.TESTS -> if (one) "test" else "tests"
+            HistFilter.MUTED -> if (one) "mute record" else "mute records"
+            HistFilter.POWER -> if (one) "power record" else "power records"
+        }
+        val start = dateFrom
+        val end = dateTo
+        val days = when {
+            start == null && end == null -> ""
+            start != null && end != null && start == end -> " on ${short(start)}"
+            start != null && end != null -> " from ${short(start)} to ${short(end)}"
+            start != null -> " since ${short(start)}"
+            else -> " up to ${short(end!!)}"
+        }
+        val all = if (filter == HistFilter.ALL && !rangeOn && count != 1) "all " else ""
+        return "$all$count $what$days"
+    }
 
     fun toggleRead(row: AlertRow) = launchAction { repo.markRead(listOf(row.id), !row.read) }
 
-    fun markAllRead() = launchAction("All marked read") { repo.markRead(null, true) }
+    /** Marks read the unread records on the page, which is every record when nothing is filtered. */
+    fun markVisibleRead() {
+        val rows = visibleRows(alerts.value).filter { !it.read }
+        if (rows.isEmpty()) return
+        val everything = filter == HistFilter.ALL && !rangeOn
+        launchAction(if (everything) "All marked read" else "${rows.size} marked read") {
+            if (everything) repo.markRead(null, true) else repo.markRead(rows.map { it.id }, true)
+        }
+    }
 
     fun refreshHistory() = showToast("History refreshed")
 
+    /**
+     * Deletes one record, or with no id the records on the page. With no
+     * filter that is everything; with only dates the Pi deletes the whole
+     * range, including records older than the app has loaded.
+     */
     fun confirmDelete() {
         val target = (overlay as? Overlay.Delete) ?: return
+        val rows = visibleRows(alerts.value)
         overlay = null
         swipedId = null
         launchAction("Deleted") {
-            if (target.id != null) repo.deleteAlerts(listOf(target.id))
-            else repo.deleteRange(dateFrom, dateTo)
+            when {
+                target.id != null -> repo.deleteAlerts(listOf(target.id))
+                filter == HistFilter.ALL && !rangeOn -> repo.deleteAll()
+                filter == HistFilter.ALL -> repo.deleteRange(dateFrom?.toString().orEmpty(), dateTo?.toString().orEmpty())
+                rows.isNotEmpty() -> repo.deleteAlerts(rows.map { it.id })
+            }
         }
     }
 

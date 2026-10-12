@@ -4,6 +4,28 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9: History filters, date range and bulk actions (2026-10-12)
+
+### App
+
+- One row of six symbols on the History page picks the kind of record: all,
+  alerts, captures, tests, mutes, and power (the two shutdown events). They
+  are the same size and sit on one line, and the filter applies at once.
+- A date range that really filters the list. Days are picked from a calendar,
+  not typed, so a day that does not exist cannot be entered (leap years
+  included) and a day in the future cannot be chosen. Picking a From day
+  after the To day moves To along, and the other way round, so the range can
+  never run backwards. Either end may be left open. Quick picks: Today, 7
+  days, 30 days, Any.
+- Mark read and Delete act on exactly the records on the page. With no filter
+  that is everything (the old Mark all read, and a new Delete all). With a
+  filter or dates it is only those records, so a date range can now be marked
+  read as well as deleted. A line under the tools says what is shown, and the
+  Delete confirmation repeats it with the count.
+- With only dates set, Delete sends the range to the Pi, so records older
+  than the 200 the app has loaded are deleted too. With a kind filter it
+  deletes the loaded records by id.
+
 ## App version 8: Pi power in the app (2026-10-12)
 
 App side of the screen saver and low-battery shutdown plan

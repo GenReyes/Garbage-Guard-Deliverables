@@ -305,6 +305,20 @@ object GgIcons {
             p("M12 16v5")
         }
     }
+    val Prev by lazy { icon("prev", 2.4f) { p("M14.5 5.5 8 12l6.5 6.5") } }
+    val Next by lazy { icon("next", 2.4f) { p("M9.5 5.5 16 12l-6.5 6.5") } }
+    val PrevYear by lazy {
+        icon("prevyear", 2.4f) {
+            p("M12 5.5 5.5 12l6.5 6.5")
+            p("M18.5 5.5 12 12l6.5 6.5")
+        }
+    }
+    val NextYear by lazy {
+        icon("nextyear", 2.4f) {
+            p("M12 5.5 18.5 12 12 18.5")
+            p("M5.5 5.5 12 12l-6.5 6.5")
+        }
+    }
     val Power by lazy {
         icon("power") {
             p("M12 3v8.5")
