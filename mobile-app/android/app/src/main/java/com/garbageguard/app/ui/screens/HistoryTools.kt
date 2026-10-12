@@ -34,6 +34,7 @@ import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.GgSheet
 import com.garbageguard.app.ui.components.Hint
 import com.garbageguard.app.ui.components.Ico
+import com.garbageguard.app.ui.components.Segmented
 import com.garbageguard.app.ui.components.SheetTitle
 import com.garbageguard.app.ui.components.T
 import com.garbageguard.app.ui.components.accentOf
@@ -57,7 +58,7 @@ fun filterIcon(f: HistFilter): ImageVector = when (f) {
 }
 
 /**
- * The History page's tools. One row of symbols picks the kind of record,
+ * The History page's tools. One bar of symbols picks the kind of record,
  * all the same size on one line. Under it sit the date range and the two
  * actions. Mark read and Delete act on exactly the records the filter and
  * the dates leave on the page, and the line beneath says what that is.
@@ -66,11 +67,14 @@ fun filterIcon(f: HistFilter): ImageVector = when (f) {
 fun HistoryTools(vm: AppViewModel, visible: List<AlertRow>) {
     val c = Gg.colors
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            HistFilter.entries.forEach { f ->
-                SymbolChip(filterIcon(f), on = vm.filter == f, Modifier.weight(1f)) { vm.chooseFilter(f) }
-            }
-        }
+        // The same bar as Appearance and Screen saver, with symbols for words:
+        // the kind in use is the raised key, the others stay sunk in the tray.
+        Segmented(
+            options = HistFilter.entries.map { "" },
+            selected = vm.filter.ordinal,
+            icons = HistFilter.entries.map { filterIcon(it) },
+            onSelect = { vm.chooseFilter(HistFilter.entries[it]) },
+        )
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 Modifier
@@ -96,19 +100,6 @@ fun HistoryTools(vm: AppViewModel, visible: List<AlertRow>) {
             )
         }
     }
-}
-
-/** One of the filter symbols: sunk when idle, raised and tinted when it is the one in use. */
-@Composable
-private fun SymbolChip(icon: ImageVector, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val c = Gg.colors
-    Box(
-        modifier
-            .height(42.dp)
-            .then(if (on) Modifier.neuRaised(c, 14.dp, hard = 2.dp, fillColor = c.tealTint) else Modifier.neuWell(c, 14.dp))
-            .pressable(toggle = true, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { Ico(icon, size = 18.dp, tint = accentOf(icon)) }
 }
 
 /**

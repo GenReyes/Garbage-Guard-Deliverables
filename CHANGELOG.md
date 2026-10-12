@@ -4,6 +4,19 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.1: switches and choice bars (2026-10-12)
+
+### App
+
+- Switches stand on their own, with no key round them. On, the groove fills
+  with teal and a soft teal light spreads round it. The groove's shade no
+  longer uses the page's light and dark shadow pair, which looked wrong on
+  teal in the light theme.
+- Choice bars (Appearance, Screen saver) show the chosen option as a raised
+  key with its own rounded shape and shadow, standing in a sunk tray, so the
+  choice is pushed out and the rest stay pushed in.
+- The History symbols use the same bar.
+
 ## App version 9: History filters, date range and bulk actions (2026-10-12)
 
 ### App

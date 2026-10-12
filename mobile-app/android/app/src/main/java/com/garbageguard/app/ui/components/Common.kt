@@ -49,6 +49,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -455,10 +456,14 @@ fun Tag(text: String, tone: Tone, icon: ImageVector? = null) {
 fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MUTE", icon: ImageVector? = GgIcons.BellAuto) {
     val c = Gg.colors
     val view = LocalView.current
-    val x by animateDpAsState(if (checked) 14.dp else 0.dp, tween(180), label = "sw")
+    val t by animateFloatAsState(if (checked) 1f else 0f, tween(180), label = "sw")
+    val trackW = 46.dp
+    val trackH = 26.dp
+    val knob = 20.dp
+    // The switch stands on its own, with no key round it. On, the groove
+    // fills with teal and a soft teal light spreads round it.
     Row(
         modifier = Modifier
-            .neuRaised(c, 11.dp, hard = 2.dp, fillColor = if (checked) c.tealTint else c.raised)
             .defaultMinSize(minHeight = 36.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -466,55 +471,97 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MU
             ) {
                 Feel.toggle(view)
                 onToggle()
-            }
-            .padding(start = 8.dp, end = 7.dp),
+            },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        if (icon != null) Ico(icon, size = 15.dp, tint = if (checked) c.teal else accentOf(icon))
+        if (icon != null) Ico(icon, size = 17.dp, tint = if (checked) c.teal else accentOf(icon))
         if (label != null) T(label, size = 0.68f, weight = FontWeight.Black, color = if (checked) c.teal else c.text, spacing = 0.06f, maxLines = 1)
         Box(
             Modifier
-                .size(width = 34.dp, height = 20.dp)
-                .neuWell(c, 10.dp, if (checked) c.teal else c.sunk),
+                .size(width = trackW, height = trackH)
+                .drawBehind {
+                    if (t > 0f) {
+                        val g = 4.dp.toPx()
+                        val r = (size.height + 2 * g) / 2f
+                        drawRoundRect(
+                            c.teal.copy(alpha = 0.26f * t), topLeft = Offset(-g, -g),
+                            size = Size(size.width + 2 * g, size.height + 2 * g), cornerRadius = CornerRadius(r, r),
+                        )
+                    }
+                }
+                .clip(CircleShape)
+                .background(androidx.compose.ui.graphics.lerp(c.sunk, c.teal, t))
+                .drawBehind {
+                    // The groove's shade is drawn in plain dark, fading down from the
+                    // top. It reads as sunk on the pale groove and on the teal one, in
+                    // both themes, where the page's light and dark shadow pair did not.
+                    drawRect(
+                        Brush.verticalGradient(
+                            listOf(Color.Black.copy(alpha = 0.26f), Color.Transparent),
+                            startY = 0f, endY = size.height * 0.62f,
+                        )
+                    )
+                }
+                .border(2.dp, c.edge, CircleShape),
             contentAlignment = Alignment.CenterStart,
         ) {
             Box(
                 Modifier
-                    .offset(x = 4.dp + x)
-                    .size(12.dp)
+                    .offset(x = 3.dp + (trackW - knob - 6.dp) * t)
+                    .size(knob)
+                    .drawBehind {
+                        // The knob's own small shadow on the floor of the groove.
+                        drawCircle(Color.Black.copy(alpha = 0.32f), radius = size.minDimension / 2f, center = center + Offset(1.dp.toPx(), 1.6.dp.toPx()))
+                    }
                     .clip(CircleShape)
-                    .background(Brush.verticalGradient(listOf(c.lite, c.shade))),
+                    .background(Brush.verticalGradient(listOf(Color(0xFFFFFDF8), Color(0xFFD6CEC2))))
+                    .border(1.5.dp, c.edge, CircleShape),
             )
         }
     }
 }
 
-/** .seg */
+/**
+ * .seg, a choice of a few options. The tray is sunk into the page and the
+ * chosen option is a raised key standing in it, with its own rounded shape
+ * and shadow, so what is chosen is pushed out and the rest stay pushed in.
+ * With empty labels it is a row of symbols.
+ */
 @Composable
 fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
-    Row(Modifier.fillMaxWidth().neuWell(c, 12.dp)) {
-        options.forEachIndexed { i, label ->
-            val on = i == selected
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(44.dp)
-                    .then(if (on) Modifier.background(raisedBrush(c)) else Modifier)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) {
-                        if (!on) Feel.toggle(view)
-                        onSelect(i)
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    icons.getOrNull(i)?.let { Ico(it, size = 14.dp, tint = if (on) accentOf(it) else c.muted) }
-                    T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f)
+    Box(Modifier.fillMaxWidth()) {
+        Box(Modifier.matchParentSize().neuWell(c, 14.dp))
+        Row(
+            // A little more room on the right and bottom, where the raised key's hard shadow falls.
+            Modifier.fillMaxWidth().padding(start = 5.dp, top = 5.dp, end = 7.dp, bottom = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            options.forEachIndexed { i, label ->
+                val on = i == selected
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .then(if (on) Modifier.neuRaised(c, 10.dp, hard = 2.dp, soft = Soft.SM, fill = raisedBrush(c)) else Modifier)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            if (!on) Feel.toggle(view)
+                            onSelect(i)
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        icons.getOrNull(i)?.let {
+                            val tint = accentOf(it)
+                            Ico(it, size = if (label.isEmpty()) 18.dp else 14.dp, tint = if (on) tint else tint.copy(alpha = 0.55f))
+                        }
+                        if (label.isNotEmpty()) T(label.uppercase(), size = 0.78f, color = if (on) c.text else c.muted, spacing = 0.05f, maxLines = 1)
+                    }
                 }
             }
         }
