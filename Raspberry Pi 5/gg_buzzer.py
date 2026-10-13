@@ -14,6 +14,7 @@ Rules this file keeps (see BUZZER_PLAN.md):
   no hardware is fine: the feature reports why it is unavailable
 """
 import os
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -196,10 +197,21 @@ class SysfsPwmBackend:
             pass
 
 
-def make_backend(kind=None):
-    kind = (kind or os.environ.get("GG_BUZZER_BACKEND") or "gpio").lower()
+def pin_is_pwm(pin=GPIO_PIN, run=None):
+    try:
+        out = (run or (lambda c: subprocess.run(c, capture_output=True, text=True, timeout=3).stdout))(
+            ["pinctrl", "get", str(pin)])
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "PWM" in out.upper()
+
+
+def make_backend(kind=None, pin_is_pwm=pin_is_pwm):
+    kind = (kind or os.environ.get("GG_BUZZER_BACKEND") or "auto").lower()
     if kind == "fake":
         return FakeBackend(show=True)
+    if kind == "auto":
+        kind = "sysfs" if pin_is_pwm() else "gpio"
     if kind == "sysfs":
         return SysfsPwmBackend()
     return GpioBackend()

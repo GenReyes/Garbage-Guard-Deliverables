@@ -387,6 +387,22 @@ class BackendTests(unittest.TestCase):
             b.silence()
             self.assertEqual(read("enable"), "0")
 
+    def test_auto_uses_hardware_pwm_only_when_the_pin_is_set_up_for_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.channel(d, "pwmchip0", "4")
+            real = g.SysfsPwmBackend.ROOT
+            g.SysfsPwmBackend.ROOT = d
+            self.addCleanup(setattr, g.SysfsPwmBackend, "ROOT", real)
+            self.assertIsInstance(g.make_backend("auto", pin_is_pwm=lambda: True), g.SysfsPwmBackend)
+            self.assertIsInstance(g.make_backend("auto", pin_is_pwm=lambda: False), g.GpioBackend)
+
+    def test_pin_check_reads_pinctrl(self):
+        self.assertTrue(g.pin_is_pwm(run=lambda c: "12: a0 pd | lo // GPIO12 = PWM0_CHAN0"))
+        self.assertFalse(g.pin_is_pwm(run=lambda c: "12: op dh pd | hi // GPIO12 = output"))
+        def missing(c):
+            raise FileNotFoundError("pinctrl")
+        self.assertFalse(g.pin_is_pwm(run=missing))
+
     def test_fake_kind_needs_no_hardware(self):
         self.assertTrue(g.make_backend("fake").available)
 

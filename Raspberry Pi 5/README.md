@@ -248,10 +248,11 @@ sudo reboot
 ```
 
 After the reboot `ls /sys/class/pwm` should list a `pwmchip`. Then
-`python buzzer_bench.py sysfs` plays the same sweep on hardware PWM. Do not run
-the `gpio` and `sysfs` tests together: the overlay hands the pin to the PWM
-block. Once `sysfs` is the one you want, add `export GG_BUZZER_BACKEND=sysfs`
-near the top of `start.sh`. `GG_PWM_CHIP=<n>` picks a chip by number if the
+`python buzzer_bench.py sysfs` plays the same sweep on hardware PWM. The detector picks hardware PWM by itself when GPIO12 is set up for it
+(`pinctrl get 12` mentions PWM) and software PWM otherwise. While the detector
+runs it owns the pin, so stop it before running `buzzer_bench.py gpio`; the
+`sysfs` sweep is safe to run beside it. Force one with
+`GG_BUZZER_BACKEND=gpio` or `sysfs`. `GG_PWM_CHIP=<n>` picks a chip by number if the
 automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in

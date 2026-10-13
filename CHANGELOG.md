@@ -112,6 +112,9 @@ new fields.
   once a second while counting.
 - If the buzzer cannot start (no library, no wiring) the state says why and
   nothing else changes.
+- The detector uses hardware PWM when GPIO12 is set up for it and software PWM
+  otherwise (`GG_BUZZER_BACKEND` forces one). `buzzer_bench.py` plays a tone sweep
+  for judging pitch and volume by ear.
 - Not yet: the dashboard Sound card and the vibration motor. The hardware
   backends are untested until the buzzer is wired.
 
