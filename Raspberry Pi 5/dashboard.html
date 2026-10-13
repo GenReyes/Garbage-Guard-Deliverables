@@ -1084,6 +1084,20 @@ a.btn{text-decoration:none}
   #history{min-height:430px}
 }
 
+/* settings page */
+.setwrap{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;
+  padding:0 6px 6px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--shade) transparent}
+.setwrap::-webkit-scrollbar{width:9px}
+.setwrap::-webkit-scrollbar-track{background:transparent}
+.setwrap::-webkit-scrollbar-thumb{background:var(--shade);border-radius:999px}
+.setgrid{flex:none;display:grid;align-items:start;gap:12px;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.setfoot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:0 2px}
+.setfoot .hint{margin:0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.setfoot .btn{min-width:140px;justify-content:center}
+
 /* power card, screen saver layer, shutdown banner */
 .card-pow{flex:none}
 .card-pow .hd .ico{color:var(--orange)}
@@ -1304,6 +1318,8 @@ a.btn{text-decoration:none}
     <svg class="ico"><use href="#i-eye"/></svg>Monitor</button>
   <button class="tab" id="tabHistory" role="tab" aria-selected="false" aria-controls="history" type="button">
     <svg class="ico"><use href="#i-clock"/></svg>History <span class="count" id="logCount"></span></button>
+  <button class="tab" id="tabSettings" role="tab" aria-selected="false" aria-controls="settings" type="button">
+    <svg class="ico"><use href="#i-gear"/></svg>Settings</button>
 </nav>
 
 <main>
@@ -1402,57 +1418,6 @@ a.btn{text-decoration:none}
           Tap the video to outline the water, 3 points or more. Anything outside is ignored.</p>
       </section>
 
-      <section class="card card-pow" id="powCard">
-        <div class="hd"><svg class="ico"><use href="#i-batt"/></svg><h2>Power</h2></div>
-        <div class="sub"><svg class="ico"><use href="#i-sunmoon"/></svg>Screen saver</div>
-        <div class="seg" id="scrMode" role="group" aria-label="Screen saver mode">
-          <button type="button" data-mode="off" aria-pressed="false">Off</button>
-          <button type="button" data-mode="dim" aria-pressed="false">Dim</button>
-          <button type="button" data-mode="never" aria-pressed="false">Never</button>
-        </div>
-        <div class="prow"><label for="scrMin">Turn off after</label>
-          <div class="well">
-            <button class="step" type="button" data-for="scrMin" data-d="-1" aria-label="Less time">−</button>
-            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric">
-            <span class="u">min</span>
-            <button class="step" type="button" data-for="scrMin" data-d="1" aria-label="More time">+</button>
-          </div></div>
-        <div class="prow"><label for="scrBat">On battery</label>
-          <div class="well">
-            <button class="step" type="button" data-for="scrBat" data-d="-30" aria-label="Less time on battery">−</button>
-            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric">
-            <span class="u">sec</span>
-            <button class="step" type="button" data-for="scrBat" data-d="30" aria-label="More time on battery">+</button>
-          </div></div>
-        <div class="prow" id="scrDimRow"><label for="scrDim">Dim level</label>
-          <div class="well">
-            <button class="step" type="button" data-for="scrDim" data-d="-5" aria-label="Darker">−</button>
-            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
-            <button class="step" type="button" data-for="scrDim" data-d="5" aria-label="Brighter">+</button>
-          </div></div>
-        <div class="prow"><label>Wake on alert</label>
-          <button class="sw lt" id="scrWake" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <div class="sub"><svg class="ico"><use href="#i-bolt"/></svg>Low battery</div>
-        <div class="prow"><label>Auto shutdown</label>
-          <button class="sw lt" id="shutSw" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <div class="prow"><label for="shutPct">Shut down at</label>
-          <div class="well">
-            <button class="step" type="button" data-for="shutPct" data-d="-5" aria-label="Lower">−</button>
-            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
-            <button class="step" type="button" data-for="shutPct" data-d="5" aria-label="Higher">+</button>
-          </div></div>
-        <div class="pair" style="margin-top:6px">
-          <button class="btn ink" id="pwrSave" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
-          <button class="btn" id="scrSleep" type="button"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
-        </div>
-        <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:8px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
-        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          Tap to wake. The first tap only wakes.</p>
-        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
-          <span></span></p>
-      </section>
     </div>
   </section>
 
@@ -1511,6 +1476,67 @@ a.btn{text-decoration:none}
         <span class="sp"></span>
         <span class="hint" style="margin:0"><svg class="ico"><use href="#i-eye"/></svg>
           Tap View to open a snapshot.</span>
+      </div>
+    </div>
+  </section>
+  <section class="page" id="settings" role="tabpanel" aria-labelledby="tabSettings">
+    <div class="setwrap">
+    <div class="setgrid">
+      <section class="card card-pow" id="scrCard">
+        <div class="hd"><svg class="ico"><use href="#i-sunmoon"/></svg><h2>Screen saver</h2></div>
+        <div class="seg" id="scrMode" role="group" aria-label="Screen saver mode">
+          <button type="button" data-mode="off" aria-pressed="false">Off</button>
+          <button type="button" data-mode="dim" aria-pressed="false">Dim</button>
+          <button type="button" data-mode="never" aria-pressed="false">Never</button>
+        </div>
+        <div class="prow"><label for="scrMin">Turn off after</label>
+          <div class="well">
+            <button class="step" type="button" data-for="scrMin" data-d="-1" aria-label="Less time">−</button>
+            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric">
+            <span class="u">min</span>
+            <button class="step" type="button" data-for="scrMin" data-d="1" aria-label="More time">+</button>
+          </div></div>
+        <div class="prow"><label for="scrBat">On battery</label>
+          <div class="well">
+            <button class="step" type="button" data-for="scrBat" data-d="-30" aria-label="Less time on battery">−</button>
+            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric">
+            <span class="u">sec</span>
+            <button class="step" type="button" data-for="scrBat" data-d="30" aria-label="More time on battery">+</button>
+          </div></div>
+        <div class="prow" id="scrDimRow"><label for="scrDim">Dim level</label>
+          <div class="well">
+            <button class="step" type="button" data-for="scrDim" data-d="-5" aria-label="Darker">−</button>
+            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric">
+            <span class="u">%</span>
+            <button class="step" type="button" data-for="scrDim" data-d="5" aria-label="Brighter">+</button>
+          </div></div>
+        <div class="prow"><label>Wake on alert</label>
+          <button class="sw lt" id="scrWake" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <button class="btn" id="scrSleep" type="button" style="width:100%;margin-top:8px"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
+          Tap to wake. The first tap only wakes.</p>
+        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
+          <span></span></p>
+      </section>
+      <section class="card card-pow" id="powCard">
+        <div class="hd"><svg class="ico"><use href="#i-batt"/></svg><h2>Power</h2></div>
+        <div class="sub"><svg class="ico"><use href="#i-bolt"/></svg>Low battery</div>
+        <div class="prow"><label>Auto shutdown</label>
+          <button class="sw lt" id="shutSw" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="prow"><label for="shutPct">Shut down at</label>
+          <div class="well">
+            <button class="step" type="button" data-for="shutPct" data-d="-5" aria-label="Lower">−</button>
+            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric">
+            <span class="u">%</span>
+            <button class="step" type="button" data-for="shutPct" data-d="5" aria-label="Higher">+</button>
+          </div></div>
+        <div class="sub"><svg class="ico"><use href="#i-power"/></svg>Now</div>
+        <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:4px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
+      </section>
+    </div>
+      <div class="setfoot">
+        <span class="hint"><svg class="ico"><use href="#i-ok"/></svg>Changes apply when you press Save.</span>
+        <button class="btn ink" id="pwrSave" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
       </div>
     </div>
   </section>
@@ -1732,16 +1758,22 @@ $("theme").onclick = $("fsTheme").onclick = () =>
   applyTheme(document.documentElement.dataset.theme==="dark" ? "light" : "dark");
 try{ applyTheme(localStorage.getItem("gg-theme")||"light"); }catch(e){ applyTheme("light"); }
 
+const TABS = {monitor:"tabMonitor", history:"tabHistory", settings:"tabSettings"};
+let curTab = "monitor";
 function showTab(name){
-  const mon = name==="monitor";
-  $("monitor").classList.toggle("on", mon);
-  $("history").classList.toggle("on", !mon);
-  $("tabMonitor").setAttribute("aria-selected", mon);
-  $("tabHistory").setAttribute("aria-selected", !mon);
-  if(!mon) loadLogs();
+  if(curTab === "settings" && name !== "settings" && pwrDirty){
+    pwrDirty = false; refresh(); pollBattery();
+  }
+  curTab = name;
+  for(const [page, tab] of Object.entries(TABS)){
+    $(page).classList.toggle("on", page === name);
+    $(tab).setAttribute("aria-selected", page === name);
+  }
+  if(name === "history") loadLogs();
 }
 $("tabMonitor").onclick = () => showTab("monitor");
 $("tabHistory").onclick = () => showTab("history");
+$("tabSettings").onclick = () => showTab("settings");
 
 function drawOverlay(){
   const pts = editing ? draft : [];
@@ -2680,10 +2712,10 @@ function fillShutdown(b){
   setSw($("shutSw"), b.auto_shutdown);
   $("shutPct").value = b.auto_shutdown_pct;
 }
-$("powCard").addEventListener("click", e => {
+$("settings").addEventListener("click", e => {
   if(e.target.closest(".step, .seg button, .sw")) pwrDirty = true;
 });
-$("powCard").addEventListener("input", () => { pwrDirty = true; });
+$("settings").addEventListener("input", () => { pwrDirty = true; });
 document.querySelectorAll("#scrMode button").forEach(b => b.addEventListener("click", () => pickMode(b.dataset.mode)));
 [$("scrWake"), $("shutSw")].forEach(b => b.addEventListener("click", () => setSw(b, b.getAttribute("aria-checked") !== "true")));
 $("pwrSave").onclick = async () => {

@@ -45,6 +45,18 @@ new fields.
   instead of being fetched every 2 s. Polling takes over while a stream is
   down. Stream traffic is counted in the usage estimate.
 
+## Pi dashboard Settings tab (2026-10-13)
+
+- A third tab, **Settings**, next to Monitor and History. The Power card moved
+  there from the Monitor tab and is now two cards: **Screen saver** (mode,
+  timers, dim level, wake on alert, Sleep now) and **Power** (auto shutdown, its
+  threshold, Shut down). One **Save** at the bottom saves both, as before.
+- The Monitor tab keeps only Detection settings and Monitored area. At 1024 by
+  600 they fit exactly, so the right-hand column no longer scrolls.
+- Leaving Settings with unsaved changes drops them, so the screen never keeps
+  showing values that were not saved.
+- No change to any endpoint, setting or Firebase command.
+
 ## Pi dashboard History matches the app (2026-10-12)
 
 Follows `mobile-app/HISTORY_TOOLS.md`, which lists what the app's History page

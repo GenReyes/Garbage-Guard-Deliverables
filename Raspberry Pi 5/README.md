@@ -111,8 +111,11 @@ Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 17 te
 
 ## Screen saver and low-battery shutdown
 
-Both live in the Power card on the dashboard (scroll the right-hand column).
-The card also has a red **Shut down** button. It asks "Shut down the Pi?", writes
+Both live in the **Settings** tab of the dashboard, the third tab after Monitor
+and History. The screen saver has its own card and the low-battery shutdown is
+in the Power card. Press **Save** at the bottom after changing a value; leaving
+the tab without saving drops the change. The Power card also has a red
+**Shut down** button. It asks "Shut down the Pi?", writes
 a "Manual shutdown" row to History, sends it to Firebase and powers off. Start
 the Pi again with the switch on the UPS HAT.
 
@@ -139,7 +142,7 @@ dashboard still fills the screen and that touch lands where you tap.
 Waking is checked, not assumed: the Pi reads back whether the screen really
 came on, and tries a plain switch-on, then the screen's own mode, then an
 off-and-on cycle. If all three fail it keeps retrying, shows a red line in the
-Power card, and uses Dim instead of Off until someone taps Off again. A screen
+Screen saver card, and uses Dim instead of Off until someone taps Off again. A screen
 left off when the program starts is switched back on.
 
 While the output is off the desktop may not pass taps on, so `gg_touch.py`
