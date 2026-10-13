@@ -11,6 +11,10 @@ of event, matching what the Android app already does. A vibration motor
 (driven by PWM) can share the same module later. One switch group in the
 dashboard's Power card, and the same switches in the app.
 
+The parts are an **MH-FMD buzzer module** and a **PWM vibration motor module**
+(VCC, GND and IN pins, 3 to 5 V). See section 5 for what that means for the
+wiring, and for the one thing to check before anything else.
+
 A **passive** buzzer has no oscillator of its own. It makes a sound only when
 the Pi sends it a square wave, and the pitch is the wave's frequency. That is
 what makes distinct sounds possible; an active buzzer can only beep.
@@ -77,20 +81,48 @@ while a higher one is playing is dropped, not queued, so sounds never pile up.
   the reason, like the screen warning does.
 - **Shutdown is not delayed.** The shutdown tune plays at the same time as the
   history write and Firebase send, never before them.
+- **The alarm repeats until it is muted.** While the alert is raised and not
+  muted, the alarm sounds again every `buzzer_repeat_s` seconds. Muting from the
+  phone or the dashboard stops it, and so does the count dropping back below the
+  re-arm value. Auto-mute, if armed, stops it after its own time (15 minutes
+  now). Repeat can be switched off, so the alarm plays once.
+- **Quiet hours.** An optional daily window, with a start and an end time, that
+  silences the buzzer and the vibration motor. The phone notification and the
+  dashboard banner still appear, and History still records everything. Wrapping
+  past midnight (22:00 to 06:00) works. The one exception is the 5% floor
+  warning, which cannot be cancelled and protects the data, so it still sounds.
+  The window uses the Pi's clock. The Pi has no battery-backed clock, so with no
+  internet at a field site its time can be wrong; if the clock has not been
+  synchronised, quiet hours are not applied and the card says why.
 - **Quiet by default for the small things.** Button sounds are off unless
   switched on. Alerts, the countdown and the shutdown tune are on.
 
 ## 5. Hardware
 
-**Buzzer.** Passive, 3 to 5 V. A magnetic one draws a few tens of mA, more than
-a GPIO pin should supply alone, so drive it through an NPN transistor (for
-example 2N2222) or a logic-level MOSFET with a 1 k resistor on the base or
-gate, powered from 5 V. That is also louder than 3.3 V.
+**First check: is the MH-FMD active or passive?** The name MH-FMD is sold for
+both kinds, and the whole plan needs a **passive** one. An active one only makes
+a single fixed beep, so every event would sound the same. Two quick ways to
+tell, with the module not connected to the Pi's data pin:
+- Look at the buzzer's top. An active buzzer is usually sealed with a sticker
+  and has a tiny circuit board underneath; a passive one shows the bare green
+  board underneath.
+- Power it (VCC to 3.3 V, GND to GND) and touch IN to GND. An active module
+  beeps continuously. A passive one stays silent or only clicks.
+If it is active, order a passive module (it looks the same, and is often
+listed as "passive buzzer module low level trigger").
 
-**Vibration motor.** Never directly from a GPIO pin; it draws around 60 to
-100 mA. Same transistor or MOSFET arrangement, plus a diode (1N4001 or 1N4148)
-across the motor to absorb the spike when it switches off. PWM duty sets the
-strength.
+**Buzzer module.** The module already has its own transistor, so it connects
+straight to the Pi: VCC to 3.3 V or 5 V, GND to GND, IN to the PWM pin. No
+extra transistor is needed. It is **low level trigger**, which means the sound
+is on while IN is low. So the idle level must be high: the code holds the pin
+high when silent, and a passive module still plays tones from PWM either way.
+If it beeps while the Pi is booting (the pin floats before the program runs),
+add a 10 k resistor from IN to 3.3 V.
+
+**Vibration motor module.** VCC, GND, IN. It also has its own driver, so IN
+connects straight to a PWM pin and no transistor or diode is needed. PWM duty
+sets the strength. At 5 V it can draw around 100 mA, which the Pi's 5 V pin can
+supply, but check how it behaves when the battery is low.
 
 **Pins.** The Pi 5's PWM is on GPIO12 and GPIO13 (also 18 and 19; confirm on the
 board's pinout). Two outputs, one for the buzzer and one for the motor, can use
@@ -131,14 +163,18 @@ be installed into it (or the environment made with system packages visible).
   - Start-up plays `ready`.
 - **Settings** (saved in `gg_settings.json`): `buzzer_on` (true),
   `buzzer_volume` (low, medium, high), `buzzer_alerts` (true),
-  `buzzer_countdown` (true), `buzzer_ui` (false), `vibe_on` (true),
+  `buzzer_countdown` (true), `buzzer_ui` (false), `buzzer_repeat` (true),
+  `buzzer_repeat_s` (30, allowed 10 to 300), `quiet_on` (false),
+  `quiet_from` ("22:00"), `quiet_to` ("06:00"), `vibe_on` (true),
   `vibe_strength` (low, medium, high).
   Volume is the PWM duty cycle: 50% is loudest, and lower duty is quieter.
-- **State fields:** the same settings, plus `buzzer_available` and
-  `buzzer_note`.
+- **State fields:** the same settings, plus `buzzer_available`, `buzzer_note`
+  and `quiet_now` (true while quiet hours are silencing it).
 - **API:**
-  - `POST /api/buzzer` `{on, volume, alerts, countdown, ui}`, `POST /api/vibe`
-    `{on, strength}`: settings, clamped like the others.
+  - `POST /api/buzzer` `{on, volume, alerts, countdown, ui, repeat, repeat_s,
+    quiet_on, quiet_from, quiet_to}`, `POST /api/vibe` `{on, strength}`:
+    settings, clamped like the others. Times must be `HH:MM`, anything else is
+    ignored.
   - `POST /api/buzzer/test` `{"sound": "accumulation"}`: plays one sound so the
     person setting it up can hear it.
   - `POST /api/buzzer/ui` `{"sound": "tap"|"switch"}`: for the touchscreen's
@@ -151,8 +187,10 @@ be installed into it (or the environment made with system packages visible).
 
 **Dashboard.** A "Sound" section in the Power card (or its own card if the
 Power card gets too long): a master switch, a Low / Medium / High volume bar,
-switches for Alerts, Countdown and Button sounds, the vibration switch and
-strength, and **Test** buttons that play the alarm and a short vibration. A
+switches for Alerts, Countdown and Button sounds, a Repeat switch with its
+interval, Quiet hours with a start and an end time (steppers like the other
+numbers, not a pop-up clock, which is awkward on a touchscreen), the vibration
+switch and strength, and **Test** buttons that play the alarm and a short vibration. A
 warning line when the buzzer is unavailable. Touchscreen taps send `tap` and
 `switch` to `/api/buzzer/ui` only when Button sounds is on.
 
@@ -181,18 +219,26 @@ be built without the Pi.
 5. **App side.** Brian builds the Settings card against the mock server, then
    the real Pi.
 
-## 9. Open questions
+## 9. Decisions and what is still open
 
-1. **Which buzzer is it?** Voltage, size, and resonant frequency decide the
-   pitch table. Please send the model or a photo of the label.
-2. **Where does it mount?** Inside the closed case it will be muffled, so it
-   may need a hole or a spot near a vent.
-3. **Sound at the field site.** Is a 1 second alarm enough, or should it repeat
-   until acknowledged? Repeating is easy, but it would sound in the field
-   until someone mutes it. Nothing repeats in this plan.
-4. **Quiet hours.** A night window that silences the buzzer (alerts still go to
-   the phone) is a small addition if wanted.
-5. **Button sounds on the touchscreen.** Kept off by default, since every tap
-   would buzz. Should it exist at all?
-6. **Vibration motor.** What is it for on a fixed Pi: a tactile cue when the
-   enclosure is handled, or an alarm? That decides the patterns.
+Decided with Gen:
+- The parts are an MH-FMD buzzer module and a PWM vibration motor module with
+  VCC, GND and IN pins, 3 to 5 V.
+- The buzzer will be inside the case, which has a hole for the sound.
+- The alarm repeats until muted from the phone or the dashboard, and the repeat
+  can be switched off and its interval changed.
+- Quiet hours exist, with a start and an end time the user sets.
+- The touchscreen's button sounds exist but are off unless switched on.
+
+Still open:
+1. **Is the MH-FMD passive?** Test it (section 5) before ordering or wiring
+   anything else.
+2. **Repeat interval default.** The plan says 30 seconds. Shorter is more
+   urgent; longer is less annoying.
+3. **The floor warning during quiet hours.** The plan lets it sound. Say if it
+   should stay silent too.
+4. **Time on the Pi.** Confirm the Pi's time zone is Asia/Manila and that it
+   gets the time from the internet at the place it will be used.
+5. **The motor's job.** What should it do on a fixed Pi: pulse with the alarm,
+   or only when the case is handled? Until then it pulses with the alarm and the
+   shutdown tune.
