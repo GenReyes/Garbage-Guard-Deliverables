@@ -36,5 +36,5 @@ Per class at the creek (mAP50): bottle 0.729, bag 0.179, food_container 0.871.
 ### Notes
 
 - These scores are not comparable to the v5 or v6b scores, because the test set is different.
-- Status: field pilot at the creek. The NCNN export for the Raspberry Pi 5 is still to be done, and latency on the Pi is not yet measured.
+- Status: field pilot at the creek. The NCNN export for the Raspberry Pi 5 is done and it is the Pi's default model. Latency on the Pi is not yet measured.
 - `.gitignore` allows only this one `.pt` file. Other `.pt` files and the NCNN folder stay out of the repo.

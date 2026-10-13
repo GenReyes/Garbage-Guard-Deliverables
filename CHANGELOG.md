@@ -4,6 +4,14 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: v7 model is the default (2026-10-14)
+
+### Pi
+
+- The detector now loads `garbageguard_v7_best_ncnn_model` by default. Make it
+  on the Pi with `yolo export model=garbageguard_v7_best.pt format=ncnn imgsz=640`.
+  The v5 folder still works with `--model garbageguard_v5_best_ncnn_model`.
+
 ## Pi: Test vibration over Firebase (2026-10-13)
 
 ### Pi

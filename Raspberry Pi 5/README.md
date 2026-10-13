@@ -375,9 +375,11 @@ rather than a guess.
 
 - Python 3 with a virtual environment at `~/gg-env` containing `ultralytics`,
   OpenCV, and `lap`
-- The NCNN model folder, `garbageguard_v5_best_ncnn_model/` (not in this
-  repo — it's a 9.3 MB binary; copy it onto the Pi directly rather than
-  committing it)
+- The NCNN model folder, `garbageguard_v7_best_ncnn_model/` (not in this
+  repo — it's a 9.3 MB binary; make it on the Pi with
+  `yolo export model=garbageguard_v7_best.pt format=ncnn imgsz=640`, or copy
+  it over directly). To run another model, use `--model <folder>`; v5 is
+  `garbageguard_v5_best_ncnn_model/`
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.

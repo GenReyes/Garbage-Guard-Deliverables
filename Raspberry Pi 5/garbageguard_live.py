@@ -44,7 +44,7 @@ if CAMERA_FILE.is_file():
     line = CAMERA_FILE.read_text().strip()
     if line:
         SOURCE = line
-MODEL_PATH = "garbageguard_v5_best_ncnn_model"
+MODEL_PATH = "garbageguard_v7_best_ncnn_model"
 IMGSZ = 640
 
 SMOOTH_WINDOW = 15
