@@ -443,28 +443,35 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun sendPower() {
+    private fun sendScreenSaver() {
         val mode = draftScreenMode
         val timeout = draftScreenTimeout
         val onBattery = draftScreenBattery
         val dim = draftScreenDim
-        val pct = draftShutdownPct
-        val screen = mode != null || timeout != null || onBattery != null || dim != null
-        if (!screen && pct == null) return
-        launchAction("Power settings saved", key = LOCK_POWER) {
-            // Only what changed is sent, and each endpoint at most once.
-            if (screen) repo.setScreenSaver(mode, timeout, onBattery, dim, null)
-            if (pct != null) repo.setAutoShutdown(null, pct)
+        if (mode == null && timeout == null && onBattery == null && dim == null) return
+        launchAction("Screen saver saved", key = LOCK_SAVER) {
+            // Only what changed is sent, in one command.
+            repo.setScreenSaver(mode, timeout, onBattery, dim, null)
             draftScreenMode = null
             draftScreenTimeout = null
             draftScreenBattery = null
             draftScreenDim = null
+        }
+    }
+
+    private fun sendShutdownPct() {
+        val pct = draftShutdownPct ?: return
+        launchAction("Shutdown level saved", key = LOCK_POWER) {
+            repo.setAutoShutdown(null, pct)
             draftShutdownPct = null
         }
     }
 
-    /** Called by the Pi power card after it changes one of its drafts. */
-    fun powerChanged() = arm(LOCK_POWER, ::sendPower)
+    /** Called by the Screen saver card after it changes one of its drafts. */
+    fun screenSaverChanged() = arm(LOCK_SAVER, ::sendScreenSaver)
+
+    /** Called by the Power card after the shutdown level is stepped. */
+    fun shutdownChanged() = arm(LOCK_POWER, ::sendShutdownPct)
 
     // ---------- setup ----------
 
@@ -622,9 +629,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var draftScreenDim by mutableStateOf<Int?>(null)
     var draftShutdownPct by mutableStateOf<Int?>(null)
 
-    val powerDirty: Boolean
-        get() = draftScreenMode != null || draftScreenTimeout != null || draftScreenBattery != null ||
-            draftScreenDim != null || draftShutdownPct != null
+    val saverDirty: Boolean
+        get() = draftScreenMode != null || draftScreenTimeout != null || draftScreenBattery != null || draftScreenDim != null
 
     fun toggleWakeOnAlert() {
         val on = !state.value.screenWakeOnAlert
@@ -882,6 +888,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_TEST = "test"
         const val LOCK_DETECT = "detect"
         const val LOCK_POWER = "power"
+        const val LOCK_SAVER = "screen_saver"
         const val LOCK_WAKE_ALERT = "wake_alert"
         const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"
         const val LOCK_SCREEN = "screen"

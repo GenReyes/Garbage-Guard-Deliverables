@@ -4,6 +4,15 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.10: Screen saver and Power as two cards (2026-10-13)
+
+### App
+
+- Settings has a Pi screen saver card (mode, timers, dim level, wake on
+  alert, Sleep now or Wake) and a Pi power card (auto shutdown, its level,
+  Shut down), matching the dashboard's two cards. Each sends and locks on
+  its own, so a screen saver change no longer holds the shutdown level.
+
 ## App version 9.9: Save is back for detection settings (2026-10-13)
 
 ### App
