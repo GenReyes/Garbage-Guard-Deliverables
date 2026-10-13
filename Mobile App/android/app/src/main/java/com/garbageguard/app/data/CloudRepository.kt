@@ -19,6 +19,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -57,6 +58,22 @@ class CloudRepository(
 
     @Volatile
     var foreground: Boolean = true
+
+    /** Where downloaded snapshots are kept between launches. Set once at start-up. */
+    @Volatile
+    var cacheDir: File? = null
+
+    /**
+     * True while the live screen is open. The Pi sends the preview only then,
+     * so the watcher entry is rewritten at once when this changes.
+     */
+    @Volatile
+    var liveScreen: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (running && watching) scope.launch { putWatcher() }
+        }
 
     /** Plain-words messages for the user, such as "Pi did not answer." */
     @Volatile
@@ -101,6 +118,12 @@ class CloudRepository(
     private var alertsRev: Long? = null
     private var alertsRevLoaded: Long? = null
 
+    // /gg/state arrives over one streaming connection while the app is in use, so
+    // only changes are downloaded. Polling takes over whenever the stream is down.
+    private var stream: Job? = null
+    @Volatile private var streamConn: HttpURLConnection? = null
+    @Volatile private var streamLive = false
+
     override val frameUrl: String?
         get() = if (running) PREVIEW_URL else null
 
@@ -124,7 +147,8 @@ class CloudRepository(
 
                 val slow = tick % (if (asleep) 30 else 10) == 0
                 if (slow) pollPi()
-                if (!asleep && tick % 3 == 0) pollState()
+                if (asleep) closeStateStream() else openStateStream()
+                if (!asleep && !streamLive && tick % 3 == 0) pollState()
                 if (slow && (alertsRev == null || alertsRev != alertsRevLoaded)) pollAlerts()
                 if (!asleep && tick % 10 == 0) putWatcher()
                 if (asleep && watching) deleteWatcher()
@@ -140,6 +164,7 @@ class CloudRepository(
         val wasWatching = watching
         job?.cancel()
         job = null
+        closeStateStream()
         if (wasWatching) scope.launch { deleteWatcher() }
     }
 
@@ -174,10 +199,90 @@ class CloudRepository(
             _state.update { it.copy(conn = ConnState.NO_PI) }
             return
         }
+        applyState(o)
+    }
+
+    private fun applyState(o: JSONObject) {
         lastState = parser.parseState(o)
         lastStateAt = o.optLong("ts", System.currentTimeMillis())
         _battery.value = o.optJSONObject("battery")?.let { parser.parseBattery(it) } ?: Battery()
         countDown()
+    }
+
+    private fun openStateStream() {
+        if (stream?.isActive == true) return
+        stream = scope.launch(Dispatchers.IO) {
+            var fails = 0
+            while (isActive) {
+                try {
+                    listenState()
+                    fails = 0
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    fails++
+                }
+                streamLive = false
+                delay((2_000L * (fails + 1)).coerceAtMost(30_000L))
+            }
+        }
+    }
+
+    private fun closeStateStream() {
+        stream?.cancel()
+        stream = null
+        streamConn?.disconnect()
+        streamConn = null
+        streamLive = false
+    }
+
+    /**
+     * Firebase's streaming REST API: the whole node once ("put" at "/"), then
+     * only what changed, plus a keep-alive line every 30 s. Returns when the
+     * connection ends or the sign-in token runs out, so the caller reconnects.
+     */
+    private suspend fun listenState() {
+        val url = "${config.url.trimEnd('/')}/gg/state.json?auth=${enc(auth())}"
+        val conn = URL(url).openConnection() as HttpURLConnection
+        streamConn = conn
+        conn.setRequestProperty("Accept", "text/event-stream")
+        conn.connectTimeout = 8000
+        conn.readTimeout = 75_000
+        try {
+            if (conn.responseCode != 200) throw IOException("stream HTTP ${conn.responseCode}")
+            var mirror = JSONObject()
+            var event = ""
+            conn.inputStream.bufferedReader().use { reader ->
+                while (true) {
+                    val line = reader.readLine() ?: return
+                    when {
+                        line.startsWith("event:") -> event = line.removePrefix("event:").trim()
+                        line.startsWith("data:") && (event == "put" || event == "patch") -> {
+                            val msg = JSONObject(line.removePrefix("data:").trim())
+                            val key = msg.optString("path", "/").trim('/').substringBefore('/')
+                            val data = msg.opt("data")
+                            if (event == "put" && key.isEmpty()) {
+                                mirror = data as? JSONObject ?: JSONObject()
+                            } else if (key.isEmpty() && data is JSONObject) {
+                                data.keys().forEach { mirror.put(it, data.get(it)) }
+                            } else if (key.isNotEmpty()) {
+                                // The Pi always writes the whole state, so deeper paths are rare; refetch them whole.
+                                mirror = getObject("gg/state") ?: mirror
+                            }
+                            val copy = JSONObject(mirror.toString())
+                            withContext(Dispatchers.Main) {
+                                if (copy.length() == 0) _state.update { it.copy(conn = ConnState.NO_PI) } else applyState(copy)
+                            }
+                            streamLive = true
+                        }
+                        line.startsWith("data:") && (event == "cancel" || event == "auth_revoked") -> return
+                    }
+                }
+            }
+        } finally {
+            conn.disconnect()
+            if (streamConn === conn) streamConn = null
+        }
     }
 
     /**
@@ -202,6 +307,7 @@ class CloudRepository(
             val raw = rest("GET", "gg/alerts", query = "&orderBy=" + enc("\"\$key\"") + "&limitToLast=200")
             _alerts.value = if (raw == null) emptyList() else parseAlertNode(raw)
             alertsRevLoaded = rev
+            pruneCache(_alerts.value.map { it.id }.toSet())
             loaded.value = true
         } catch (e: CancellationException) {
             throw e
@@ -244,17 +350,49 @@ class CloudRepository(
         }
     }
 
-    /** A picture stored in the database as base64: "preview" or "snaps/<id>". */
+    /**
+     * A picture stored in the database as base64: "preview", "snaps/<id>" or
+     * "snaps/<id>/thumb". Snapshots never change, so they are kept on disk and
+     * downloaded once. A snapshot from before thumbnails existed falls back to
+     * the full picture.
+     */
     suspend fun image(path: String): Bitmap? = try {
-        val jpg = getObject("gg/$path")?.optString("jpg").orEmpty()
-        if (jpg.isEmpty()) null else withContext(Dispatchers.Default) {
-            val bytes = Base64.decode(jpg, Base64.DEFAULT)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        val file = if (path.startsWith("snaps/")) cacheDir?.let { File(it, path.replace('/', '_') + ".jpg") } else null
+        val cached = file?.takeIf { it.exists() }?.let { f -> withContext(Dispatchers.IO) { f.readBytes() } }
+        val bytes = cached ?: getObject("gg/$path")?.optString("jpg").orEmpty().takeIf { it.isNotEmpty() }
+            ?.let { Base64.decode(it, Base64.DEFAULT) }
+        if (bytes != null && cached == null && file != null) withContext(Dispatchers.IO) { saveToCache(file, bytes) }
+        when {
+            bytes != null -> withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+            path.endsWith("/thumb") -> image(path.removeSuffix("/thumb"))
+            else -> null
         }
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
         null
+    }
+
+    private fun saveToCache(file: File, bytes: ByteArray) = runCatching {
+        file.parentFile?.mkdirs()
+        file.writeBytes(bytes)
+        val files = file.parentFile?.listFiles()?.sortedBy { it.lastModified() } ?: return@runCatching
+        var total = files.sumOf { it.length() }
+        for (f in files) {
+            if (total <= CACHE_BYTES) break
+            total -= f.length()
+            f.delete()
+        }
+    }
+
+    /** Drops cached snapshots of history rows that no longer exist, since a row id can come back. */
+    private suspend fun pruneCache(ids: Set<Long>) = withContext(Dispatchers.IO) {
+        runCatching {
+            cacheDir?.listFiles()?.forEach { f ->
+                val id = f.name.removePrefix("snaps_").substringBefore('_').substringBefore('.').toLongOrNull()
+                if (id != null && id !in ids) f.delete()
+            }
+        }
     }
 
     // ---------- telling the Pi a phone is watching ----------
@@ -267,6 +405,7 @@ class CloudRepository(
             .put("os", about["os"].orEmpty())
             .put("app_version", about["app_version"].orEmpty())
             .put("mode", if (foreground) "foreground" else "background")
+            .put("screen", if (liveScreen && foreground) "live" else "other")
         try {
             rest("PUT", "gg/watchers/$clientId", body.toString(), query = "&print=silent")
             watching = true
@@ -551,6 +690,7 @@ class CloudRepository(
     companion object {
         const val SCHEME = "gg-cloud://"
         const val PREVIEW_URL = "gg-cloud://preview"
+        private const val CACHE_BYTES = 64L * 1024 * 1024
         private const val SNAP_PREFIX = "cloud:"
         private val CLOCK = DateTimeFormatter.ofPattern("H:mm")
 

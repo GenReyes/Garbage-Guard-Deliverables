@@ -68,6 +68,7 @@ import com.garbageguard.app.ui.components.accentOf
 import com.garbageguard.app.ui.components.neuShadow
 import com.garbageguard.app.ui.components.neuWell
 import com.garbageguard.app.ui.components.pressable
+import com.garbageguard.app.ui.components.RemoteImages
 import com.garbageguard.app.ui.components.rememberSnapshot
 import androidx.compose.ui.unit.Dp
 import com.garbageguard.app.ui.theme.GgColors
@@ -358,7 +359,7 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                 contentAlignment = Alignment.Center,
             ) {
                 if (row.snapshot != null) {
-                    val picture = rememberSnapshot(vm.snapshotUrl(row.snapshot))
+                    val picture = rememberSnapshot(RemoteImages.thumb(vm.snapshotUrl(row.snapshot)))
                     // Demo data draws its own picture. A real record waits for the real one.
                     if (vm.demo || picture != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = picture, alignTop = true)
                     else T(if (vm.remote) "LOADING" else "\u2026", size = 0.5f, color = GLASS_EDGE, maxLines = 1)

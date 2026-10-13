@@ -195,6 +195,8 @@ class CloudTests(unittest.TestCase):
         self.assertEqual((changed, up), (2, 1))
         snap = self.w.db["gg"]["snaps"]["2"]
         self.assertLessEqual(snap["w"], 960)
+        self.assertLessEqual(snap["thumb"]["w"], 160)
+        self.assertLessEqual(snap["thumb"]["bytes"], 8 * 1024)
         self.assertLess(snap["bytes"], 300 * 1024)
         self.assertNotIn("snapshot_path", self.w.db["gg"]["alerts"]["2"])
         self.assertEqual(self.c.sync_alerts(), (0, 0))
@@ -202,6 +204,11 @@ class CloudTests(unittest.TestCase):
         self.c.sync_alerts()
         self.assertNotIn("2", self.w.db["gg"]["alerts"])
         self.assertNotIn("2", self.w.db["gg"].get("snaps", {}))
+
+    def test_old_snapshots_get_thumbnails(self):
+        self.w.db = {"gg": {"snaps": {"2": {"jpg": "x", "w": 960}}}}
+        self.c.sync_alerts()
+        self.assertLessEqual(self.w.db["gg"]["snaps"]["2"]["thumb"]["w"], 160)
 
     def test_commands_run_once_through_local_api(self):
         self.w.db = {"gg": {"commands": {"a1": {"cmd": "mute", "args": {"seconds": 900}, "by": "u"},
@@ -242,6 +249,78 @@ class CloudTests(unittest.TestCase):
 
 GOOD_CFG = {"database_url": "https://gg-test-default-rtdb.asia-southeast1.firebasedatabase.app",
             "api_key": "AIza" + "x" * 35, "email": "pi@example.com", "password": "secret1"}
+
+
+class FakeStream:
+    def __init__(self, data):
+        self.data, self.live = data, True
+
+    def snapshot(self):
+        return json.loads(json.dumps(self.data))
+
+    def take_bytes(self):
+        return 0
+
+
+class StreamTests(unittest.TestCase):
+    def test_events_build_a_copy(self):
+        t = gc.apply_event(None, "/", {"a": {"ts": 1}})
+        t = gc.apply_event(t, "/b", {"ts": 2})
+        t = gc.apply_event(t, "/a", None)
+        t = gc.apply_event(t, "/", {"b/ts": 3, "c": {"x": 1}}, patch=True)
+        self.assertEqual(t, {"b": {"ts": 3}, "c": {"x": 1}})
+
+    def test_reading_the_event_stream(self):
+        import io
+        body = (b"event: put\ndata: {\"path\":\"/\",\"data\":{\"p1\":{\"ts\":5}}}\n\n"
+                b"event: keep-alive\ndata: null\n\n"
+                b"event: patch\ndata: {\"path\":\"/p1\",\"data\":{\"screen\":\"live\"}}\n\n"
+                b"event: auth_revoked\ndata: \"credential is no longer valid\"\n\n"
+                b"event: put\ndata: {\"path\":\"/\",\"data\":null}\n\n")
+        import threading
+        s = gc.Stream(lambda: "", threading.Event())
+        s.read(io.BytesIO(body))
+        self.assertTrue(s.live)
+        self.assertEqual(s.snapshot(), {"p1": {"ts": 5, "screen": "live"}})
+        self.assertGreater(s.take_bytes(), 0)
+        self.assertEqual(s.take_bytes(), 0)
+
+
+class StreamingCloudTests(unittest.TestCase):
+    def setUp(self):
+        self.w = FakeWorld()
+        self.t = [1000.0]
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        usage = gg_usage.Usage(path=pathlib.Path(self.tmp.name) / "u.json", clock=lambda: self.t[0])
+        self.streams = {"watchers": FakeStream({}), "commands": FakeStream({})}
+        self.gets = []
+        http = self.w.http
+        self.c = gc.Cloud({"database_url": "https://x.firebasedatabase.app"}, token=False,
+                          http=lambda m, u, b=None, timeout=15: (self.gets.append(u) if m == "GET" else None,
+                                                                  http(m, u, b))[1],
+                          clock=lambda: self.t[0], usage=usage, streams=self.streams)
+
+    def test_no_polling_while_streams_are_live(self):
+        for _ in range(30):
+            self.c.tick()
+            self.t[0] += 1
+        self.assertFalse([u for u in self.gets if "/watchers" in u or "/commands" in u])
+
+    def test_streamed_command_runs_once(self):
+        self.streams["commands"].data = {"a1": {"cmd": "mute", "args": {"seconds": 60}}}
+        self.c.tick()
+        self.c.tick()
+        self.assertEqual(self.w.posts, [("/api/mute", {"seconds": 60})])
+
+    def test_preview_only_for_the_live_screen(self):
+        self.streams["watchers"].data = {"p1": {"ts": 1_000_000, "screen": "history"}}
+        self.c.tick()
+        self.assertNotIn("preview", self.w.db["gg"])
+        self.streams["watchers"].data = {"p1": {"ts": 1_000_000, "screen": "live"}}
+        self.t[0] += 5
+        self.c.tick()
+        self.assertLessEqual(self.w.db["gg"]["preview"]["w"], 360)
 
 
 class ConfigTests(unittest.TestCase):

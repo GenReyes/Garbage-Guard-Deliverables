@@ -63,8 +63,8 @@ STATUS = {"enabled": False, "ok": False, "error": None, "last_ok": None, "watche
 
 DEFAULTS = {"root": "gg", "enabled": True, "state_s": 3, "idle_state_s": 120,
             "alerts_s": 10, "commands_s": 2, "idle_commands_s": 10, "pi_s": 30, "idle_pi_s": 60,
-            "preview_s": 3, "preview_width": 480,
-            "snap_width": 960, "snap_max_kb": 300, "history": 200, "watch_window_s": 30,
+            "preview_s": 3, "preview_width": 360, "preview_max_kb": 40,
+            "snap_width": 960, "snap_max_kb": 300, "thumb_width": 160, "thumb_max_kb": 8, "history": 200, "watch_window_s": 30,
             "month_limit_gb": 10, "day_preview_mb": 300, "usage_s": 600, "countdown_s": 3}
 
 
@@ -252,9 +252,113 @@ def public_config():
 RESPONSE_HEADERS = 400
 
 
+def apply_event(tree, path, data, patch=False):
+    """Apply one Firebase streaming event to a local copy of the node. Returns the new tree."""
+    parts = [p for p in path.split("/") if p]
+    if patch:
+        for k, v in (data or {}).items():
+            tree = apply_event(tree, "/".join(parts + [k]), v)
+        return tree
+    if not parts:
+        return data
+    tree = tree if isinstance(tree, dict) else {}
+    cur = tree
+    for p in parts[:-1]:
+        if not isinstance(cur.get(p), dict):
+            cur[p] = {}
+        cur = cur[p]
+    if data is None:
+        cur.pop(parts[-1], None)
+    else:
+        cur[parts[-1]] = data
+    return tree
+
+
+class Stream:
+    """Keeps one node of the database mirrored over Firebase's streaming REST API.
+
+    Firebase sends the whole node once, then only what changes, so watching a
+    quiet node costs a keep-alive line every 30 s instead of a full answer
+    every poll. `live` is False until the first copy arrives and again after
+    the connection drops; the caller polls in the meantime.
+    """
+
+    def __init__(self, url_for, stop_flag):
+        self.url_for = url_for
+        self.stop_flag = stop_flag
+        self.data = None
+        self.live = False
+        self.bytes = 0
+        self.lock = threading.Lock()
+        self.conn = None
+
+    def start(self):
+        threading.Thread(target=self.run, daemon=True).start()
+        return self
+
+    def run(self):
+        fails = 0
+        while not self.stop_flag.is_set():
+            try:
+                self.listen(self.url_for())
+                fails = 0
+            except Exception:
+                fails += 1
+            self.live = False
+            self.stop_flag.wait(min(60, 2 * fails) or 1)
+
+    def listen(self, url):
+        for _ in range(3):
+            u = urllib.parse.urlsplit(url)
+            conn = self.conn = http.client.HTTPSConnection(u.netloc, timeout=75)
+            NET["handshakes"] += 1
+            conn.request("GET", u.path + "?" + u.query, headers={"Accept": "text/event-stream"})
+            r = conn.getresponse()
+            if r.status in (301, 302, 307, 308) and r.getheader("Location"):
+                url = r.getheader("Location")
+                conn.close()
+                continue
+            if r.status != 200:
+                conn.close()
+                raise RuntimeError(f"stream HTTP {r.status}")
+            try:
+                self.read(r)
+            finally:
+                conn.close()
+            return
+
+    def read(self, r):
+        event = None
+        while not self.stop_flag.is_set():
+            line = r.readline()
+            if not line:
+                return
+            with self.lock:
+                self.bytes += len(line)
+            line = line.decode("utf-8", "replace").rstrip("\r\n")
+            if line.startswith("event:"):
+                event = line[6:].strip()
+            elif line.startswith("data:") and event in ("put", "patch"):
+                msg = json.loads(line[5:].strip() or "null") or {}
+                with self.lock:
+                    self.data = apply_event(self.data, msg.get("path", "/"), msg.get("data"), event == "patch")
+                    self.live = True
+            elif line.startswith("data:") and event in ("cancel", "auth_revoked"):
+                return
+
+    def take_bytes(self):
+        with self.lock:
+            n, self.bytes = self.bytes, 0
+        return n
+
+    def snapshot(self):
+        with self.lock:
+            return json.loads(json.dumps(self.data)) if self.data is not None else None
+
+
 class Cloud:
     def __init__(self, cfg, token=None, http=http_call, local=LOCAL, clock=time.time, note=None,
-                 usage=None):
+                 usage=None, streams=None):
         self.cfg = dict(DEFAULTS, **cfg)
         self.url = self.cfg["database_url"].rstrip("/")
         self.root = self.cfg["root"].strip("/")
@@ -274,6 +378,10 @@ class Cloud:
         self.watchers = {}
         self.busy = threading.RLock()
         self.counting = False
+        # watchers and commands arrive by stream when possible; see start_streams().
+        self.streams = streams or {}
+        self.done_cmds = []
+        self.thumbs_todo = None
         self.usage = usage if usage is not None else gg_usage.Usage(
             clock=clock, limit=int(self.cfg["month_limit_gb"] * gg_usage.GB),
             day_preview_mb=self.cfg["day_preview_mb"])
@@ -319,6 +427,25 @@ class Cloud:
 
     def active_watchers(self):
         return {k: v for k, v in self.watchers.items() if v}
+
+    def live_watchers(self):
+        # Phones say which screen is open; one that does not say is treated as on the live screen.
+        return [v for v in self.watchers.values() if v and v.get("screen", "live") == "live"]
+
+    def streaming(self):
+        return bool(self.streams) and all(s.live for s in self.streams.values())
+
+    def start_streams(self):
+        def url_for(node):
+            return lambda: f"{self.url}/{self.root}/{node}.json?auth={self.token()}" if self.token \
+                else f"{self.url}/{self.root}/{node}.json"
+        self.streams = {n: Stream(url_for(n), self.stop_flag).start() for n in ("watchers", "commands")}
+
+    def _rows(self, node):
+        s = self.streams.get(node)
+        if s is not None and s.live:
+            return s.snapshot() or {}
+        return self._fb("GET", node) or {}
 
     def push_state(self, force=False):
         st = json.loads(self._get_local("/api/state"))
@@ -406,11 +533,35 @@ class Cloud:
                 raw = self._get_local("/snapshots/" + row["snapshot"])
                 pic = shrink_jpeg(raw, self.cfg["snap_width"], self.cfg["snap_max_kb"])
                 if pic:
+                    pic["thumb"] = self._thumb(raw)
                     self._fb("PUT", f"snaps/{k}", pic)
                     self._count("snaps", pic, per_watcher=False)
                     self.sent_snaps.add(k)
                     uploaded += 1
+        self.backfill_thumbs(now)
         return len(patch), uploaded
+
+    def _thumb(self, raw):
+        t = shrink_jpeg(raw, self.cfg["thumb_width"], self.cfg["thumb_max_kb"])
+        return {k: t[k] for k in ("jpg", "w", "h", "bytes")} if t else None
+
+    def backfill_thumbs(self, now, per_call=5):
+        """Snapshots uploaded before thumbnails existed get one, a few at a time."""
+        if self.thumbs_todo is None:
+            self.thumbs_todo = sorted(self.sent_snaps, key=lambda k: -int(k) if k.isdigit() else 0)
+        done = 0
+        while self.thumbs_todo and done < per_call:
+            k = self.thumbs_todo.pop(0)
+            row = now.get(k)
+            if not row or not row["has_snap"] or k not in self.sent_snaps:
+                continue
+            done += 1
+            if self._fb("GET", f"snaps/{k}/thumb", query="shallow=true") is not None:
+                continue
+            thumb = self._thumb(self._get_local("/snapshots/" + row["snapshot"]))
+            if thumb:
+                self._fb("PUT", f"snaps/{k}/thumb", thumb)
+        return done
 
     def push_preview(self):
         try:
@@ -418,7 +569,7 @@ class Cloud:
         except RuntimeError:
             self._fb("PUT", "preview", {"ts": int(self.clock() * 1000), "jpg": None})
             return False
-        pic = shrink_jpeg(raw, self.cfg["preview_width"], 60)
+        pic = shrink_jpeg(raw, self.cfg["preview_width"], self.cfg["preview_max_kb"])
         if not pic:
             return False
         pic["ts"] = int(self.clock() * 1000)
@@ -428,13 +579,13 @@ class Cloud:
 
     # ---------- what comes down ----------
     def read_watchers(self):
-        rows = self._fb("GET", "watchers") or {}
+        rows = self._rows("watchers")
         now_ms = self.clock() * 1000
         win = self.cfg["watch_window_s"] * 1000
         self.watchers = {k: (v if isinstance(v, dict) and now_ms - float(v.get("ts", 0)) <= win else None)
                          for k, v in rows.items()}
         stale = {k: None for k, v in self.watchers.items() if v is None}
-        if stale:
+        if stale and (not self.streaming() or self._due("stale", 30)):
             self._fb("PATCH", "watchers", stale)
         active = {k: v for k, v in self.watchers.items() if v}
         STATUS["watchers"] = len(active)
@@ -446,9 +597,13 @@ class Cloud:
         return active
 
     def run_commands(self):
-        rows = self._fb("GET", "commands") or {}
+        rows = self._rows("commands")
         done = 0
         for cid, cmd in sorted(rows.items()):
+            # A streamed copy can still list a command whose deletion has not come back yet.
+            if cid in self.done_cmds:
+                continue
+            self.done_cmds = (self.done_cmds + [cid])[-100:]
             self._fb("DELETE", f"commands/{cid}")
             name = (cmd or {}).get("cmd")
             path = COMMANDS.get(name)
@@ -497,10 +652,19 @@ class Cloud:
             self.busy.release()
 
     def _tick(self):
-        every = self.cfg["commands_s"] if self.watching() or self.counting else self.cfg["idle_commands_s"]
-        if self._due("commands", every):
-            self.read_watchers()
-            self.run_commands()
+        if self.streaming():
+            # Streamed copies are local, so reading them often costs nothing.
+            if self._due("commands", self.cfg["commands_s"]):
+                self.read_watchers()
+            if self.streams["commands"].snapshot():
+                self.run_commands()
+            for s in self.streams.values():
+                self.usage.add_down("pi", s.take_bytes())
+        else:
+            every = self.cfg["commands_s"] if self.watching() or self.counting else self.cfg["idle_commands_s"]
+            if self._due("commands", every):
+                self.read_watchers()
+                self.run_commands()
         self.push_state()
         if self._due("alerts", self.cfg["alerts_s"]):
             self.sync_alerts()
@@ -511,7 +675,7 @@ class Cloud:
             self.usage.add_down("pi", made * HANDSHAKE_BYTES)
             self.handshakes = NET["handshakes"]
         every = self.usage.preview_every(self.cfg["preview_s"])
-        if self.watching() and every and self._due("preview", every):
+        if self.live_watchers() and every and self._due("preview", every):
             self.push_preview()
         STATUS["usage"] = self.usage.report()
         if self._due("usage", self.cfg["usage_s"]) and self.usage.data["down"] != self.sent_usage:
@@ -520,6 +684,8 @@ class Cloud:
 
     def run(self):
         STATUS.update(enabled=True)
+        if self.http is http_call and not self.streams:
+            self.start_streams()
         fails = 0
         while not self.stop_flag.is_set():
             try:

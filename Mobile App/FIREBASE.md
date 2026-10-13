@@ -14,7 +14,7 @@ so the app can switch at any moment.
 | State (counts, alert, mute, battery) | `GET /api/state` every 1 s | `/gg/state`, updated every 3 s while a phone watches; otherwise every 2 min, and at once when the alert or mute changes |
 | History | `GET /api/alerts` | `/gg/alerts`, synced every 10 s |
 | Snapshots | `GET /snapshots/<name>`, full size | `/gg/snaps/<id>`, compressed copy (960 px wide, at most 300 KB) |
-| Live view | `/stream.mjpg` or `/frame.jpg`, real video | **No video.** `/gg/preview` is a 480 px still, refreshed every 3 s, only while a phone says it is watching |
+| Live view | `/stream.mjpg` or `/frame.jpg`, real video | **No video.** `/gg/preview` is a 360 px still, refreshed every 3 s, only while a phone says it is on the live screen |
 | Commands (mute, threshold, ROI, capture …) | `POST /api/...`, instant | write to `/gg/commands`, the Pi runs it within about 2 s (10 s when no phone is watching) and writes the answer to `/gg/results` |
 | Restart Garbage-Guard | `POST /api/restart` | **not allowed** over Firebase, on purpose |
 | Pi network settings, Wi-Fi | Pi screen only | not available |
@@ -207,9 +207,9 @@ Everything sits under `/gg`. Only the Pi writes, except `commands` and
 /gg/pi                {online, ts, local_urls[], version, alerts_rev}  heartbeat, every 30 s (60 s when nobody watches); alerts_rev changes whenever /gg/alerts does
 /gg/state             same fields as /api/state (no viewers), plus battery and ts
 /gg/alerts/<id>       one history row
-/gg/snaps/<id>        {jpg, w, h, bytes}                compressed snapshot
-/gg/preview           {jpg, w, h, bytes, ts}            480 px still, only while watched
-/gg/watchers/<clientId>  {ts, device, os, app_version, mode}   written by phones
+/gg/snaps/<id>        {jpg, w, h, bytes, thumb}         compressed snapshot; thumb is {jpg, w, h, bytes} at 160 px for lists
+/gg/preview           {jpg, w, h, bytes, ts}            360 px still, only while a phone is on the live screen
+/gg/watchers/<clientId>  {ts, device, os, app_version, mode, screen}   written by phones; screen is "live" or "other"
 /gg/commands/<pushId>    {cmd, args, ts, by}                   written by phones
 /gg/results/<pushId>     answer from the Pi, last 50 kept
 /gg/usage                how much of the free monthly allowance is estimated used

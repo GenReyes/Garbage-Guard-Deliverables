@@ -107,6 +107,8 @@ object AppGraph {
         cloud.config = CloudStore.current(app)
         cloud.onNotice = { notices.tryEmit(it) }
         com.garbageguard.app.ui.components.RemoteImages.cloud = { path -> cloud.image(path) }
+        com.garbageguard.app.ui.components.RemoteImages.onLive = { open -> cloud.liveScreen = open }
+        cloud.cacheDir = java.io.File(app.cacheDir, "cloud-snaps")
 
         scope.launch {
             // Only lists that really came from the Pi count; the empty list
