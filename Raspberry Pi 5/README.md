@@ -259,7 +259,7 @@ runs it owns the pin, so stop it before running `buzzer_bench.py gpio`; the
 automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
-`/boot/firmware/config.txt`). The buzzer code is untested on real hardware.
+`/boot/firmware/config.txt`). The buzzer, its alarm repeat, quiet hours, the Sound card and the Shut down button have been tried on the Pi 5; the vibration motor has not (no module yet).
 
 **Vibration motor (3-pin module).** VCC to pin 1 (3.3 V), IN to pin 33
 (GPIO13) and GND to pin 39, with the Pi switched off. Never connect IN to a 5 V

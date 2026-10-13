@@ -158,8 +158,9 @@ new fields.
 - The detector uses hardware PWM when GPIO12 is set up for it and software PWM
   otherwise (`GG_BUZZER_BACKEND` forces one). `buzzer_bench.py` plays a tone sweep
   for judging pitch and volume by ear.
-- Not yet: the dashboard Sound card and the vibration motor. The hardware
-  backends are untested until the buzzer is wired.
+- Tried on the Pi 5 with the buzzer wired: both PWM backends (hardware PWM is
+  the steady one), the start-up tune, tests, button ticks, alarm repeat, mute,
+  quiet hours, and the manual Shut down button.
 
 ## Pi vibration motor (2026-10-13)
 
@@ -176,7 +177,7 @@ new fields.
 - The dashboard's Sound card has a Vibration switch, a Low, Medium or High
   strength, and a Test vibration button. The mock server and `BUZZER_APP.md`
   cover the same for the app (`GG_MOCK_NOVIBE=1` pretends it is broken).
-- Not tested on real hardware.
+- Not tested on real hardware: the motor module has not arrived.
 
 ## Mock server and brief for the Pi buzzer (2026-10-13)
 
