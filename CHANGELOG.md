@@ -45,6 +45,33 @@ new fields.
   instead of being fetched every 2 s. Polling takes over while a stream is
   down. Stream traffic is counted in the usage estimate.
 
+## Pi buzzer sound engine (2026-10-13)
+
+### Pi
+
+- New `gg_buzzer.py`: a passive buzzer module on GPIO12 plays a short, different
+  sound for each History event (alert, test, capture, mute, unmute, auto-mute,
+  both shutdowns), the low-battery countdown, and a "ready" tune at start-up.
+  Sounds are written as steps of (Hz, milliseconds) in the 1.5 to 3 kHz band a
+  small buzzer can be heard in; a higher priority sound interrupts a lower one
+  and a lower one is dropped, so sounds never pile up.
+- The alarm repeats every 30 seconds (10 to 300) while the alert is raised and
+  not muted. Muting stops it. Quiet hours (default 22:00 to 06:00, off until
+  switched on) silence everything, and are not applied when the Pi's clock is
+  not synchronised.
+- Settings: master, volume (low, medium, high), alerts, countdown, button sounds
+  (off by default), repeat and its interval, quiet hours. New `POST /api/buzzer`,
+  `POST /api/buzzer/test`, local-only `POST /api/buzzer/ui`, Firebase commands
+  `buzzer` and `buzzer_test`, and the settings and `buzzer_available`,
+  `buzzer_note`, `quiet_now`, `quiet_note` in the state.
+- The low-battery countdown beeps once a minute, once a second for the last 10
+  seconds, and every 2 seconds at the 5% floor. The countdown loop now checks
+  once a second while counting.
+- If the buzzer cannot start (no library, no wiring) the state says why and
+  nothing else changes.
+- Not yet: the dashboard Sound card and the vibration motor. The hardware
+  backends are untested until the buzzer is wired.
+
 ## Pi dashboard clock in Philippine time (2026-10-13)
 
 ### Pi

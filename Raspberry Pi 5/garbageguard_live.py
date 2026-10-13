@@ -27,6 +27,8 @@ import numpy as np
 from ultralytics import YOLO
 
 from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
+import gg_buzzer
+import gg_clock
 import gg_cloud
 import gg_power
 import gg_screen
@@ -57,7 +59,7 @@ SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
                     "auto_mute": False, "auto_mute_s": 900,
-                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS}
+                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -257,6 +259,7 @@ class Engine:
         self.all_latencies = []
         self.started_at = time.time()
         self.on_alert = None
+        self.on_event = None
 
         self.counter = AccumulationCounter(
             threshold=settings["threshold"],
@@ -474,6 +477,11 @@ class Engine:
              str(snap) if snap else None))
         conn.commit()
         conn.close()
+        if self.on_event:
+            try:
+                self.on_event(event)
+            except Exception as e:
+                print(f"[BUZZER] {e}", flush=True)
 
     def _save_snapshot(self, tag, state):
         with self.lock:
@@ -760,15 +768,23 @@ def main():
         ups = gg_ups.Ups()
         save = lambda: save_settings(settings)
         screen = gg_screen.Screen(settings, save=save, ups=ups)
+        clock = gg_clock.Clock()
+        buzzer = gg_buzzer.Buzzer(settings, save=save, backend=gg_buzzer.make_backend(),
+                                  clock_synced=clock.synced,
+                                  alert_on=lambda: engine.alert_active and not engine.is_muted())
         power = gg_power.Power(settings, save=save, ups=ups, screen=screen,
-                               log=engine.log_note, flush=gg_cloud.flush)
+                               log=engine.log_note, flush=gg_cloud.flush, sound=buzzer.play)
         engine.on_alert = screen.alert
+        engine.on_event = buzzer.event
         touch = gg_touch.Touch(screen.touch)
         touch.start()
         screen.wake_source = touch
         screen.start()
         power.start()
-        gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power)
+        buzzer.start()
+        buzzer.play("ready")
+        gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power,
+                     buzzer=buzzer, clock=clock)
         gg_cloud.start(note=gg_web.note_viewer)
 
     try:

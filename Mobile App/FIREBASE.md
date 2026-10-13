@@ -291,6 +291,8 @@ time-ordered key:
 | `screen_saver` | `{"mode": "dim", "timeout_s": 600, "timeout_battery_s": 60, "dim_pct": 20, "wake_on_alert": true}` (any field) |
 | `screen` | `{"action": "wake"}` or `{"action": "sleep"}` |
 | `auto_shutdown` | `{"on": true, "pct": 15}` or `{"cancel": true}` |
+| `buzzer` | `{"on": true, "volume": "medium", "alerts": true, "countdown": true, "ui": false, "repeat": true, "repeat_s": 30, "quiet_on": false, "quiet_from": "22:00", "quiet_to": "06:00"}` (any field) |
+| `buzzer_test` | `{"sound": "accumulation"}` |
 | `shutdown` | `{"confirm": true}`. Powers the Pi off; the app must ask first. The result is written before the Pi goes offline, and the `manual_shutdown` history row follows within a few seconds. |
 
 The Pi checks every 2 s, deletes the command first (so it runs at most once,

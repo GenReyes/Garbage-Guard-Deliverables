@@ -54,7 +54,7 @@ def poweroff():
 class Power:
     def __init__(self, settings, save=None, ups=None, screen=None, shutdown=poweroff,
                  log=None, flush=None, clock=time.monotonic, uptime=system_uptime,
-                 spawn=None):
+                 spawn=None, sound=None):
         self.settings = settings
         for k, v in DEFAULTS.items():
             settings.setdefault(k, v)
@@ -62,6 +62,8 @@ class Power:
         self.ups = ups
         self.screen = screen
         self._shutdown = shutdown
+        self._sound = sound
+        self.last_beep = None
         self._log = log
         self._flush = flush
         self.clock = clock
@@ -137,6 +139,7 @@ class Power:
 
     def _reset(self, state):
         self.state = state
+        self.last_beep = None
         self.deadline = None
         self.floor = False
         self.low_since = None
@@ -203,9 +206,22 @@ class Power:
             if self.state == "counting":
                 if self.screen is not None:
                     self.screen.wake()
+                self._beep(now)
                 if self.deadline - now <= 0:
                     self._go()
             return self.state
+
+    def _beep(self, now):
+        if self._sound is None:
+            return
+        left = self.deadline - now
+        gap = 2 if self.floor else (1 if left <= 10 else 60)
+        if self.last_beep is None or now - self.last_beep >= gap:
+            self.last_beep = now
+            try:
+                self._sound("countdown")
+            except Exception as e:
+                print(f"[POWER] {e}", flush=True)
 
     def _arm_check(self, now, pct, limit):
         if pct > limit:
@@ -252,5 +268,5 @@ class Power:
                     self.tick()
                 except Exception as e:
                     print(f"[POWER] {e}", flush=True)
-                time.sleep(POLL_S)
+                time.sleep(1.0 if self.state == "counting" else POLL_S)
         threading.Thread(target=loop, daemon=True).start()

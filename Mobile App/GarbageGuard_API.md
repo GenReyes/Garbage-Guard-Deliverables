@@ -411,6 +411,44 @@ with `{"confirm": true}`.
 
 ---
 
+### `POST /api/buzzer`
+
+Settings for the Pi's own buzzer (a passive buzzer in its case). Every field is
+optional and clamped: `{"on": true, "volume": "low"|"medium"|"high", "alerts":
+true, "countdown": true, "ui": false, "repeat": true, "repeat_s": 30,
+"quiet_on": false, "quiet_from": "22:00", "quiet_to": "06:00"}`. `repeat_s` is
+10 to 300. Times are `HH:MM` on the Pi's clock (Philippine time); a bad time is
+ignored. The reply is `{"ok": true}` plus the fields below. The same fields are
+in `GET /api/state`:
+
+| Field | Meaning |
+|---|---|
+| `buzzer_on` | Master switch. |
+| `buzzer_volume` | `low`, `medium` or `high`. |
+| `buzzer_alerts` | The alarm sounds when the limit is reached. |
+| `buzzer_countdown` | The low-battery countdown and the shutdown tune. |
+| `buzzer_ui` | Tap and switch sounds on the Pi's touchscreen. Off by default. |
+| `buzzer_repeat`, `buzzer_repeat_s` | Repeat the alarm every this many seconds while the alert is raised and not muted. |
+| `quiet_on`, `quiet_from`, `quiet_to` | Daily window that silences the buzzer. Wraps past midnight. |
+| `quiet_now` | `true` while quiet hours are silencing it. |
+| `quiet_note` | `null`, or a sentence saying quiet hours are not applied because the Pi's clock is not synchronised. |
+| `buzzer_available` | `false` when the buzzer could not be started. |
+| `buzzer_note` | Why it is unavailable, to show as a warning. `null` otherwise. |
+
+Muting an alert (from the app or the Pi) stops the alarm and its repeat. Quiet
+hours silence the buzzer only; History and the phone's notification are
+unaffected.
+
+### `POST /api/buzzer/test`
+
+`{"sound": "accumulation"}` plays one sound so the person setting it up can
+hear it. It ignores the switches and quiet hours, but not a missing buzzer:
+that answers `409 {"ok": false, "error": "unavailable", "message": "..."}`.
+An unknown name answers `400 bad_sound`. Sounds: `accumulation`, `shutdown_low`,
+`countdown`, `test`, `auto_muted`, `shutdown_manual`, `manual`, `muted`,
+`unmuted`, `ready`, `tap`, `switch`. Over Firebase these are the `buzzer` and
+`buzzer_test` commands.
+
 ### `POST /api/alerts/read`
 
 ```json
@@ -517,6 +555,7 @@ are not in the mock server. The app should not call them.
 | Endpoint | Notes |
 |---|---|
 | `GET /start`, `GET /wifi` | HTML pages for the touchscreen startup splash and Wi-Fi setup. |
+| `POST /api/buzzer/ui` | `{"sound": "tap"|"switch"}`. The touchscreen's own button sounds. Local only; anyone else gets `403 local_only`. |
 | `GET /api/net` | Network status: `wifi_connected`, `ssid`, `internet`, `has_wifi_hw`, `camera_conflict`, `local`. Read-only, safe to call. |
 | `GET /api/wifi/scan`, `POST /api/wifi/connect`, `POST /api/wifi/fix_camera` | Answer only to requests from the Pi itself. Anyone else gets `403 local_only`. Passwords are never logged or returned. |
 

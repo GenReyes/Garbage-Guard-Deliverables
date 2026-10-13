@@ -4,6 +4,7 @@ import unittest
 import urllib.error
 import urllib.request
 
+import gg_buzzer
 import gg_power
 import gg_screen
 import gg_web as w
@@ -93,8 +94,11 @@ class ApiTests(unittest.TestCase):
         self.power = gg_power.Power(self.engine.settings, ups=ups, screen=self.screen,
                                     shutdown=lambda: self.offs.append(1) or True,
                                     spawn=lambda f: f())
+        self.sounds = gg_buzzer.FakeBackend()
+        self.buzzer = gg_buzzer.Buzzer(self.engine.settings, backend=self.sounds)
         self.server = w.QuietServer(("127.0.0.1", 0), w.make_handler(
-            self.engine, net=object(), ups=ups, screen=self.screen, power=self.power))
+            self.engine, net=object(), ups=ups, screen=self.screen, power=self.power,
+            buzzer=self.buzzer))
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
         self.addCleanup(self.server.shutdown)
@@ -111,6 +115,29 @@ class ApiTests(unittest.TestCase):
     def test_state_carries_screen_fields(self):
         code, st = self.call("/api/state")
         self.assertEqual((st["screen"], st["screen_mode"], st["screen_timeout_battery_s"]), ("on", "off", 60))
+
+    def test_state_carries_buzzer_fields(self):
+        code, st = self.call("/api/state")
+        self.assertEqual((st["buzzer_on"], st["buzzer_available"], st["quiet_now"]), (True, True, False))
+
+    def test_buzzer_settings_are_clamped(self):
+        code, res = self.call("/api/buzzer", {"volume": "high", "repeat_s": 5, "quiet_from": "bad", "ui": True})
+        self.assertEqual((res["ok"], res["buzzer_volume"], res["buzzer_repeat_s"], res["quiet_from"], res["buzzer_ui"]),
+                         (True, "high", 10, "22:00", True))
+
+    def test_buzzer_test_plays_and_rejects_unknown(self):
+        self.assertEqual(self.call("/api/buzzer/test", {"sound": "nope"})[0], 400)
+        self.assertEqual(self.call("/api/buzzer/test", {"sound": "test"})[0], 200)
+        self.buzzer.drain()
+        self.assertEqual([e[1] for e in self.sounds.events if e[0] == "tone"], [1760, 2360])
+        self.sounds.available, self.sounds.note = False, "no pin"
+        code, res = self.call("/api/buzzer/test", {"sound": "test"})
+        self.assertEqual((code, res["error"], res["message"]), (409, "unavailable", "no pin"))
+
+    def test_button_sound_endpoint(self):
+        self.call("/api/buzzer", {"ui": True})
+        code, res = self.call("/api/buzzer/ui", {"sound": "tap"})
+        self.assertEqual((code, res["played"]), (200, True))
 
     def test_state_carries_clock(self):
         code, st = self.call("/api/state")

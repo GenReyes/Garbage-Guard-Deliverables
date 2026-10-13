@@ -48,13 +48,18 @@ COMMANDS = {
     "screen": "/api/screen",
     "auto_shutdown": "/api/auto_shutdown",
     "shutdown": "/api/shutdown",
+    "buzzer": "/api/buzzer",
+    "buzzer_test": "/api/buzzer/test",
 }
 
 STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "roi", "latency_ms",
               "avg_latency_ms", "fps", "cam_fps", "alert_active", "muted", "mute_left", "mute_total",
               "auto_mute", "auto_mute_s", "auto_muted", "frames", "uptime_s", "reconnects",
               "screen", "screen_mode", "screen_timeout_s", "screen_timeout_battery_s",
-              "screen_dim_pct", "screen_wake_on_alert", "screen_note", "clock_synced")
+              "screen_dim_pct", "screen_wake_on_alert", "screen_note", "clock_synced",
+              "buzzer_on", "buzzer_volume", "buzzer_alerts", "buzzer_countdown", "buzzer_ui",
+              "buzzer_repeat", "buzzer_repeat_s", "quiet_on", "quiet_from", "quiet_to",
+              "buzzer_available", "buzzer_note", "quiet_now", "quiet_note")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 

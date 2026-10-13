@@ -242,7 +242,8 @@ be built without the Pi.
 
 0. **Done:** the Settings tab and the Philippine-time clock with `clock_synced`
    (`gg_clock.py`).
-1. **No Pi needed.** Write `gg_buzzer.py` with the fake backend and unit tests
+1. **Done except the dashboard card:** `gg_buzzer.py`, hooks, API, Firebase
+   commands and tests. **No Pi needed.** Write `gg_buzzer.py` with the fake backend and unit tests
    (priority, dropping, mute, settings, unavailable hardware), the hooks, API,
    Firebase commands, dashboard section (checked in screenshots against the
    fake Pi), mock server fields and docs. The real backends are written but

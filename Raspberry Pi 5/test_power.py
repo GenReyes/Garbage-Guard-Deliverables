@@ -30,12 +30,13 @@ class Rig:
         self.screen = FakeScreen()
         self.events = []
         self.refuse = refuse
+        self.beeps = []
         self.settings = dict(settings)
         self.power = p.Power(self.settings, ups=self.ups, screen=self.screen,
                              shutdown=self._off, log=lambda e: self.events.append(("log", e)),
                              flush=lambda s: self.events.append(("flush", s)),
                              clock=lambda: self.t, uptime=lambda: self.t + self.offset,
-                             spawn=lambda f: f())
+                             spawn=lambda f: f(), sound=lambda n: self.beeps.append((self.t, n)))
 
     def _off(self):
         self.events.append(("poweroff",))
@@ -55,8 +56,49 @@ class Rig:
         self.run(10)
 
 
+def count_beeps(r):
+    return [t for t, n in r.beeps if n == "countdown"]
+
+
 def poweroffs(r):
     return sum(1 for e in r.events if e == ("poweroff",))
+
+
+class CountdownSoundTests(unittest.TestCase):
+    def counting(self):
+        r = Rig()
+        r.ups.set(percent=14)
+        r.settle()
+        r.run(40)
+        self.assertEqual(r.power.state, "counting")
+        return r
+
+    def test_one_beep_a_minute_then_one_a_second_at_the_end(self):
+        r = self.counting()
+        r.beeps.clear()
+        start = r.t
+        left = r.power.left()
+        r.run(left - 12)
+        slow = count_beeps(r)
+        self.assertLessEqual(len(slow), 5)
+        r.beeps.clear()
+        r.run(10, step=1.0)
+        self.assertGreaterEqual(len(count_beeps(r)), 9)
+
+    def test_no_beeps_when_not_counting(self):
+        r = Rig()
+        r.ups.set(percent=80)
+        r.run(600)
+        self.assertEqual(r.beeps, [])
+
+    def test_floor_beeps_every_two_seconds(self):
+        r = Rig()
+        r.ups.set(percent=4)
+        r.run(30)
+        self.assertEqual(r.power.state, "counting")
+        r.beeps.clear()
+        r.run(20)
+        self.assertGreaterEqual(len(count_beeps(r)), 9)
 
 
 class PowerTests(unittest.TestCase):
