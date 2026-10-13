@@ -34,17 +34,17 @@ NOT_SYNCED = "The Pi's clock is not synchronised, so quiet hours are not applied
 # events follow the master switch only.
 SOUNDS = {
     "accumulation": (5, "alerts", [(2000, 250), (0, 100), (2000, 250), (0, 100), (2000, 250)]),
-    "shutdown_low": (5, "countdown", [(2400, 150), (1900, 150), (1500, 300)]),
+    "shutdown_low": (5, "countdown", [(2300, 150), (2000, 150), (1700, 300)]),
     "countdown": (4, "countdown", [(2000, 200)]),
-    "test": (3, "events", [(1760, 140), (0, 60), (2360, 160)]),
-    "auto_muted": (3, "events", [(1600, 150), (0, 50), (1000, 300)]),
-    "shutdown_manual": (3, "countdown", [(2400, 150), (1900, 150), (1500, 300)]),
-    "manual": (2, "events", [(2800, 40), (0, 40), (2800, 40)]),
-    "muted": (2, "events", [(2400, 60), (2000, 60), (1600, 60)]),
-    "unmuted": (2, "events", [(1600, 60), (2000, 60), (2400, 60)]),
-    "ready": (1, "events", [(1500, 80), (2000, 80), (2600, 160)]),
-    "tap": (0, "ui", [(2600, 15)]),
-    "switch": (0, "ui", [(1800, 35), (2600, 45)]),
+    "test": (3, "events", [(1800, 140), (0, 60), (2300, 160)]),
+    "auto_muted": (3, "events", [(2000, 150), (0, 50), (1500, 300)]),
+    "shutdown_manual": (3, "countdown", [(2300, 150), (2000, 150), (1700, 300)]),
+    "manual": (2, "events", [(2200, 40), (0, 40), (2200, 40)]),
+    "muted": (2, "events", [(2300, 60), (2000, 60), (1700, 60)]),
+    "unmuted": (2, "events", [(1700, 60), (2000, 60), (2300, 60)]),
+    "ready": (1, "events", [(1700, 80), (2000, 80), (2300, 160)]),
+    "tap": (0, "ui", [(2200, 15)]),
+    "switch": (0, "ui", [(1900, 35), (2300, 45)]),
 }
 UI_SOUNDS = ("tap", "switch")
 EVENT_SOUND = {"accumulation": "accumulation", "low_battery_shutdown": "shutdown_low",

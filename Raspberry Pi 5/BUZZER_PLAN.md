@@ -53,17 +53,20 @@ Each sound is a list of (Hz, milliseconds); 0 Hz is a rest.
 | Sound | Sequence | Priority |
 |---|---|---|
 | `accumulation` | 2000/250, rest 100, 2000/250, rest 100, 2000/250 | 5, alarm |
-| `shutdown_low` (low battery, just before power off) | 2400/150, 1900/150, 1500/300 | 5 |
-| `countdown` (low battery countdown) | 2000/200, once a minute; once a second for the last 10 s; fast repeat at the 5% floor | 4 |
-| `test` | 1760/140, rest 60, 2360/160 | 3 |
-| `auto_muted` | 1600/150, rest 50, 1000/300 | 3 |
-| `shutdown_manual` | 2400/150, 1900/150, 1500/300 | 3 |
-| `manual` (capture) | 2800/40, rest 40, 2800/40 | 2 |
-| `muted` | 2400/60, 2000/60, 1600/60 | 2 |
-| `unmuted` | 1600/60, 2000/60, 2400/60 | 2 |
-| `ready` (detector started) | 1500/80, 2000/80, 2600/160 | 1 |
-| `tap` (optional) | 2600/15 | 0 |
-| `switch` (optional) | 1800/35, 2600/45 | 0 |
+| `shutdown_low` (low battery, just before power off) | 2300/150, 2000/150, 1700/300 | 5 |
+| `countdown` (low battery countdown) | 2000/200, once a minute; once a second for the last 10 s; every 2 s at the 5% floor | 4 |
+| `test` | 1800/140, rest 60, 2300/160 | 3 |
+| `auto_muted` | 2000/150, rest 50, 1500/300 | 3 |
+| `shutdown_manual` | 2300/150, 2000/150, 1700/300 | 3 |
+| `manual` (capture) | 2200/40, rest 40, 2200/40 | 2 |
+| `muted` | 2300/60, 2000/60, 1700/60 | 2 |
+| `unmuted` | 1700/60, 2000/60, 2300/60 | 2 |
+| `ready` (detector started) | 1700/80, 2000/80, 2300/160 | 1 |
+| `tap` (optional) | 2200/15 | 0 |
+| `switch` (optional) | 1900/35, 2300/45 | 0 |
+
+Bench result: the module was loudest at 2000 Hz, so the sounds sit between
+1500 and 2400 Hz with the alarm on 2000.
 
 A higher priority sound interrupts a lower one. A lower one that arrives
 while a higher one is playing is dropped, not queued, so sounds never pile up.

@@ -129,7 +129,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("/api/buzzer/test", {"sound": "nope"})[0], 400)
         self.assertEqual(self.call("/api/buzzer/test", {"sound": "test"})[0], 200)
         self.buzzer.drain()
-        self.assertEqual([e[1] for e in self.sounds.events if e[0] == "tone"], [1760, 2360])
+        self.assertEqual([e[1] for e in self.sounds.events if e[0] == "tone"], [1800, 2300])
         self.sounds.available, self.sounds.note = False, "no pin"
         code, res = self.call("/api/buzzer/test", {"sound": "test"})
         self.assertEqual((code, res["error"], res["message"]), (409, "unavailable", "no pin"))

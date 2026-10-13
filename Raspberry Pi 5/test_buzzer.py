@@ -37,7 +37,7 @@ class PlayTests(unittest.TestCase):
         r = Rig()
         self.assertTrue(r.b.play("test"))
         r.b.drain()
-        self.assertEqual(r.hz(), [1760, 2360])
+        self.assertEqual(r.hz(), [1800, 2300])
         self.assertEqual(r.pauses, [0.14, 0.06, 0.16])
         self.assertEqual(r.backend.events[-1], ("silence",))
 
@@ -77,7 +77,7 @@ class PriorityTests(unittest.TestCase):
                 r.b.play("accumulation")
         r.b._pause = pause
         r.b.drain()
-        self.assertEqual(r.hz(), [2400, 2000, 2000, 2000])
+        self.assertEqual(r.hz(), [2300, 2000, 2000, 2000])
 
     def test_lower_is_dropped_while_higher_plays(self):
         r = Rig()
@@ -110,7 +110,7 @@ class PriorityTests(unittest.TestCase):
         r.b._pause = pause
         r.b.drain()
         self.assertEqual(seen, [True])
-        self.assertEqual(r.hz(), [2400, 2000, 1600, 1600, 2000, 2400])
+        self.assertEqual(r.hz(), [2300, 2000, 1700, 1700, 2000, 2300])
 
 
 class SwitchTests(unittest.TestCase):
@@ -220,7 +220,7 @@ class EventTests(unittest.TestCase):
     def test_sounds_stay_in_the_band_a_small_buzzer_can_be_heard(self):
         for name, (_p, _g, seq) in g.SOUNDS.items():
             for hz, _ms in seq:
-                self.assertTrue(hz == 0 or 1000 <= hz <= 3000, name)
+                self.assertTrue(hz == 0 or 1500 <= hz <= 2400, name)
 
 
 class RepeatTests(unittest.TestCase):
@@ -301,7 +301,7 @@ class ThreadTests(unittest.TestCase):
             if backend.events and backend.events[-1] == ("silence",):
                 break
             time.sleep(0.01)
-        self.assertEqual([e[1] for e in backend.events if e[0] == "tone"], [2600])
+        self.assertEqual([e[1] for e in backend.events if e[0] == "tone"], [2200])
 
 
 class BackendTests(unittest.TestCase):
