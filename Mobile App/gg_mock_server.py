@@ -16,7 +16,7 @@ import math
 import random
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -107,7 +107,61 @@ STATE = {
     "count_until": 0.0,      # the countdown ends at this time
     "powering_off_until": 0.0,
     "off_until": 0.0,        # the pretend Pi is switched off until this time
+    # Pi buzzer (Raspberry Pi 5/gg_buzzer.py). The mock only keeps the settings.
+    "buzzer_on": True,
+    "buzzer_volume": "medium",
+    "buzzer_alerts": True,
+    "buzzer_countdown": True,
+    "buzzer_ui": False,
+    "buzzer_repeat": True,
+    "buzzer_repeat_s": 30,
+    "quiet_on": False,
+    "quiet_from": "22:00",
+    "quiet_to": "06:00",
 }
+
+BUZZER_SOUNDS = ("accumulation", "shutdown_low", "countdown", "test", "auto_muted",
+                 "shutdown_manual", "manual", "muted", "unmuted", "ready", "tap", "switch")
+BUZZER_KEYS = ("buzzer_on", "buzzer_volume", "buzzer_alerts", "buzzer_countdown", "buzzer_ui",
+               "buzzer_repeat", "buzzer_repeat_s", "quiet_on", "quiet_from", "quiet_to")
+NOT_SYNCED = "The Pi's clock is not synchronised, so quiet hours are not applied."
+
+
+def _minutes(text):
+    try:
+        h, m = str(text).split(":")
+        h, m = int(h), int(m)
+    except (ValueError, TypeError):
+        return None
+    return h * 60 + m if 0 <= h < 24 and 0 <= m < 60 else None
+
+
+def buzzer_fields():
+    """Same fields as the Pi. GG_MOCK_NOBUZZER=1 pretends the buzzer cannot start,
+    GG_MOCK_CLOCK_OFF=1 pretends the Pi's clock is not synchronised."""
+    synced = not os.environ.get("GG_MOCK_CLOCK_OFF")
+    nobuzz = bool(os.environ.get("GG_MOCK_NOBUZZER"))
+    quiet = False
+    start, end = _minutes(STATE["quiet_from"]), _minutes(STATE["quiet_to"])
+    if STATE["quiet_on"] and synced and start is not None and end is not None and start != end:
+        try:
+            from zoneinfo import ZoneInfo
+            now = datetime.now(ZoneInfo("Asia/Manila"))
+        except Exception:
+            now = datetime.now(timezone(timedelta(hours=8)))
+        n = now.hour * 60 + now.minute
+        quiet = (start <= n < end) if start < end else (n >= start or n < end)
+    out = {k: STATE[k] for k in BUZZER_KEYS}
+    out.update({
+        "buzzer_available": not nobuzz,
+        "buzzer_note": "the lgpio library is not installed" if nobuzz else None,
+        "quiet_now": quiet,
+        "quiet_note": NOT_SYNCED if (STATE["quiet_on"] and not synced) else None,
+        "clock_synced": synced,
+        "clock_settling": False,
+        "clock_zone": "Asia/Manila",
+    })
+    return out
 
 
 def screen_now():
@@ -264,6 +318,7 @@ def build_state():
         "screen_wake_on_alert": STATE["screen_wake_on_alert"],
         "screen": screen_now(),
         "screen_note": None,
+        **buzzer_fields(),
     }
 
 
@@ -349,6 +404,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _json(self, obj):
         self._send(200, "application/json", json.dumps(obj))
+
+    def _json_status(self, code, obj):
+        self._send(code, "application/json", json.dumps(obj))
 
     def _body(self):
         n = int(self.headers.get("Content-Length") or 0)
@@ -525,6 +583,38 @@ class Handler(BaseHTTPRequestHandler):
             files = sum(1 for r in LOG if r not in keep and r["snapshot"])
             LOG[:] = keep
             return self._json({"ok": True, "deleted": gone, "files_removed": files})
+
+        if path == "/api/buzzer":
+            for key, name in (("buzzer_on", "on"), ("buzzer_alerts", "alerts"), ("buzzer_countdown", "countdown"),
+                              ("buzzer_ui", "ui"), ("buzzer_repeat", "repeat"), ("quiet_on", "quiet_on")):
+                if data.get(name) is not None:
+                    STATE[key] = bool(data[name])
+            if data.get("volume") in ("low", "medium", "high"):
+                STATE["buzzer_volume"] = data["volume"]
+            if data.get("repeat_s") is not None:
+                try:
+                    STATE["buzzer_repeat_s"] = min(300, max(10, int(data["repeat_s"])))
+                except (TypeError, ValueError):
+                    pass
+            for key, name in (("quiet_from", "quiet_from"), ("quiet_to", "quiet_to")):
+                m = _minutes(data.get(name)) if data.get(name) is not None else None
+                if m is not None:
+                    STATE[key] = f"{m // 60:02d}:{m % 60:02d}"
+            return self._json({"ok": True, **buzzer_fields()})
+
+        if path == "/api/buzzer/test":
+            if data.get("sound") not in BUZZER_SOUNDS:
+                return self._json_status(400, {"ok": False, "error": "bad_sound"})
+            if os.environ.get("GG_MOCK_NOBUZZER"):
+                return self._json_status(409, {"ok": False, "error": "unavailable",
+                                               "message": "the lgpio library is not installed"})
+            print(f"[BUZZER] would play {data['sound']}", flush=True)
+            return self._json({"ok": True})
+
+        if path == "/api/buzzer/ui":
+            if self.client_address[0] not in ("127.0.0.1", "::1"):
+                return self._json_status(403, {"ok": False, "error": "local_only"})
+            return self._json({"ok": True, "played": False})
 
         if path == "/api/screen_saver":
             if data.get("mode") in ("off", "dim", "never"):

@@ -9,6 +9,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
 | `Garbage-Guard v9.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
+| `BUZZER_APP.md` | What the app needs to add for the Pi's buzzer: the card, the fields, the warnings, and how to try it on the mock server. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |

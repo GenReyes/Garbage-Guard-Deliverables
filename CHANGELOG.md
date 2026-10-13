@@ -136,6 +136,16 @@ new fields.
 - Not yet: the dashboard Sound card and the vibration motor. The hardware
   backends are untested until the buzzer is wired.
 
+## Mock server and brief for the Pi buzzer (2026-10-13)
+
+### App
+
+- `gg_mock_server.py` answers `POST /api/buzzer`, `/api/buzzer/test` and
+  `/api/buzzer/ui`, and `/api/state` carries the buzzer fields and the clock
+  fields (`clock_synced`, `clock_settling`, `clock_zone`). `GG_MOCK_NOBUZZER=1`
+  and `GG_MOCK_CLOCK_OFF=1` pretend the buzzer or the clock is broken.
+- New `BUZZER_APP.md` lists the Pi buzzer card to build in the app.
+
 ## Pi dashboard Sound card (2026-10-13)
 
 ### Pi
