@@ -221,16 +221,20 @@ everything else works normally.
 
 **Buzzer (passive buzzer module).** Wire VCC to pin 17 (3.3 V), I/O to pin 32
 (GPIO12) and GND to pin 34. `BUZZER_PLAN.md` has the full plan. The Pi 5 needs
-the `lgpio` library inside `gg-env`. Try this first:
+the `lgpio` library inside `gg-env`, which cannot see system packages, so link
+the installed package into it:
 
 ```bash
 sudo apt install -y python3-lgpio
-source ~/gg-env/bin/activate && python -c "import lgpio; print('ok')"
+source ~/gg-env/bin/activate
+SP=$(python -c "import site; print(site.getsitepackages()[0])")
+ln -sf /usr/lib/python3/dist-packages/*lgpio* "$SP/"
+python -c "import lgpio; print('ok')"
 ```
 
-If it prints an error, the environment cannot see system packages; run
-`sudo apt install -y swig python3-dev liblgpio-dev` and then
-`pip install lgpio` inside `gg-env`. Without the library or the wiring the
+If the last line still fails (for example the system and `gg-env` use
+different Python versions), run `sudo apt install -y swig python3-dev liblgpio-dev`
+and then `pip install lgpio` inside `gg-env`. Without the library or the wiring the
 dashboard shows the reason and everything else works normally. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
