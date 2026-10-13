@@ -37,6 +37,9 @@ object AppGraph {
     const val KEY_ADDRESS = "pi_address"
     const val KEY_THEME = "theme_mode"
 
+    /** True from the moment the user connects until they leave: by going back to the start page, or by closing the app. */
+    const val KEY_SESSION = "session_open"
+
     // A failed network call in the background must never close the app, with
     // or without a connection. Anything a caller did not catch ends here.
     private val quiet = CoroutineExceptionHandler { _, e -> android.util.Log.w("GgApp", "background task failed", e) }
@@ -166,6 +169,26 @@ object AppGraph {
     }
 
     val cloudReady: Boolean get() = cloud.config.complete
+
+    fun sessionOpen(context: Context): Boolean = prefs(context).getBoolean(KEY_SESSION, false)
+
+    fun setSession(context: Context, open: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SESSION, open).apply()
+    }
+
+    /**
+     * True when the app last ended because the user closed it: swiped it away
+     * from the recent apps, or forced it to stop. Android only says so from
+     * version 11; older phones answer false.
+     */
+    fun closedByUser(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < 30) return false
+        return runCatching {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            am.getHistoricalProcessExitReasons(context.packageName, 0, 1).firstOrNull()?.reason ==
+                android.app.ApplicationExitInfo.REASON_USER_REQUESTED
+        }.getOrDefault(false)
+    }
 
     /** Saves new Firebase settings and puts them to use at once. */
     fun useCloudConfig(cfg: FirebaseConfig, passedTest: Boolean) {

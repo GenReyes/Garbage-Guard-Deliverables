@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import com.garbageguard.app.data.RoiPoint
 import com.garbageguard.app.ui.theme.ThemeMode
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -135,7 +136,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     /** True when the picture and data are coming through Firebase rather than the Pi's own Wi-Fi. */
-    val remote: Boolean get() = !demo && linkMode == LinkMode.CLOUD
+    val remote: Boolean get() = if (demo) demoLink != 0 else linkMode == LinkMode.CLOUD
+
+    /**
+     * Demo only: how the pretend Pi answers a command. 0 answers at once, as
+     * on the Pi's Wi-Fi. 1 answers after a few seconds, as through Firebase.
+     * 2 never answers, so every command runs out of time. It lets the
+     * waiting, accepted and timed-out looks be shown with no Pi at all.
+     */
+    var demoLink by mutableIntStateOf(0)
 
     /** The Pi's estimate of the free Firebase allowance, when reached through Firebase. */
     val cloudUsage: StateFlow<CloudUsage?> = AppGraph.cloud.usage
@@ -322,10 +331,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch { AppGraph.notices.collect { showToast(it) } }
         refreshSystemState()
-        // A remembered address (or a Firebase-only setup) means the app goes straight back to its Pi.
-        if (address.isNotEmpty() || (prefs.getBoolean(KEY_CLOUD_ONLY, false) && AppGraph.cloudReady)) {
-            finishSetup(firstTime = false)
-        }
+        // Coming back to an app that was only put in the background returns to its Pi.
+        // After the app was closed, it opens at the start page, with the address still filled in.
+        val canConnect = address.isNotEmpty() || (prefs.getBoolean(KEY_CLOUD_ONLY, false) && AppGraph.cloudReady)
+        val stillOpen = AppGraph.linked || (AppGraph.sessionOpen(appContext) && !AppGraph.closedByUser(appContext))
+        if (canConnect && stillOpen) finishSetup(firstTime = false)
+        else AppGraph.setSession(appContext, false)
     }
 
     /** Reads the two Android settings the Alerts card reports. Called whenever the app returns to the screen. */
@@ -381,7 +392,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val armed = HashMap<String, Job>()
 
     /** How long the Pi is given to answer: through Firebase it can take many seconds. */
-    private val answerMillis: Long get() = if (remote) 17_000L else 6_000L
+    private val answerMillis: Long get() = if (demo) 8_000L else if (remote) 17_000L else 6_000L
 
     fun isWaiting(key: String) = locks[key]?.phase == LockPhase.WAITING
 
@@ -403,14 +414,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val span = answerMillis
             locks[key] = Lock(LockPhase.WAITING, System.currentTimeMillis(), span)
             val finished = withTimeoutOrNull(span) {
+                if (demo && demoLink == 1) delay(3500)
+                if (demo && demoLink == 2) awaitCancellation() // the pretend Pi never answers
                 block()
                 true
             } ?: false
             val ok = finished && !outcome.failed
-            val flash = Lock(if (ok) LockPhase.OK else LockPhase.FAIL, System.currentTimeMillis(), 700)
+            val flash = Lock(if (ok) LockPhase.OK else LockPhase.FAIL, System.currentTimeMillis(), 1100)
             locks[key] = flash
             showToast(if (ok) message ?: "Done" else "The Pi did not confirm. Nothing was changed.")
-            delay(700)
+            delay(1100)
             if (locks[key] == flash) locks.remove(key)
         }
     }
@@ -505,15 +518,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         AppGraph.connect(address)
         active.value = if (AppGraph.mode.value == LinkMode.CLOUD) AppGraph.cloud else pi
         if (address.isNotEmpty()) prefs.edit().putString(AppGraph.KEY_ADDRESS, address).putBoolean(KEY_CLOUD_ONLY, false).apply()
+        AppGraph.setSession(appContext, true)
         if (notifications == PermState.ON) WatchService.start(appContext)
         enterApp()
     }
 
     /** Skip the Pi and run on invented data. */
+    fun chooseDemoLink(i: Int) {
+        demoLink = i
+        showToast(listOf("Demo: the Pi answers at once", "Demo: the Pi answers slowly, as through Firebase", "Demo: the Pi does not answer")[i])
+    }
+
     fun useDemo() {
+        AppGraph.setSession(appContext, false)
         AppGraph.disconnect()
         WatchService.stop(appContext)
-        prefs.edit().remove(AppGraph.KEY_ADDRESS).putBoolean(KEY_CLOUD_ONLY, false).apply()
         demo = true
         active.value = fake
         AppGraph.mute = { fake.mute(it) }
@@ -537,7 +556,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Back to the start page. That ends the session: the connection is dropped and the watching notification goes. */
     fun changeAddress() {
+        AppGraph.setSession(appContext, false)
+        AppGraph.disconnect()
+        WatchService.stop(appContext)
+        overlay = null
+        everConnected = false
         setupState = SetupState.EMPTY
         setupDone = false
     }

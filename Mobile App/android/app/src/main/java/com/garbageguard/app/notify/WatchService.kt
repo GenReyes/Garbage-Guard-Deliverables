@@ -28,7 +28,8 @@ class WatchService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         AppGraph.init(this)
         val address = AppGraph.prefs(this).getString(AppGraph.KEY_ADDRESS, "").orEmpty()
-        if (address.isEmpty() && !AppGraph.cloudReady) {
+        // No open session means the user left: nothing to watch, and no notification.
+        if ((address.isEmpty() && !AppGraph.cloudReady) || !AppGraph.sessionOpen(this)) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -59,6 +60,19 @@ class WatchService : Service() {
             return START_NOT_STICKY
         }
         return START_STICKY
+    }
+
+    /**
+     * The app was swiped away from the recent apps. That is the user closing
+     * it, so the connection is dropped, the notification goes, and the next
+     * launch starts at the start page.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        AppGraph.setSession(this, false)
+        AppGraph.disconnect()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
     }
 
     companion object {

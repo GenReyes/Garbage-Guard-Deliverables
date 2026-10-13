@@ -65,6 +65,25 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Demo only: choose how the pretend Pi answers, to show the waiting, accepted and timed-out looks.
+        if (vm.demo) GgCard {
+            Hd(GgIcons.Activity, "Demo link") { Tag("Demo", Tone.WARN) }
+            Segmented(
+                listOf("Wi-Fi", "Firebase", "No answer"),
+                icons = listOf(GgIcons.Signal, GgIcons.Cloud, GgIcons.NoLink),
+                selected = vm.demoLink,
+                onSelect = vm::chooseDemoLink,
+            )
+            Hint(
+                listOf(
+                    "Commands are accepted at once.",
+                    "Commands wait about 4 seconds, then are accepted.",
+                    "Commands wait 8 seconds, then time out.",
+                )[vm.demoLink],
+                icon = GgIcons.Clock,
+            )
+        }
+
         GgCard {
             Hd(GgIcons.Gear, "Detection settings") {
                 SendingTag(vm, "detect", dirty, idle = "UNSAVED")

@@ -4,6 +4,24 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.11: closing the app ends the session; demo link (2026-10-13)
+
+### App
+
+- Going back to the start page (Settings, Pi address, Change) now drops the
+  connection and removes the "Watching the Pi" notification.
+- Closing the app, by swiping it away from the recent apps or forcing it to
+  stop, ends the session: the notification goes, and the next launch opens
+  at the start page with the address still filled in. An app that was only
+  put in the background comes back to the page it was on, still connected.
+  Alerts therefore arrive while the app is in the background, and stop once
+  it is closed.
+- Demo mode has a Demo link card in Settings: Wi-Fi (commands accepted at
+  once), Firebase (accepted after about 4 seconds) and No answer (timed out
+  after 8 seconds), to show the waiting, accepted and timed-out looks with
+  no Pi. The last two also show the app as it looks through Firebase.
+- The accepted and failed flash lasts a little longer, so it is easier to see.
+
 ## App version 9.10: Screen saver and Power as two cards (2026-10-13)
 
 ### App
