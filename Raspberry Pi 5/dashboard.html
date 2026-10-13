@@ -2378,7 +2378,7 @@ async function refresh(){
   try{
     const s = await (await fetch("/api/state")).json();
     last = s;
-    clockSynced = s.clock_synced !== false; tickClock();
+    clockSynced = s.clock_synced !== false || s.clock_settling === true; tickClock();
     setLink(s.connected ? "online" : "nocam");
     cloud = s.cloud || null;
     setViewers(s.viewers);
