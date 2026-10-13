@@ -54,6 +54,9 @@ import androidx.compose.ui.zIndex
 import com.garbageguard.app.ui.theme.GgColors
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -784,22 +787,43 @@ fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggle
 @Composable
 fun BottomNav(tab: Tab, unread: Int, onSelect: (Tab) -> Unit) {
     val c = Gg.colors
-    // The tabs are the bottom of the screen itself, not a bar set inside it:
-    // three cells from edge to edge under one ink line, with no frame of
-    // their own. Each cell runs on down behind Android's own buttons or
-    // gesture handle, so nothing is cut off and there is no second border.
+    // The tabs run from edge to edge under one ink line. Android's own
+    // buttons, or its gesture handle, get a strip of their own beneath: a
+    // second ink line, then a shallow sunk tray in the page's colours for
+    // them to sit in. On a phone that shows neither, the strip has no
+    // height and it and its line are simply not there.
+    val density = LocalDensity.current
+    val system = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
     Column(Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(c.sunk)) {
+        Row(Modifier.fillMaxWidth().height(56.dp).background(c.sunk)) {
             NavItem(GgIcons.Eye, "Monitor", tab == Tab.MONITOR, 0) { onSelect(Tab.MONITOR) }
             Box(Modifier.width(2.dp).fillMaxHeight().background(c.edge))
             NavItem(GgIcons.Clock, "History", tab == Tab.HISTORY, unread) { onSelect(Tab.HISTORY) }
             Box(Modifier.width(2.dp).fillMaxHeight().background(c.edge))
             NavItem(GgIcons.Gear, "Settings", tab == Tab.SETTINGS, 0) { onSelect(Tab.SETTINGS) }
         }
+        if (system > 0.dp) {
+            Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(system)
+                    .background(c.base2)
+                    .drawBehind {
+                        // Shade under the line above, as if the tray were cut into the page.
+                        drawRect(
+                            Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = if (c.isDark) 0.4f else 0.16f), Color.Transparent),
+                                startY = 0f, endY = 7.dp.toPx(),
+                            ),
+                            size = Size(size.width, 7.dp.toPx()),
+                        )
+                    },
+            )
+        }
     }
 }
-
 @Composable
 private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean, badge: Int, onClick: () -> Unit) {
     val c = Gg.colors
@@ -838,8 +862,6 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
                 ) { T(if (badge > 99) "99+" else "$badge", size = 0.62f, weight = FontWeight.Black, color = c.onBad, maxLines = 1) }
             }
         }
-        // The cell's own face carries on under Android's buttons or gesture handle.
-        Spacer(Modifier.navigationBarsPadding())
     }
 }
 

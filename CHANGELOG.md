@@ -4,6 +4,15 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.7: a strip of their own for Android's buttons (2026-10-13)
+
+### App
+
+- The tabs no longer run on behind Android's three buttons or gesture
+  handle. Under the tabs there is a second ink line and a shallow sunk tray
+  in the page's colours for the system buttons to sit in. On a phone that
+  shows neither buttons nor a handle, the tray and its line are not drawn.
+
 ## App version 9.6: less Firebase data for the same screens (2026-10-13)
 
 Cuts what the app and the Pi download from Firebase when the Pi is out of

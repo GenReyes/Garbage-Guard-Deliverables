@@ -15,8 +15,8 @@ android {
         applicationId = "com.garbageguard.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 18
-        versionName = "9.6"
+        versionCode = 19
+        versionName = "9.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
