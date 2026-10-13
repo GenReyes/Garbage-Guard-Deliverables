@@ -4,6 +4,38 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.6: less Firebase data for the same screens (2026-10-13)
+
+Cuts what the app and the Pi download from Firebase when the Pi is out of
+reach on local Wi-Fi. Nothing changes on local Wi-Fi. `FIREBASE.md` has the
+new fields.
+
+### App
+
+- History shows a 160 px thumbnail of each Firebase snapshot instead of the
+  960 px copy. The full picture is fetched only when a record is opened. A
+  snapshot from before thumbnails existed falls back to the full picture.
+- Firebase snapshots are kept on the phone, up to 64 MB, and downloaded
+  once. The oldest files go first when the limit is reached, and the files
+  of deleted History rows are removed.
+- `/gg/state` arrives over one streaming connection while the app is in
+  use, so only changes are downloaded. Polling every 3 s takes over
+  whenever the stream is down.
+- The watcher entry carries a `screen` field, "live" or "other", and is
+  rewritten at once when the live screen opens or closes.
+
+### Pi
+
+- Every snapshot uploaded to `/gg/snaps/<id>` carries a `thumb` (160 px, at
+  most 8 KB). Snapshots uploaded earlier get one a few at a time.
+- `/gg/preview` is 360 px wide and at most 40 KB (was 480 px and 60 KB),
+  and is sent only while a phone is on the live screen. A phone running an
+  older app does not say which screen it is on and is treated as on the
+  live screen.
+- `/gg/watchers` and `/gg/commands` are read over streaming connections
+  instead of being fetched every 2 s. Polling takes over while a stream is
+  down. Stream traffic is counted in the usage estimate.
+
 ## Pi dashboard History matches the app (2026-10-12)
 
 Follows `mobile-app/HISTORY_TOOLS.md`, which lists what the app's History page
