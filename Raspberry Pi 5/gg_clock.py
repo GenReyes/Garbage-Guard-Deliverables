@@ -10,6 +10,15 @@ import time
 
 ZONE = "Asia/Manila"
 CACHE_S = 30
+SETTLE_S = 150
+
+
+def _uptime():
+    try:
+        with open("/proc/uptime") as f:
+            return float(f.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
 
 
 def _timedatectl():
@@ -19,8 +28,8 @@ def _timedatectl():
 
 
 class Clock:
-    def __init__(self, probe=_timedatectl, now=time.time):
-        self.probe, self.now = probe, now
+    def __init__(self, probe=_timedatectl, now=time.time, uptime=_uptime):
+        self.probe, self.now, self.uptime = probe, now, uptime
         self._at, self._ok = None, True
 
     def synced(self):
@@ -33,5 +42,9 @@ class Clock:
                 self._ok = True   # no way to tell, so do not nag
         return self._ok
 
+    def settling(self):
+        up = self.uptime()
+        return (not self.synced()) and up is not None and up < SETTLE_S
+
     def fields(self):
-        return {"clock_synced": self.synced(), "clock_zone": ZONE}
+        return {"clock_synced": self.synced(), "clock_settling": self.settling(), "clock_zone": ZONE}

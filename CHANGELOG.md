@@ -118,6 +118,16 @@ new fields.
 - Not yet: the dashboard Sound card and the vibration motor. The hardware
   backends are untested until the buzzer is wired.
 
+## Pi clock warning waits for the first sync (2026-10-13)
+
+### Pi
+
+- The "Clock not synced" pill no longer flashes for the first two and a half
+  minutes after boot, while the Pi is still asking an internet time server. The
+  state carries `clock_settling` (`true` in that window) next to `clock_synced`,
+  which stays honest. The warning appears only if the clock is still unsynced
+  after that.
+
 ## Pi dashboard clock in Philippine time (2026-10-13)
 
 ### Pi
