@@ -351,10 +351,32 @@ class BackendTests(unittest.TestCase):
             self.assertFalse(b.available)
             self.assertIn("pwm-2chan", b.note)
 
+    @staticmethod
+    def channel(d, chip, n=None):
+        path = os.path.join(d, chip, "pwm0")
+        os.makedirs(path)
+        open(os.path.join(path, "enable"), "w").close()
+        if n:
+            with open(os.path.join(d, chip, "npwm"), "w") as f:
+                f.write(n)
+
+    def test_sysfs_picks_the_four_channel_chip(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.channel(d, "pwmchip0", "2")
+            self.channel(d, "pwmchip2", "4")
+            self.assertIn("pwmchip2", g.SysfsPwmBackend(root=d).dir)
+
+    def test_sysfs_reports_a_channel_it_cannot_use(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "pwmchip0", "pwm0"))
+            b = g.SysfsPwmBackend(root=d, sleep=lambda s: None)
+            self.assertFalse(b.available)
+            self.assertIn("not writable", b.note)
+
     def test_sysfs_writes_period_and_duty(self):
         with tempfile.TemporaryDirectory() as d:
             ch = os.path.join(d, "pwmchip0", "pwm0")
-            os.makedirs(ch)
+            self.channel(d, "pwmchip0")
             b = g.SysfsPwmBackend(root=d)
             self.assertTrue(b.available)
             b.tone(2000, 0.25)

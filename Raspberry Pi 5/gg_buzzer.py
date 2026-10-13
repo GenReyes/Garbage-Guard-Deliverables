@@ -132,7 +132,7 @@ class GpioBackend:
 class SysfsPwmBackend:
     ROOT = "/sys/class/pwm"
 
-    def __init__(self, channel=0, active_low=ACTIVE_LOW, root=None):
+    def __init__(self, channel=0, active_low=ACTIVE_LOW, root=None, sleep=time.sleep):
         self.active_low, self.channel = active_low, channel
         self.available, self.note, self.dir = False, None, None
         root = root or self.ROOT
@@ -143,14 +143,34 @@ class SysfsPwmBackend:
         if not chips:
             self.note = "no hardware PWM found; add the pwm-2chan overlay to config.txt"
             return
-        chip = os.path.join(root, chips[0])
+        chip = os.path.join(root, self._pick(root, chips))
         self.dir = os.path.join(chip, f"pwm{channel}")
         try:
             if not os.path.isdir(self.dir):
                 self._write(os.path.join(chip, "export"), channel)
+            for _ in range(20):
+                if os.access(os.path.join(self.dir, "enable"), os.W_OK):
+                    break
+                sleep(0.05)
+            else:
+                raise PermissionError("the PWM files are not writable by this user")
             self.available = True
         except OSError as e:
             self.note = f"hardware PWM could not be opened ({e})"
+
+    @staticmethod
+    def _pick(root, chips):
+        wanted = os.environ.get("GG_PWM_CHIP")
+        if wanted and f"pwmchip{wanted}" in chips:
+            return f"pwmchip{wanted}"
+        for c in chips:
+            try:
+                with open(os.path.join(root, c, "npwm")) as f:
+                    if f.read().strip() == "4":
+                        return c
+            except OSError:
+                pass
+        return chips[0]
 
     @staticmethod
     def _write(path, value):

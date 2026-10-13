@@ -235,7 +235,24 @@ python -c "import lgpio; print('ok')"
 If the last line still fails (for example the system and `gg-env` use
 different Python versions), run `sudo apt install -y swig python3-dev liblgpio-dev`
 and then `pip install lgpio` inside `gg-env`. Without the library or the wiring the
-dashboard shows the reason and everything else works normally. Set
+dashboard shows the reason and everything else works normally.
+
+`python buzzer_bench.py gpio` plays a sweep of tones at three volumes so you
+can pick the loudest pitch by ear. Software PWM (`gpio`, the default) can sound
+glitchy while detection is busy. Hardware PWM is steady, and is set up once:
+
+```bash
+echo "dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4" | sudo tee -a /boot/firmware/config.txt
+echo 'ACTION=="add", SUBSYSTEM=="pwm", RUN+="/bin/sh -c '"'"'chgrp -R gpio /sys%p && chmod -R g=u /sys%p'"'"'"' | sudo tee /etc/udev/rules.d/99-pwm.rules
+sudo reboot
+```
+
+After the reboot `ls /sys/class/pwm` should list a `pwmchip`. Then
+`python buzzer_bench.py sysfs` plays the same sweep on hardware PWM. Do not run
+the `gpio` and `sysfs` tests together: the overlay hands the pin to the PWM
+block. Once `sysfs` is the one you want, add `export GG_BUZZER_BACKEND=sysfs`
+near the top of `start.sh`. `GG_PWM_CHIP=<n>` picks a chip by number if the
+automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
 `/boot/firmware/config.txt`). The buzzer code is untested on real hardware.
