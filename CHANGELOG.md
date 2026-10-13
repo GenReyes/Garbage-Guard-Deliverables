@@ -136,6 +136,22 @@ new fields.
 - Not yet: the dashboard Sound card and the vibration motor. The hardware
   backends are untested until the buzzer is wired.
 
+## Pi dashboard Sound card (2026-10-13)
+
+### Pi
+
+- Settings has a new Sound card under Screen saver and Power: the buzzer's
+  master switch, Low, Medium or High volume, switches for Alerts, Countdown and
+  shutdown, and Button sounds, Repeat alarm with its interval (10 to 300
+  seconds), Quiet hours with From and Until in 30 minute steps (shown in 12-hour
+  time), and Test alarm and Test tune buttons. One Save at the bottom applies
+  everything, and it now stays on screen while the page scrolls.
+- A red line says why when the buzzer is unavailable, and a line says when quiet
+  hours are silencing it or the Pi's clock is not synchronised.
+- With Button sounds on, the touchscreen's own taps and switches play a short
+  tick through `POST /api/buzzer/ui`. The card is hidden on a Pi that has no
+  buzzer code.
+
 ## Pi clock warning waits for the first sync (2026-10-13)
 
 ### Pi

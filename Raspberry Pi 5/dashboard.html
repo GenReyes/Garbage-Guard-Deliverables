@@ -1101,7 +1101,7 @@ a.btn{text-decoration:none}
 .setgrid{flex:none;display:grid;align-items:start;gap:12px;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
 .setfoot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:0 2px}
+  padding:8px 2px 4px;position:sticky;bottom:-6px;background:var(--base);z-index:2}
 .setfoot .hint{margin:0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .setfoot .btn{min-width:140px;justify-content:center}
 
@@ -1122,6 +1122,13 @@ a.btn{text-decoration:none}
 .card-pow .sub{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   margin:8px 0 3px;display:flex;align-items:center;gap:5px}
 .card-pow .sub .ico{width:12px;height:12px}
+.sndgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 30px}
+.sndcol{min-width:0}
+.sndcol .seg{margin:4px 0 6px}
+.tests{display:flex;gap:8px;margin-top:4px}
+.tests .btn{flex:1;justify-content:center}
+.prow .well input[data-time]{font-size:14px}
+@media (max-width:700px){.sndgrid{grid-template-columns:1fr}}
 .card-pow .hint{margin-top:10px}
 .card-pow .hint[hidden]{display:none}
 .card-pow .hint.bad{color:var(--bad);font-weight:800}
@@ -1541,6 +1548,59 @@ a.btn{text-decoration:none}
         <div class="sub"><svg class="ico"><use href="#i-power"/></svg>Now</div>
         <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:4px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
       </section>
+      <section class="card card-pow" id="sndCard" style="grid-column:1/-1" hidden>
+        <div class="hd"><svg class="ico"><use href="#i-bell"/></svg><h2>Sound</h2></div>
+        <div class="sndgrid">
+          <div class="sndcol">
+            <div class="prow"><label>Buzzer</label>
+              <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+            <div class="seg" id="bzVol" role="group" aria-label="Volume">
+              <button type="button" data-vol="low" aria-pressed="false">Low</button>
+              <button type="button" data-vol="medium" aria-pressed="false">Medium</button>
+              <button type="button" data-vol="high" aria-pressed="false">High</button>
+            </div>
+            <div class="prow"><label>Alerts</label>
+              <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
+            <div class="prow"><label>Countdown and shutdown</label>
+              <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
+            <div class="prow"><label>Button sounds</label>
+              <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
+          </div>
+          <div class="sndcol">
+            <div class="prow"><label>Repeat alarm</label>
+              <button class="sw lt" id="bzRep" type="button" role="switch" aria-checked="true"><i></i></button></div>
+            <div class="prow" id="bzRepRow"><label for="bzRepS">Repeat every</label>
+              <div class="well">
+                <button class="step" type="button" data-for="bzRepS" data-d="-10" aria-label="Shorter">−</button>
+                <input id="bzRepS" type="number" min="10" max="300" step="10" inputmode="numeric">
+                <span class="u">sec</span>
+                <button class="step" type="button" data-for="bzRepS" data-d="10" aria-label="Longer">+</button>
+              </div></div>
+            <div class="prow"><label>Quiet hours</label>
+              <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
+            <div class="prow" id="bzFromRow"><label for="bzFrom">From</label>
+              <div class="well">
+                <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
+                <input id="bzFrom" type="text" data-time="1" readonly>
+                <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
+              </div></div>
+            <div class="prow" id="bzToRow"><label for="bzTo">Until</label>
+              <div class="well">
+                <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
+                <input id="bzTo" type="text" data-time="1" readonly>
+                <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
+              </div></div>
+            <div class="tests">
+              <button class="btn" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test alarm</button>
+              <button class="btn" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test tune</button>
+            </div>
+          </div>
+        </div>
+        <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+        <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
+          The buzzer is silent during quiet hours. Tests use the saved volume.</p>
+      </section>
     </div>
       <div class="setfoot">
         <span class="hint"><svg class="ico"><use href="#i-ok"/></svg>Changes apply when you press Save.</span>
@@ -1842,6 +1902,7 @@ $("apply").onclick = async () => {
 
 document.querySelectorAll(".step").forEach(b => b.onclick = () => {
   const i = $(b.dataset.for);
+  if(i.dataset.time) return stepTime(i, Number(b.dataset.d));
   i.value = Math.max(Number(i.min), Math.min(Number(i.max),
             (Number(i.value)||0) + Number(b.dataset.d)));
   i.dataset.dirty = "1";
@@ -2694,6 +2755,7 @@ function hideTop(el){ try{ if(el.hidePopover && el.matches(":popover-open")) el.
 
 function paintScreen(s){
   fillPower(s);
+  fillBuzzer(s);
   if(!KIOSK || waking) return;
   const sv = $("saver");
   if(s.screen === "dim" || s.screen === "off"){
@@ -2750,6 +2812,61 @@ function fillShutdown(b){
   setSw($("shutSw"), b.auto_shutdown);
   $("shutPct").value = b.auto_shutdown_pct;
 }
+const pad2 = n => String(n).padStart(2, "0");
+const hm12 = hm => { const [h, m] = hm.split(":").map(Number); return t12(h, m); };
+function setTime(el, hm){ el.dataset.hm = hm; el.value = hm12(hm); }
+function stepTime(el, d){
+  const [h, m] = (el.dataset.hm || "00:00").split(":").map(Number);
+  const n = (((h * 60 + m + d) % 1440) + 1440) % 1440;
+  setTime(el, pad2(Math.floor(n / 60)) + ":" + pad2(n % 60));
+}
+const swOn = el => el.getAttribute("aria-checked") === "true";
+function pickVol(v){
+  document.querySelectorAll("#bzVol button").forEach(b => b.setAttribute("aria-pressed", b.dataset.vol === v ? "true" : "false"));
+}
+let buzzUi = false;
+function fillBuzzer(s){
+  const card = $("sndCard");
+  card.hidden = s.buzzer_on == null;
+  if(card.hidden) return;
+  buzzUi = !!s.buzzer_ui && !!s.buzzer_available;
+  const note = $("bzNote");
+  note.hidden = s.buzzer_available !== false;
+  if(!note.hidden) note.querySelector("span").textContent = "The buzzer is not available: " + (s.buzzer_note || "no reason given") + ".";
+  const q = $("bzQuietNote");
+  const qText = s.quiet_note || (s.quiet_now ? "Quiet hours are on now, so the buzzer is silent." : "");
+  q.hidden = !qText;
+  q.querySelector("span").textContent = qText;
+  if(pwrDirty) return;
+  setSw($("bzOn"), s.buzzer_on); pickVol(s.buzzer_volume);
+  setSw($("bzAlerts"), s.buzzer_alerts); setSw($("bzCount"), s.buzzer_countdown);
+  setSw($("bzUi"), s.buzzer_ui); setSw($("bzRep"), s.buzzer_repeat);
+  $("bzRepS").value = s.buzzer_repeat_s; setSw($("bzQuiet"), s.quiet_on);
+  setTime($("bzFrom"), s.quiet_from); setTime($("bzTo"), s.quiet_to);
+  showBuzzRows();
+}
+function showBuzzRows(){
+  $("bzRepRow").style.display = swOn($("bzRep")) ? "" : "none";
+  const q = swOn($("bzQuiet")) ? "" : "none";
+  $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
+}
+document.querySelectorAll("#bzVol button").forEach(b => b.addEventListener("click", () => pickVol(b.dataset.vol)));
+["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet"].forEach(id =>
+  $(id).addEventListener("click", () => { setSw($(id), !swOn($(id))); showBuzzRows(); }));
+async function buzzTest(sound){
+  const j = await post("/api/buzzer/test", {sound});
+  if(!j.ok) toast(j.message || "The buzzer could not play", "i-warn");
+}
+$("bzTestAlarm").onclick = () => buzzTest("accumulation");
+$("bzTestTune").onclick = () => buzzTest("test");
+document.addEventListener("pointerdown", e => {
+  if(!KIOSK || !buzzUi) return;
+  const t = e.target.closest("button, .sw, a");
+  if(!t || t.disabled) return;
+  fetch("/api/buzzer/ui", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({sound: t.matches(".sw, .seg button") ? "switch" : "tap"})}).catch(() => {});
+}, true);
+
 $("settings").addEventListener("click", e => {
   if(e.target.closest(".step, .seg button, .sw")) pwrDirty = true;
 });
@@ -2762,7 +2879,14 @@ $("pwrSave").onclick = async () => {
     timeout_battery_s: Number($("scrBat").value), dim_pct: Number($("scrDim").value),
     wake_on_alert: $("scrWake").getAttribute("aria-checked") === "true"});
   await post("/api/auto_shutdown", {on: $("shutSw").getAttribute("aria-checked") === "true", pct: Number($("shutPct").value)});
-  pwrDirty = false; toast("Power settings saved", "i-save"); refresh(); pollBattery();
+  if(!$("sndCard").hidden){
+    const vol = (document.querySelector("#bzVol [aria-pressed=true]") || {dataset: {}}).dataset.vol;
+    await post("/api/buzzer", {on: swOn($("bzOn")), volume: vol, alerts: swOn($("bzAlerts")),
+      countdown: swOn($("bzCount")), ui: swOn($("bzUi")), repeat: swOn($("bzRep")),
+      repeat_s: Number($("bzRepS").value), quiet_on: swOn($("bzQuiet")),
+      quiet_from: $("bzFrom").dataset.hm, quiet_to: $("bzTo").dataset.hm});
+  }
+  pwrDirty = false; toast("Settings saved", "i-save"); refresh(); pollBattery();
 };
 $("scrSleep").onclick = async () => { await post("/api/screen", {action: "sleep"}); refresh(); };
 
