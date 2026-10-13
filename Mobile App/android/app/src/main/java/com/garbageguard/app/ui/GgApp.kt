@@ -1,5 +1,6 @@
 package com.garbageguard.app.ui
 
+import com.garbageguard.app.ui.components.LocalLocks
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -107,7 +108,7 @@ fun GgApp(vm: AppViewModel) {
             Density(base.density * fit, base.fontScale.coerceIn(0.9f, 1.1f))
         }
 
-        CompositionLocalProvider(LocalContentColor provides c.text, LocalDensity provides scaled) {
+        CompositionLocalProvider(LocalContentColor provides c.text, LocalDensity provides scaled, LocalLocks provides vm.locks) {
             Box(Modifier.fillMaxSize().ggBackground(c)) {
                 if (vm.fullscreen) {
                     FullscreenScreen(vm, state)

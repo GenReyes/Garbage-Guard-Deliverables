@@ -4,6 +4,31 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.8: wait for the Pi before a second press (2026-10-13)
+
+### App
+
+- A key that sends a command locks until the Pi answers, so a second press
+  cannot send it twice. While it waits the key stays pushed in and greyed,
+  with a line running down round its border as the time allowed runs out
+  (about 6 seconds on Wi-Fi, 17 through Firebase). It flashes teal when the
+  Pi confirms and red when it does not, with a line of text either way.
+  Other controls stay usable meanwhile.
+- Number fields and the screen saver bar send themselves. Each press starts
+  a one second count again, shown as an amber line filling round the field;
+  when it runs out the final value goes as one command and the field locks
+  until the Pi answers. The Save keys are gone.
+- Fewer Firebase writes: ten presses are one command, fields of one card go
+  together in one command, only the values that changed are sent, and a
+  value stepped back to what the Pi already has sends nothing.
+- Switches move at once and fall back by themselves if the Pi does not
+  confirm.
+
+### Mock server
+
+- `GG_MOCK_POST_DELAY` (seconds) makes the mock answer commands slowly, to
+  see the waiting state without Firebase.
+
 ## App version 9.7: a strip of their own for Android's buttons (2026-10-13)
 
 ### App

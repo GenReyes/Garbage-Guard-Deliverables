@@ -1,5 +1,8 @@
 package com.garbageguard.app.data
 
+import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -9,6 +12,23 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Each function notes the endpoint it will call.
  */
+/**
+ * Rides along with the coroutine that sends a command. A repository marks it
+ * when the Pi did not confirm, so the screen can tell a command that worked
+ * from one that was lost, without every call having to return a result.
+ */
+class Outcome : AbstractCoroutineContextElement(Outcome) {
+    companion object Key : CoroutineContext.Key<Outcome>
+
+    @Volatile
+    var failed = false
+}
+
+/** Marks the command now running as not confirmed. */
+suspend fun commandFailed() {
+    coroutineContext[Outcome]?.failed = true
+}
+
 interface GgRepository {
     /** Polled from GET /api/state about once per second. */
     val state: StateFlow<LiveState>

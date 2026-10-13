@@ -428,6 +428,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = urlparse(self.path).path
         data = self._body()
+        # Optional: answer commands slowly, to see how the app waits for the Pi.
+        # Set GG_MOCK_POST_DELAY to a number of seconds before starting the server.
+        # The app gives up after about 4 seconds on Wi-Fi, so 2 shows a wait and 6 shows a failure.
+        slow = float(os.environ.get("GG_MOCK_POST_DELAY") or 0)
+        if slow > 0:
+            time.sleep(slow)
         if switched_off():
             return self._send(503, "text/plain", "powered off")
 

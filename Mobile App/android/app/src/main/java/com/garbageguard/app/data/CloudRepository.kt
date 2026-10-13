@@ -449,6 +449,7 @@ class CloudRepository(
         }
         if (pushId.isEmpty()) {
             onNotice("Could not send that through Firebase.")
+            commandFailed()
             return null
         }
         repeat(15) {
@@ -461,11 +462,15 @@ class CloudRepository(
                 null
             }
             if (result != null) {
-                if (!result.optBoolean("ok", true)) onNotice("The Pi could not do that.")
+                if (!result.optBoolean("ok", true)) {
+                    onNotice("The Pi could not do that.")
+                    commandFailed()
+                }
                 return result
             }
         }
         onNotice("Pi did not answer.")
+        commandFailed()
         return null
     }
 
@@ -548,6 +553,7 @@ class CloudRepository(
     /** Restart is deliberately not offered over Firebase. */
     override suspend fun restart() {
         onNotice("Restart only works on the Pi's own Wi-Fi.")
+        commandFailed()
     }
 
     // ---------- Pi power, the same commands the Pi's own endpoints take ----------

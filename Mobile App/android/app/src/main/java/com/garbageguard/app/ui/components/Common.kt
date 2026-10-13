@@ -271,8 +271,12 @@ fun GgButton(
     enabled: Boolean = true,
     square: Boolean = false,
     accent: Color? = null,
+    /** Name of the lock this key obeys. While its command is unanswered the key cannot be pressed. */
+    lock: String? = null,
 ) {
     val c = Gg.colors
+    val look = lockLook(lock)
+    val enabled = enabled && look?.waiting != true
     // Every key carries a symbol. Common labels get theirs here, so no button is text alone.
     val icon = icon ?: text?.let { defaultIcon(it) }
     val src = remember { MutableInteractionSource() }
@@ -288,16 +292,18 @@ fun GgButton(
         BtnKind.INK -> { fill = faceBrush(c.inkTop, c.text, 0.62f); fg = c.onInk }
         BtnKind.DANGER -> { fill = faceBrush(Color(0xFFFF8A7E), c.bad, 0.62f); fg = c.onBad }
     }
-    val down = pressed && enabled
+    // A key waiting on the Pi stays pushed in, like one being held.
+    val down = (pressed && enabled) || look?.waiting == true
     val view = LocalView.current
     val sizeMod = if (square) Modifier.size(44.dp) else Modifier.defaultMinSize(minHeight = if (small) 40.dp else 44.dp)
     Row(
         modifier = modifier
-            .alpha(if (enabled) 1f else 0.4f)
+            .alpha(if (enabled || look != null) 1f else 0.4f)
             .offset { if (down) IntOffset(hard.roundToPx(), hard.roundToPx()) else IntOffset.Zero }
             .then(if (down) Modifier else Modifier.neuShadow(c, radius, hard, if (LocalOnColour.current) Soft.NONE else Soft.SM))
             .clip(shape)
             .then(if (down) Modifier.background(c.sunk).neuInset(c, radius) else Modifier.background(fill))
+            .lockRing(look, radius, c)
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 // A small tick, so keys feel like the physical buttons they are drawn as.
@@ -437,9 +443,16 @@ fun Tag(text: String, tone: Tone, icon: ImageVector? = null) {
  * symbol, a caps label and the switch. It lights teal when armed.
  */
 @Composable
-fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MUTE", icon: ImageVector? = GgIcons.BellAuto) {
+fun AutoSwitch(
+    checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MUTE", icon: ImageVector? = GgIcons.BellAuto,
+    /** Name of the lock this switch obeys. */
+    lock: String? = null,
+) {
     val c = Gg.colors
     val view = LocalView.current
+    val look = lockLook(lock)
+    // The switch moves at once to where it was sent, and falls back by itself if the Pi does not confirm.
+    val checked = if (look?.waiting == true) !checked else checked
     val t by animateFloatAsState(if (checked) 1f else 0f, tween(180), label = "sw")
     val trackW = 46.dp
     val trackH = 26.dp
@@ -452,6 +465,7 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MU
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                enabled = look?.waiting != true,
             ) {
                 Feel.toggle(view)
                 onToggle()
@@ -476,6 +490,7 @@ fun AutoSwitch(checked: Boolean, onToggle: () -> Unit, label: String? = "AUTO-MU
                 }
                 .clip(CircleShape)
                 .background(androidx.compose.ui.graphics.lerp(c.sunk, c.teal, t))
+                .lockRing(look, 13.dp, c)
                 .drawBehind {
                     // The groove's shade is drawn in plain dark, fading down from the
                     // top. It reads as sunk on the pale groove and on the teal one, in
@@ -558,10 +573,17 @@ fun Modifier.barSunk(c: GgColors): Modifier = this
  * labels it is a row of symbols.
  */
 @Composable
-fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(), onSelect: (Int) -> Unit) {
+fun Segmented(
+    options: List<String>, selected: Int, icons: List<ImageVector> = emptyList(),
+    /** Name of the lock this bar obeys. */
+    lock: String? = null,
+    onSelect: (Int) -> Unit,
+) {
     val c = Gg.colors
     val view = LocalView.current
-    Row(Modifier.fillMaxWidth().barFrame(c)) {
+    val look = lockLook(lock)
+    val free = look?.waiting != true
+    Row(Modifier.fillMaxWidth().barFrame(c).lockRing(look, 13.dp, c)) {
         options.forEachIndexed { i, label ->
             val on = i == selected
             if (i > 0) Box(Modifier.width(2.dp).height(44.dp).background(c.edge))
@@ -574,6 +596,7 @@ fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = e
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        enabled = free,
                     ) {
                         if (!on) Feel.toggle(view)
                         onSelect(i)
@@ -598,10 +621,16 @@ fun Segmented(options: List<String>, selected: Int, icons: List<ImageVector> = e
  * them. A key sinks while it is held, then rises again.
  */
 @Composable
-fun Stepper(value: Int, unit: String, onMinus: () -> Unit, onPlus: () -> Unit) {
+fun Stepper(
+    value: Int, unit: String, onMinus: () -> Unit, onPlus: () -> Unit,
+    /** Name of the lock this field obeys. The keys stop answering while its value is on the way to the Pi. */
+    lock: String? = null,
+) {
     val c = Gg.colors
-    Row(Modifier.fillMaxWidth().barFrame(c), verticalAlignment = Alignment.CenterVertically) {
-        StepCell("−", onMinus)
+    val look = lockLook(lock)
+    val free = look?.waiting != true
+    Row(Modifier.fillMaxWidth().barFrame(c).lockRing(look, 13.dp, c), verticalAlignment = Alignment.CenterVertically) {
+        StepCell("−", free, onMinus)
         Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
         Row(
             Modifier.weight(1f).height(48.dp).barSunk(c).padding(horizontal = 12.dp),
@@ -613,13 +642,13 @@ fun Stepper(value: Int, unit: String, onMinus: () -> Unit, onPlus: () -> Unit) {
             T(unit, Modifier.width(44.dp), size = 0.8f, color = c.muted, align = TextAlign.End, maxLines = 1)
         }
         Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
-        StepCell("+", onPlus)
+        StepCell("+", free, onPlus)
     }
 }
 
 /** One end key of a stepper. */
 @Composable
-private fun StepCell(label: String, onClick: () -> Unit) {
+private fun StepCell(label: String, enabled: Boolean, onClick: () -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
     val src = remember { MutableInteractionSource() }
@@ -629,7 +658,7 @@ private fun StepCell(label: String, onClick: () -> Unit) {
             .size(width = 54.dp, height = 48.dp)
             .zIndex(if (pressed) 0f else 1f)
             .then(if (pressed) Modifier.barSunk(c) else Modifier.barRaised(c))
-            .clickable(interactionSource = src, indication = null) {
+            .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 Feel.tap(view)
                 onClick()
             },

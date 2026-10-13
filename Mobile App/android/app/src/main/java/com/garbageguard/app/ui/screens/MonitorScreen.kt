@@ -289,14 +289,14 @@ private fun MuteBar(vm: AppViewModel, s: LiveState) {
         if (noPi) {
             GgButton("Retry", vm::retry, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Refresh, small = true)
         } else {
-            AutoSwitch(s.autoMute, vm::toggleAutoMute, label = null)
+            AutoSwitch(s.autoMute, vm::toggleAutoMute, label = null, lock = "automute")
             MutePick(vm.muteChoice, vm::chooseMuteLength)
             if (s.muted) {
-                GgButton("Unmute", vm::unmute, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Bell, kind = BtnKind.TEAL, small = true)
+                GgButton("Unmute", vm::unmute, Modifier.width(MUTE_KEY_WIDTH), icon = GgIcons.Bell, kind = BtnKind.TEAL, small = true, lock = "mute")
             } else {
                 GgButton(
                     "Mute", { vm.overlay = Overlay.Mute }, Modifier.width(MUTE_KEY_WIDTH),
-                    icon = GgIcons.EyeOff, small = true, enabled = !idle,
+                    icon = GgIcons.EyeOff, small = true, enabled = !idle, lock = "mute",
                 )
             }
         }

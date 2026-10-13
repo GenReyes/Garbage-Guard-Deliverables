@@ -143,7 +143,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 RailGroup {
                     RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) })
                     RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() })
-                    RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true)
+                    RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true, lock = "area")
                 }
             } else {
                 RailGroup {
@@ -158,12 +158,12 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                     RailReadout(if (state.conn == ConnState.NO_PI) "--" else "${state.latencyMs.roundToInt()}", "MS", GgIcons.Clock, c.bag)
                 }
                 RailGroup {
-                    RailKey(GgIcons.BellAuto, if (state.autoMute) "AUTO ON" else "AUTO OFF", vm::toggleAutoMute, lit = state.autoMute, toggle = true)
+                    RailKey(GgIcons.BellAuto, if (state.autoMute) "AUTO ON" else "AUTO OFF", vm::toggleAutoMute, lit = state.autoMute, toggle = true, lock = "automute")
                     if (state.alertActive) {
-                        if (state.muted) RailKey(GgIcons.Bell, "UNMUTE", vm::unmute, lit = true)
-                        else RailKey(GgIcons.EyeOff, "MUTE", { vm.overlay = Overlay.Mute })
+                        if (state.muted) RailKey(GgIcons.Bell, "UNMUTE", vm::unmute, lit = true, lock = "mute")
+                        else RailKey(GgIcons.EyeOff, "MUTE", { vm.overlay = Overlay.Mute }, lock = "mute")
                     }
-                    RailKey(GgIcons.Shutter, "CAPTURE", vm::capture, lit = true, enabled = online)
+                    RailKey(GgIcons.Shutter, "CAPTURE", vm::capture, lit = true, enabled = online, lock = "capture")
                 }
             }
         },

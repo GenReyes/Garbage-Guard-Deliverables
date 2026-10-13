@@ -89,8 +89,8 @@ fun HistoryTools(vm: AppViewModel, visible: List<AlertRow>) {
                 Ico(GgIcons.Calendar, size = 14.dp, tint = accentOf(GgIcons.Calendar))
                 T(vm.rangeLabel().uppercase(), Modifier.weight(1f), size = 0.74f, color = c.text, spacing = 0.04f, fit = true)
             }
-            GgButton("Mark read", vm::markVisibleRead, icon = GgIcons.Check, small = true, enabled = visible.any { !it.read })
-            GgButton("Delete", { vm.overlay = Overlay.Delete(null) }, icon = GgIcons.Trash, kind = BtnKind.DANGER, small = true, enabled = visible.isNotEmpty())
+            GgButton("Mark read", vm::markVisibleRead, icon = GgIcons.Check, small = true, enabled = visible.any { !it.read }, lock = "hist_read")
+            GgButton("Delete", { vm.overlay = Overlay.Delete(null) }, icon = GgIcons.Trash, kind = BtnKind.DANGER, small = true, enabled = visible.isNotEmpty(), lock = "hist_delete")
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Ico(filterIcon(vm.filter), size = 12.dp, tint = accentOf(filterIcon(vm.filter)))

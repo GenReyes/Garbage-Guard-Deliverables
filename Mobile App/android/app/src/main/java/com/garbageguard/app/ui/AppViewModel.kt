@@ -1,5 +1,12 @@
 package com.garbageguard.app.ui
 
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.mutableStateMapOf
+import com.garbageguard.app.data.commandFailed
+import com.garbageguard.app.data.Outcome
+import com.garbageguard.app.ui.components.LockPhase
+import com.garbageguard.app.ui.components.Lock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -367,12 +374,97 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         toast = null
     }
 
-    private fun launchAction(message: String? = null, block: suspend () -> Unit) {
-        viewModelScope.launch {
-            block()
-            if (message != null) showToast(message)
+    // ---------- waiting for the Pi ----------
+
+    /** The controls now locked or flashing, by name. The screens read this to draw them. */
+    val locks = mutableStateMapOf<String, Lock>()
+    private val armed = HashMap<String, Job>()
+
+    /** How long the Pi is given to answer: through Firebase it can take many seconds. */
+    private val answerMillis: Long get() = if (remote) 17_000L else 6_000L
+
+    fun isWaiting(key: String) = locks[key]?.phase == LockPhase.WAITING
+
+    /**
+     * Runs one command. With a [key], the control of that name is locked
+     * until the Pi answers or the time allowed runs out, so a second press
+     * cannot send the command twice. The result is shown as a flash on the
+     * control and a line of text.
+     */
+    private fun launchAction(message: String? = null, key: String? = null, block: suspend () -> Unit) {
+        if (key != null && isWaiting(key)) return
+        val outcome = Outcome()
+        viewModelScope.launch(outcome) {
+            if (key == null) {
+                block()
+                if (message != null && !outcome.failed) showToast(message)
+                return@launch
+            }
+            val span = answerMillis
+            locks[key] = Lock(LockPhase.WAITING, System.currentTimeMillis(), span)
+            val finished = withTimeoutOrNull(span) {
+                block()
+                true
+            } ?: false
+            val ok = finished && !outcome.failed
+            val flash = Lock(if (ok) LockPhase.OK else LockPhase.FAIL, System.currentTimeMillis(), 700)
+            locks[key] = flash
+            showToast(if (ok) message ?: "Done" else "The Pi did not confirm. Nothing was changed.")
+            delay(700)
+            if (locks[key] == flash) locks.remove(key)
         }
     }
+
+    /**
+     * For number fields and choice bars. Each change starts a one second
+     * count again; when it runs out with no further change, [send] goes out
+     * once with the final values. Ten quick presses are one command.
+     */
+    private fun arm(key: String, send: () -> Unit) {
+        if (isWaiting(key)) return
+        armed.remove(key)?.cancel()
+        locks[key] = Lock(LockPhase.ARMING, System.currentTimeMillis(), ARM_MILLIS)
+        armed[key] = viewModelScope.launch {
+            delay(ARM_MILLIS)
+            armed.remove(key)
+            locks.remove(key)
+            send()
+        }
+    }
+
+    private fun sendDetection() {
+        val conf = draftConf
+        val limit = draftLimit
+        if (conf == null && limit == null) return // put back to what the Pi already has: nothing to send
+        launchAction("Detection settings saved", key = LOCK_DETECT) {
+            repo.saveSettings(conf ?: Math.round(state.value.conf * 100), limit ?: state.value.threshold)
+            draftConf = null
+            draftLimit = null
+        }
+    }
+
+    private fun sendPower() {
+        val mode = draftScreenMode
+        val timeout = draftScreenTimeout
+        val onBattery = draftScreenBattery
+        val dim = draftScreenDim
+        val pct = draftShutdownPct
+        val screen = mode != null || timeout != null || onBattery != null || dim != null
+        if (!screen && pct == null) return
+        launchAction("Power settings saved", key = LOCK_POWER) {
+            // Only what changed is sent, and each endpoint at most once.
+            if (screen) repo.setScreenSaver(mode, timeout, onBattery, dim, null)
+            if (pct != null) repo.setAutoShutdown(null, pct)
+            draftScreenMode = null
+            draftScreenTimeout = null
+            draftScreenBattery = null
+            draftScreenDim = null
+            draftShutdownPct = null
+        }
+    }
+
+    /** Called by the Pi power card after it changes one of its drafts. */
+    fun powerChanged() = arm(LOCK_POWER, ::sendPower)
 
     // ---------- setup ----------
 
@@ -457,25 +549,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun mute() {
         overlay = null
-        launchAction(if (muteChoice == 0) "Muted until you unmute" else "Muted for ${muteChoice / 60} min") {
+        launchAction(if (muteChoice == 0) "Muted until you unmute" else "Muted for ${muteChoice / 60} min", key = LOCK_MUTE) {
             repo.mute(muteChoice)
         }
     }
 
-    fun unmute() = launchAction("Alert unmuted") { repo.unmute() }
+    fun unmute() = launchAction("Alert unmuted", key = LOCK_MUTE) { repo.unmute() }
 
     fun chooseMuteLength(seconds: Int) {
         muteChoice = seconds
         // Auto-mute uses the same length, like the touchscreen.
-        launchAction { repo.setAutoMute(on = null, seconds = seconds) }
+        launchAction(key = LOCK_AUTOMUTE) { repo.setAutoMute(on = null, seconds = seconds) }
     }
 
     fun toggleAutoMute() {
         val on = !state.value.autoMute
-        launchAction(if (on) "Auto-mute on" else "Auto-mute off") { repo.setAutoMute(on = on, seconds = muteChoice) }
+        launchAction(if (on) "Auto-mute on" else "Auto-mute off", key = LOCK_AUTOMUTE) { repo.setAutoMute(on = on, seconds = muteChoice) }
     }
 
-    fun capture() = launchAction("Snapshot saved") { repo.capture() }
+    fun capture() = launchAction("Snapshot saved", key = LOCK_CAPTURE) { repo.capture() }
 
     fun retry() {
         if (demo) {
@@ -534,55 +626,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         get() = draftScreenMode != null || draftScreenTimeout != null || draftScreenBattery != null ||
             draftScreenDim != null || draftShutdownPct != null
 
-    fun savePower() {
-        val mode = draftScreenMode
-        val timeout = draftScreenTimeout
-        val onBattery = draftScreenBattery
-        val dim = draftScreenDim
-        val pct = draftShutdownPct
-        launchAction("Power settings saved") {
-            if (mode != null || timeout != null || onBattery != null || dim != null) {
-                repo.setScreenSaver(mode, timeout, onBattery, dim, null)
-            }
-            if (pct != null) repo.setAutoShutdown(null, pct)
-            draftScreenMode = null
-            draftScreenTimeout = null
-            draftScreenBattery = null
-            draftScreenDim = null
-            draftShutdownPct = null
-        }
-    }
-
     fun toggleWakeOnAlert() {
         val on = !state.value.screenWakeOnAlert
-        launchAction(if (on) "Alerts wake the Pi screen" else "Alerts leave the Pi screen asleep") {
+        launchAction(if (on) "Alerts wake the Pi screen" else "Alerts leave the Pi screen asleep", key = LOCK_WAKE_ALERT) {
             repo.setScreenSaver(null, null, null, null, on)
         }
     }
 
     fun toggleAutoShutdown() {
         val on = battery.value.autoShutdown != true
-        launchAction(if (on) "Auto shutdown on" else "Auto shutdown off") { repo.setAutoShutdown(on, null) }
+        launchAction(if (on) "Auto shutdown on" else "Auto shutdown off", key = LOCK_AUTO_SHUTDOWN) { repo.setAutoShutdown(on, null) }
     }
 
-    fun wakePi() = launchAction("Waking the Pi screen") { repo.screen("wake") }
+    fun wakePi() = launchAction("Pi screen awake", key = LOCK_SCREEN) { repo.screen("wake") }
 
-    fun sleepPi() = launchAction("Pi screen going to sleep") { repo.screen("sleep") }
+    fun sleepPi() = launchAction("Pi screen asleep", key = LOCK_SCREEN) { repo.screen("sleep") }
 
     fun cancelShutdown() {
-        viewModelScope.launch {
-            showToast(if (repo.cancelShutdown()) "Shutdown cancelled" else "This shutdown cannot be cancelled")
+        launchAction("Shutdown cancelled", key = LOCK_CANCEL) {
+            if (!repo.cancelShutdown()) commandFailed()
         }
     }
 
     fun shutdownPi() {
         overlay = null
-        launchAction("The Pi is shutting down") { repo.shutdown() }
+        launchAction("The Pi is shutting down", key = LOCK_SHUTDOWN) { repo.shutdown() }
     }
 
     fun restartPi() {
         overlay = null
-        launchAction("Restarting Garbage-Guard on the Pi") { repo.restart() }
+        launchAction("Restarting Garbage-Guard on the Pi", key = LOCK_RESTART) { repo.restart() }
     }
 
     var net by mutableStateOf<NetDetails?>(null)
@@ -624,19 +697,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val now = draftLimit ?: state.value.threshold
             draftLimit = (now + delta).coerceIn(1, 200)
         }
+        // A value stepped back to what the Pi already has is no longer a change.
+        if (draftConf == Math.round(state.value.conf * 100)) draftConf = null
+        if (draftLimit == state.value.threshold) draftLimit = null
+        arm(LOCK_DETECT, ::sendDetection)
     }
 
-    fun saveSettings() {
-        val conf = draftConf ?: Math.round(state.value.conf * 100)
-        val limit = draftLimit ?: state.value.threshold
-        launchAction("Settings saved") {
-            repo.saveSettings(conf, limit)
-            draftConf = null
-            draftLimit = null
-        }
-    }
-
-    fun testAlert() = launchAction("Test alert logged") { repo.testAlert() }
+    fun testAlert() = launchAction("Test alert logged", key = LOCK_TEST) { repo.testAlert() }
 
     fun startDrawing(edit: Boolean) {
         drawPoints.clear()
@@ -652,12 +719,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         val points = drawPoints.toList()
         closeFullscreen()
-        launchAction("Area applied") { repo.setRoi(points) }
+        launchAction("Area applied", key = LOCK_AREA) { repo.setRoi(points) }
     }
 
     fun clearArea() {
         overlay = null
-        launchAction("Area cleared. Whole frame monitored.") { repo.setRoi(emptyList()) }
+        launchAction("Area cleared. Whole frame monitored.", key = LOCK_AREA) { repo.setRoi(emptyList()) }
     }
 
     fun setNotifications(granted: Boolean) {
@@ -778,7 +845,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val rows = visibleRows(alerts.value).filter { !it.read }
         if (rows.isEmpty()) return
         val everything = filter == HistFilter.ALL && !rangeOn
-        launchAction(if (everything) "All marked read" else "${rows.size} marked read") {
+        launchAction(if (everything) "All marked read" else "${rows.size} marked read", key = LOCK_READ) {
             if (everything) repo.markRead(null, true) else repo.markRead(rows.map { it.id }, true)
         }
     }
@@ -795,7 +862,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val rows = visibleRows(alerts.value)
         overlay = null
         swipedId = null
-        launchAction("Deleted") {
+        launchAction("Deleted", key = if (target.id == null) LOCK_DELETE else null) {
             when {
                 target.id != null -> repo.deleteAlerts(listOf(target.id))
                 filter == HistFilter.ALL && !rangeOn -> repo.deleteAll()
@@ -806,6 +873,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
+        const val ARM_MILLIS = 1000L
+        const val LOCK_MUTE = "mute"
+        const val LOCK_AUTOMUTE = "automute"
+        const val LOCK_CAPTURE = "capture"
+        const val LOCK_TEST = "test"
+        const val LOCK_DETECT = "detect"
+        const val LOCK_POWER = "power"
+        const val LOCK_WAKE_ALERT = "wake_alert"
+        const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"
+        const val LOCK_SCREEN = "screen"
+        const val LOCK_SHUTDOWN = "shutdown"
+        const val LOCK_CANCEL = "cancel_shutdown"
+        const val LOCK_RESTART = "restart"
+        const val LOCK_AREA = "area"
+        const val LOCK_READ = "hist_read"
+        const val LOCK_DELETE = "hist_delete"
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
         private const val KEY_ASKED = "asked_alerts"
         private const val KEY_CLOUD_ONLY = "cloud_only"

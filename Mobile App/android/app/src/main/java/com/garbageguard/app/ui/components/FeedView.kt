@@ -427,24 +427,28 @@ private fun TvKey(
     enabled: Boolean,
     casing: Casing,
     spinning: Boolean = false,
+    lock: String? = null,
     onClick: () -> Unit,
 ) {
     val c = Gg.colors
+    val look = lockLook(lock)
+    val enabled = enabled && look?.waiting != true
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
     val view = LocalView.current
-    val down = pressed && enabled
+    val down = (pressed && enabled) || look?.waiting == true
     val shape = RoundedCornerShape(10.dp)
     val fill = if (teal) Brush.verticalGradient(listOf(c.tealLight, c.teal))
     else Brush.verticalGradient(listOf(casing.keyTop, casing.keyBottom))
     val ink = if (teal) Color.White else casing.keyInk
     Row(
         Modifier
-            .alpha(if (enabled) 1f else 0.4f)
+            .alpha(if (enabled || look != null) 1f else 0.4f)
             .offset { if (down) IntOffset(3.dp.roundToPx(), 3.dp.roundToPx()) else IntOffset.Zero }
             .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 3.dp, Soft.NONE, hardColor = Color.Black).casingRim(casing.rim, 10.dp))
             .clip(shape)
             .background(fill)
+            .lockRing(look, 10.dp, c)
             .border(2.dp, BEZEL_INK, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 Feel.tap(view)
@@ -562,7 +566,7 @@ fun TvFeed(
             }
             // Reconnects the camera; the arrows turn until the picture is back.
             TvKey(GgIcons.Refresh, null, teal = false, enabled = !noPi && !reconnecting, casing = k, spinning = reconnecting, onClick = onReconnect)
-            TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, casing = k, onClick = onCapture)
+            TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, casing = k, lock = "capture", onClick = onCapture)
             TvKey(GgIcons.Expand, null, teal = false, enabled = true, casing = k, onClick = onFullscreen)
         }
 
@@ -715,13 +719,16 @@ fun RailKey(
     lit: Boolean = false,
     enabled: Boolean = true,
     toggle: Boolean = false,
+    lock: String? = null,
 ) {
     val c = Gg.colors
     val k = railCasing()
+    val look = lockLook(lock)
+    val enabled = enabled && look?.waiting != true
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
     val view = LocalView.current
-    val down = pressed && enabled
+    val down = (pressed && enabled) || look?.waiting == true
     val shape = RoundedCornerShape(10.dp)
     // Raised when at rest, with the soft pair of shadows; pressed, it sinks into a well.
     val fill = when {
@@ -733,12 +740,13 @@ fun RailKey(
     Column(
         modifier
             .fillMaxWidth()
-            .alpha(if (enabled) 1f else 0.4f)
+            .alpha(if (enabled || look != null) 1f else 0.4f)
             .offset { if (down) IntOffset(2.dp.roundToPx(), 2.dp.roundToPx()) else IntOffset.Zero }
             .then(if (down) Modifier else Modifier.neuShadow(c, 10.dp, 2.dp, Soft.SM))
             .clip(shape)
             .background(fill)
             .then(if (down) Modifier.neuInset(c, 10.dp) else Modifier.neuBevel(c, 10.dp))
+            .lockRing(look, 10.dp, c)
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 if (toggle) Feel.toggle(view) else Feel.tap(view)

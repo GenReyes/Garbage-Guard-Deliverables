@@ -1,5 +1,6 @@
 package com.garbageguard.app.ui.screens
 
+import com.garbageguard.app.ui.components.LockPhase
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,25 +67,18 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
     ) {
         GgCard {
             Hd(GgIcons.Gear, "Detection settings") {
-                if (dirty) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Ico(GgIcons.Warn, size = 13.dp, tint = c.warnText)
-                        T("UNSAVED", size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
-                    }
-                }
+                SendingTag(vm, "detect", dirty)
             }
             Field(GgIcons.Eye, "Detection confidence") {
-                Stepper(conf, "%", onMinus = { vm.step(conf = true, delta = -5) }, onPlus = { vm.step(conf = true, delta = 5) })
+                Stepper(conf, "%", onMinus = { vm.step(conf = true, delta = -5) }, onPlus = { vm.step(conf = true, delta = 5) }, lock = "detect")
                 Hint("40% is the tested default.", icon = GgIcons.Ok)
             }
             Field(GgIcons.Bell, "Accumulation limit") {
-                Stepper(limit, "items", onMinus = { vm.step(conf = false, delta = -1) }, onPlus = { vm.step(conf = false, delta = 1) })
+                Stepper(limit, "items", onMinus = { vm.step(conf = false, delta = -1) }, onPlus = { vm.step(conf = false, delta = 1) }, lock = "detect")
                 Hint("Alert fires here, resets below ${rearmFor(limit).coerceAtLeast(1)}.", icon = GgIcons.Warn)
             }
-            Pair2 {
-                GgButton("Save", vm::saveSettings, Modifier.weight(1f), icon = GgIcons.Save, kind = BtnKind.INK)
-                GgButton("Test alert", vm::testAlert, Modifier.weight(1f), icon = GgIcons.Bell)
-            }
+            GgButton("Test alert", vm::testAlert, Modifier.fillMaxWidth(), icon = GgIcons.Bell, lock = "test")
+            Hint("Changes send themselves a second after the last press.", icon = GgIcons.Clock)
         }
 
         GgCard {
@@ -198,7 +192,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 GgIcons.Refresh,
             ) {
                 GgButton(
-                    "Restart", { vm.overlay = Overlay.Restart }, small = true, kind = BtnKind.DANGER,
+                    "Restart", { vm.overlay = Overlay.Restart }, small = true, kind = BtnKind.DANGER, lock = "restart",
                     enabled = state.conn != ConnState.NO_PI && !vm.remote,
                 )
             }
@@ -322,11 +316,8 @@ private fun PowerCard(vm: AppViewModel, state: LiveState, battery: Battery) {
 
     GgCard {
         Hd(GgIcons.Power, "Pi power") {
-            if (vm.powerDirty) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Ico(GgIcons.Warn, size = 13.dp, tint = c.warnText)
-                    T("UNSAVED", size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
-                }
+            if (vm.powerDirty || vm.locks["power"] != null) {
+                SendingTag(vm, "power", vm.powerDirty)
             } else if (hasScreen) {
                 Tag("Screen ${screenWord(state.screen)}", if (state.screen == "on") Tone.OK else Tone.WARN, if (state.screen == "on") GgIcons.Sun else GgIcons.Moon)
             }
@@ -340,67 +331,88 @@ private fun PowerCard(vm: AppViewModel, state: LiveState, battery: Battery) {
                     listOf("Off", "Dim", "Never"),
                     icons = listOf(GgIcons.Moon, GgIcons.SunMoon, GgIcons.Sun),
                     selected = modes.indexOf(mode).coerceAtLeast(0),
-                    onSelect = { vm.draftScreenMode = modes[it].takeIf { m -> m != state.screenMode } },
+                    lock = "power",
+                    onSelect = {
+                        vm.draftScreenMode = modes[it].takeIf { m -> m != state.screenMode }
+                        vm.powerChanged()
+                    },
                 )
             }
             if (mode != "never") {
                 val minutes = (vm.draftScreenTimeout ?: state.screenTimeoutS) / 60
                 fun setMinutes(m: Int) {
                     vm.draftScreenTimeout = (m.coerceIn(1, 60) * 60).takeIf { it != state.screenTimeoutS }
+                    vm.powerChanged()
                 }
                 Field(GgIcons.Clock, "Turn off after") {
-                    Stepper(minutes, "min", onMinus = { setMinutes(minutes - 1) }, onPlus = { setMinutes(minutes + 1) })
+                    Stepper(minutes, "min", onMinus = { setMinutes(minutes - 1) }, onPlus = { setMinutes(minutes + 1) }, lock = "power")
                 }
                 val seconds = vm.draftScreenBattery ?: state.screenTimeoutBatteryS
                 fun setSeconds(s: Int) {
                     vm.draftScreenBattery = s.coerceIn(30, 3600).takeIf { it != state.screenTimeoutBatteryS }
+                    vm.powerChanged()
                 }
                 Field(GgIcons.Battery, "On battery, turn off after") {
-                    Stepper(seconds, "sec", onMinus = { setSeconds(seconds - 30) }, onPlus = { setSeconds(seconds + 30) })
+                    Stepper(seconds, "sec", onMinus = { setSeconds(seconds - 30) }, onPlus = { setSeconds(seconds + 30) }, lock = "power")
                 }
             }
             if (mode == "dim") {
                 val dim = vm.draftScreenDim ?: state.screenDimPct
                 fun setDim(p: Int) {
                     vm.draftScreenDim = p.coerceIn(5, 50).takeIf { it != state.screenDimPct }
+                    vm.powerChanged()
                 }
                 Field(GgIcons.SunMoon, "Dim level") {
-                    Stepper(dim, "%", onMinus = { setDim(dim - 5) }, onPlus = { setDim(dim + 5) })
+                    Stepper(dim, "%", onMinus = { setDim(dim - 5) }, onPlus = { setDim(dim + 5) }, lock = "power")
                 }
             }
             SettingRow("Wake on alert", "A new alert wakes the Pi screen", GgIcons.Bell) {
-                AutoSwitch(state.screenWakeOnAlert, vm::toggleWakeOnAlert, label = null, icon = null)
+                AutoSwitch(state.screenWakeOnAlert, vm::toggleWakeOnAlert, label = null, icon = null, lock = "wake_alert")
             }
         }
 
         if (hasShutdown) {
             val on = battery.autoShutdown == true
             SettingRow("Auto shutdown", "Shuts down cleanly on low battery", GgIcons.Battery) {
-                AutoSwitch(on, vm::toggleAutoShutdown, label = null, icon = null)
+                AutoSwitch(on, vm::toggleAutoShutdown, label = null, icon = null, lock = "auto_shutdown")
             }
             if (on) {
                 val pct = vm.draftShutdownPct ?: battery.autoShutdownPct
                 fun setPct(p: Int) {
                     vm.draftShutdownPct = p.coerceIn(10, 50).takeIf { it != battery.autoShutdownPct }
+                    vm.powerChanged()
                 }
                 Field(GgIcons.Gauge, "Shut down at") {
-                    Stepper(pct, "%", onMinus = { setPct(pct - 5) }, onPlus = { setPct(pct + 5) })
+                    Stepper(pct, "%", onMinus = { setPct(pct - 5) }, onPlus = { setPct(pct + 5) }, lock = "power")
                 }
             }
         }
 
-        Pair2 {
-            GgButton("Save", vm::savePower, Modifier.weight(1f), icon = GgIcons.Save, kind = BtnKind.INK, enabled = vm.powerDirty && reachable)
-            if (hasScreen) {
-                if (state.screen == "on") GgButton("Sleep now", vm::sleepPi, Modifier.weight(1f), icon = GgIcons.Moon, enabled = reachable)
-                else GgButton("Wake", vm::wakePi, Modifier.weight(1f), icon = GgIcons.Sun, kind = BtnKind.TEAL, enabled = reachable)
-            }
+        if (hasScreen) {
+            if (state.screen == "on") GgButton("Sleep now", vm::sleepPi, Modifier.fillMaxWidth(), icon = GgIcons.Moon, enabled = reachable, lock = "screen")
+            else GgButton("Wake", vm::wakePi, Modifier.fillMaxWidth(), icon = GgIcons.Sun, kind = BtnKind.TEAL, enabled = reachable, lock = "screen")
         }
         GgButton(
             if (poweringOff) "Shutting down" else "Shut down the Pi", { vm.overlay = Overlay.Shutdown }, Modifier.fillMaxWidth(),
-            icon = GgIcons.Power, kind = BtnKind.DANGER, enabled = reachable && !poweringOff,
+            icon = GgIcons.Power, kind = BtnKind.DANGER, enabled = reachable && !poweringOff, lock = "shutdown",
         )
         if (state.screenNote != null) Hint(state.screenNote, icon = GgIcons.Warn, wrap = true)
         Hint("Touch the Pi screen to wake it. The first tap only wakes.", icon = GgIcons.Ok)
+    }
+}
+
+/** Says where a card's changes stand: about to go, on their way to the Pi, or nothing pending. */
+@Composable
+private fun SendingTag(vm: AppViewModel, key: String, changed: Boolean) {
+    val c = Gg.colors
+    val phase = vm.locks[key]?.phase
+    val text = when {
+        phase == LockPhase.WAITING -> "SENDING"
+        phase == LockPhase.ARMING || changed -> "CHANGED"
+        else -> return
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Ico(if (phase == LockPhase.WAITING) GgIcons.Refresh else GgIcons.Clock, size = 13.dp, tint = c.warnText)
+        T(text, size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
     }
 }

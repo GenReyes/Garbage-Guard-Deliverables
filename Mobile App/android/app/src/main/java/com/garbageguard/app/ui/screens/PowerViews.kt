@@ -66,9 +66,9 @@ fun PiScreenChip(vm: AppViewModel, state: LiveState) {
                 size = 0.76f, weight = FontWeight.Bold, color = c.muted, fit = true,
             )
         }
-        if (awake) GgButton("Sleep", vm::sleepPi, icon = GgIcons.Moon, small = true)
+        if (awake) GgButton("Sleep", vm::sleepPi, icon = GgIcons.Moon, small = true, lock = "screen")
         else CompositionLocalProvider(LocalOnColour provides true) {
-            GgButton("Wake", vm::wakePi, icon = GgIcons.Sun, kind = BtnKind.TEAL, small = true)
+            GgButton("Wake", vm::wakePi, icon = GgIcons.Sun, kind = BtnKind.TEAL, small = true, lock = "screen")
         }
     }
 }
@@ -117,7 +117,7 @@ fun ShutdownBanner(vm: AppViewModel, battery: Battery, modifier: Modifier = Modi
             )
         }
         if (counting && !battery.shutdownFloor) CompositionLocalProvider(LocalOnColour provides true) {
-            GgButton("Cancel", vm::cancelShutdown, icon = GgIcons.X, small = true)
+            GgButton("Cancel", vm::cancelShutdown, icon = GgIcons.X, small = true, lock = "cancel_shutdown")
         }
     }
 }

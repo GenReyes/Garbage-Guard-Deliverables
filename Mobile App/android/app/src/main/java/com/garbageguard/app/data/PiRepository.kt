@@ -394,6 +394,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+            commandFailed()
         }
     }
 
