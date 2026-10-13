@@ -29,6 +29,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
 | `gg_buzzer.py` | The passive buzzer: a different sound for each event, the repeating alarm, quiet hours, and the three ways to drive the pin (software PWM, hardware PWM, and a fake one for tests). |
 | `test_buzzer.py` | Unit tests for `gg_buzzer.py`. |
+| `gg_vibe.py` | The vibration motor on GPIO13: pulse patterns that follow the buzzer's sounds, with a strength setting. |
+| `test_vibe.py` | Unit tests for `gg_vibe.py`. |
 | `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
 | `test_clock.py` | Unit tests for `gg_clock.py`. |
 | `gg_usage.py` | Estimates how much of Firebase's free monthly allowance has been used, and slows or stops the preview before it runs out. |
@@ -108,6 +110,7 @@ python3 test_cloud.py
 python3 test_usage.py
 python3 test_clock.py
 python3 test_buzzer.py
+python3 test_vibe.py
 python3 test_screen.py
 python3 test_touch.py
 python3 test_power.py
@@ -257,6 +260,14 @@ automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
 `/boot/firmware/config.txt`). The buzzer code is untested on real hardware.
+
+**Vibration motor (3-pin module).** VCC to pin 1 (3.3 V), IN to pin 33
+(GPIO13) and GND to pin 39, with the Pi switched off. Never connect IN to a 5 V
+pin: only VCC may go to 5 V. GPIO13 is already PWM channel 1 once the
+`pwm-2chan` overlay above is in place; the detector uses hardware PWM for it
+when it can and software PWM otherwise. If it feels weak at 3.3 V, move VCC to
+a 5 V pin (pin 2 or 4). Stick the motor to the case wall, away from the
+boards. `GG_VIBE_BACKEND` forces `gpio`, `sysfs` or `fake`.
 
 **"Power supply is not capable of supplying 5V at 5A" pop-up.** The UPS HAT
 does not announce 5 A over USB-C the way the official Pi supply does, so the

@@ -450,6 +450,28 @@ An unknown name answers `400 bad_sound`. Sounds: `accumulation`, `shutdown_low`,
 `unmuted`, `ready`, `tap`, `switch`. Over Firebase these are the `buzzer` and
 `buzzer_test` commands.
 
+### `POST /api/vibe`
+
+The Pi's vibration motor: `{"on": true, "strength": "low"|"medium"|"high"}`,
+both optional. Reply: `{"ok": true}` plus the fields below, which are also in
+`GET /api/state`.
+
+| Field | Meaning |
+|---|---|
+| `vibe_on` | Master switch for the motor. Independent of the buzzer's switches. |
+| `vibe_strength` | `low`, `medium` or `high`. |
+| `vibe_available` | `false` when the motor's output could not be started. |
+| `vibe_note` | Why, to show as a warning. `null` otherwise. |
+
+The motor pulses along with the buzzer's alarm, its repeat, the low-battery
+countdown, the shutdown tunes, tests, auto-mute and captures. It obeys the same
+quiet hours and the same mute. `POST /api/buzzer/test` (`accumulation`)
+therefore also shakes it. `POST /api/vibe/test` with `{"pattern": "test"}` (that
+is the default, other patterns are `accumulation`, `shutdown_low`, `countdown`,
+`auto_muted`, `shutdown_manual`, `manual`) shakes it alone, `400 bad_pattern` for
+anything else and `409 unavailable` with `message` when it cannot run. Over
+Firebase this is the `vibe` command.
+
 ### `POST /api/alerts/read`
 
 ```json

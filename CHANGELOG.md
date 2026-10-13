@@ -136,6 +136,23 @@ new fields.
 - Not yet: the dashboard Sound card and the vibration motor. The hardware
   backends are untested until the buzzer is wired.
 
+## Pi vibration motor (2026-10-13)
+
+### Pi
+
+- New `gg_vibe.py`: a vibration motor module on GPIO13 plays pulse patterns
+  alongside the buzzer's sounds (alarm and its repeat, countdown, shutdown
+  tunes, tests, auto-mute, captures). Strength is the PWM duty (Low 40%,
+  Medium 70%, High 100%, to be tuned on the bench), and it follows the same
+  quiet hours and mute as the buzzer. It has its own switch and works with the
+  buzzer off.
+- New `POST /api/vibe`, `POST /api/vibe/test` and the Firebase command `vibe`.
+  The state carries `vibe_on`, `vibe_strength`, `vibe_available`, `vibe_note`.
+- The dashboard's Sound card has a Vibration switch, a Low, Medium or High
+  strength, and a Test vibration button. The mock server and `BUZZER_APP.md`
+  cover the same for the app (`GG_MOCK_NOVIBE=1` pretends it is broken).
+- Not tested on real hardware.
+
 ## Mock server and brief for the Pi buzzer (2026-10-13)
 
 ### App

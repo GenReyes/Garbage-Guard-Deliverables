@@ -218,6 +218,9 @@ def make_backend(kind=None, pin_is_pwm=pin_is_pwm):
 
 
 class Buzzer:
+    TABLE = SOUNDS
+    LABEL = "BUZZER"
+
     def __init__(self, settings, save=None, backend=None, clock_synced=lambda: True,
                  now=datetime.now, mono=time.monotonic, pause=None, alert_on=None):
         self.settings = settings
@@ -235,6 +238,7 @@ class Buzzer:
         self.playing = None
         self.next_repeat = None
         self.started = False
+        self.also = []
 
     # ---------- settings ----------
     def configure(self, on=None, volume=None, alerts=None, countdown=None, ui=None,
@@ -291,7 +295,12 @@ class Buzzer:
                 "ui": s["buzzer_ui"], "events": True}.get(group, False)
 
     def play(self, name, force=False):
-        spec = SOUNDS.get(name)
+        for other in self.also:
+            try:
+                other(name, force)
+            except Exception as e:
+                print(f"[{self.LABEL}] {e}", flush=True)
+        spec = self.TABLE.get(name)
         if spec is None:
             return False
         prio, group, seq = spec
@@ -350,15 +359,24 @@ class Buzzer:
         with self.cond:
             return self.pending is not None and self.pending[0] > prio
 
+    def _master(self):
+        return self.settings["buzzer_on"]
+
+    def _level(self):
+        return VOLUMES.get(self.settings["buzzer_volume"], VOLUMES["medium"])
+
+    def _on(self, hz, level):
+        self.backend.tone(hz, level)
+
     def _run(self, item):
         prio, _name, seq = item
-        level = VOLUMES.get(self.settings["buzzer_volume"], VOLUMES["medium"])
+        level = self._level()
         try:
             for hz, ms in seq:
-                if self._outranked(prio) or not self.settings["buzzer_on"]:
+                if self._outranked(prio) or not self._master():
                     break
                 if hz:
-                    self.backend.tone(hz, level)
+                    self._on(hz, level)
                 else:
                     self.backend.silence()
                 self._pause(ms / 1000.0)

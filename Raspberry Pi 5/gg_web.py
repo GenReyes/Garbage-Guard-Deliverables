@@ -17,6 +17,7 @@ import gg_clock
 import gg_power
 import gg_screen
 import gg_ups
+import gg_vibe
 import gg_window
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -166,13 +167,14 @@ def viewers(now=None):
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
 
-def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None, buzzer=None):
+def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None, buzzer=None, vibe=None):
     net = net or gg_net.make_net()
     ups = ups or gg_ups.Ups()
     screen = screen or gg_screen.Screen(engine.settings, ups=ups)
     power = power or gg_power.Power(engine.settings, ups=ups, screen=screen)
     clock = clock or gg_clock.Clock()
     buzzer = buzzer or gg_buzzer.Buzzer(engine.settings, backend=gg_buzzer.FakeBackend())
+    vibe = vibe or gg_vibe.Vibe(engine.settings, backend=gg_buzzer.FakeBackend())
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -262,6 +264,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                 st.update(screen.fields())
                 st.update(clock.fields())
                 st.update(buzzer.fields())
+                st.update(vibe.fields())
                 st["cloud"] = {k: gg_cloud.STATUS.get(k)
                                for k in ("enabled", "ok", "error", "watchers", "usage")}
                 return self._json(st)
@@ -423,6 +426,18 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                                        "message": buzzer.fields()["buzzer_note"]}, 409)
                 return self._json({"ok": True})
 
+            if path == "/api/vibe":
+                return self._json({"ok": True, **vibe.configure(on=data.get("on"), strength=data.get("strength"))})
+
+            if path == "/api/vibe/test":
+                name = data.get("pattern", "test")
+                if name not in gg_vibe.PATTERNS:
+                    return self._json({"ok": False, "error": "bad_pattern"}, 400)
+                if not vibe.test(name):
+                    return self._json({"ok": False, "error": "unavailable",
+                                       "message": vibe.fields()["vibe_note"]}, 409)
+                return self._json({"ok": True})
+
             if path == "/api/buzzer/ui":
                 if self.client_address[0] not in LOOPBACK:
                     return self._json({"ok": False, "error": "local_only"}, 403)
@@ -526,9 +541,9 @@ def restart_process(delay=0.6):
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
-def serve(engine, port=8080, ups=None, screen=None, power=None, buzzer=None, clock=None):
+def serve(engine, port=8080, ups=None, screen=None, power=None, buzzer=None, clock=None, vibe=None):
     server = QuietServer(("0.0.0.0", port), make_handler(engine, ups=ups, screen=screen, power=power,
-                                                         buzzer=buzzer, clock=clock))
+                                                         buzzer=buzzer, clock=clock, vibe=vibe))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

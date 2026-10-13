@@ -243,7 +243,8 @@ be built without the Pi.
 
 ## 8. Order of work
 
-0. **Done:** the Settings tab and the Philippine-time clock with `clock_synced`
+0. **Done:** the vibration code (`gg_vibe.py`), its API and the dashboard rows,
+   on the fake backend; wiring and tuning wait for the bench. Also done: the Settings tab and the Philippine-time clock with `clock_synced`
    (`gg_clock.py`).
 1. **Done except the dashboard card:** `gg_buzzer.py`, hooks, API, Firebase
    commands and tests. **No Pi needed.** Write `gg_buzzer.py` with the fake backend and unit tests

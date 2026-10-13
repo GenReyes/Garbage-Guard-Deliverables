@@ -1127,6 +1127,7 @@ a.btn{text-decoration:none}
 .sndcol .seg{margin:4px 0 6px}
 .tests{display:flex;gap:8px;margin-top:4px}
 .tests .btn{flex:1;justify-content:center}
+.tests[hidden]{display:none}
 .prow .well input[data-time]{font-size:14px}
 @media (max-width:700px){.sndgrid{grid-template-columns:1fr}}
 .card-pow .hint{margin-top:10px}
@@ -1565,6 +1566,15 @@ a.btn{text-decoration:none}
               <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
             <div class="prow"><label>Button sounds</label>
               <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
+            <div id="vbBox">
+              <div class="prow"><label>Vibration</label>
+                <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+              <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
+                <button type="button" data-str="low" aria-pressed="false">Low</button>
+                <button type="button" data-str="medium" aria-pressed="false">Medium</button>
+                <button type="button" data-str="high" aria-pressed="false">High</button>
+              </div>
+            </div>
           </div>
           <div class="sndcol">
             <div class="prow"><label>Repeat alarm</label>
@@ -1594,12 +1604,16 @@ a.btn{text-decoration:none}
               <button class="btn" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test alarm</button>
               <button class="btn" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test tune</button>
             </div>
+            <div class="tests" id="vbTests">
+              <button class="btn" id="vbTest" type="button"><svg class="ico"><use href="#i-act"/></svg>Test vibration</button>
+            </div>
           </div>
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
         <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
         <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          The buzzer is silent during quiet hours. Tests use the saved volume.</p>
+          Quiet hours silence the buzzer and the vibration. Tests use the saved volume and strength.</p>
       </section>
     </div>
       <div class="setfoot">
@@ -2821,6 +2835,9 @@ function stepTime(el, d){
   setTime(el, pad2(Math.floor(n / 60)) + ":" + pad2(n % 60));
 }
 const swOn = el => el.getAttribute("aria-checked") === "true";
+function pickStr(v){
+  document.querySelectorAll("#vbStr button").forEach(b => b.setAttribute("aria-pressed", b.dataset.str === v ? "true" : "false"));
+}
 function pickVol(v){
   document.querySelectorAll("#bzVol button").forEach(b => b.setAttribute("aria-pressed", b.dataset.vol === v ? "true" : "false"));
 }
@@ -2833,6 +2850,11 @@ function fillBuzzer(s){
   const note = $("bzNote");
   note.hidden = s.buzzer_available !== false;
   if(!note.hidden) note.querySelector("span").textContent = "The buzzer is not available: " + (s.buzzer_note || "no reason given") + ".";
+  const hasVibe = s.vibe_on != null;
+  $("vbBox").hidden = !hasVibe; $("vbTests").hidden = !hasVibe;
+  const vn = $("vbNote");
+  vn.hidden = !hasVibe || s.vibe_available !== false;
+  if(!vn.hidden) vn.querySelector("span").textContent = "The vibration motor is not available: " + (s.vibe_note || "no reason given") + ".";
   const q = $("bzQuietNote");
   const qText = s.quiet_note || (s.quiet_now ? "Quiet hours are on now, so the buzzer is silent." : "");
   q.hidden = !qText;
@@ -2843,6 +2865,7 @@ function fillBuzzer(s){
   setSw($("bzUi"), s.buzzer_ui); setSw($("bzRep"), s.buzzer_repeat);
   $("bzRepS").value = s.buzzer_repeat_s; setSw($("bzQuiet"), s.quiet_on);
   setTime($("bzFrom"), s.quiet_from); setTime($("bzTo"), s.quiet_to);
+  setSw($("vbOn"), s.vibe_on); pickStr(s.vibe_strength);
   showBuzzRows();
 }
 function showBuzzRows(){
@@ -2851,7 +2874,12 @@ function showBuzzRows(){
   $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
 }
 document.querySelectorAll("#bzVol button").forEach(b => b.addEventListener("click", () => pickVol(b.dataset.vol)));
-["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet"].forEach(id =>
+document.querySelectorAll("#vbStr button").forEach(b => b.addEventListener("click", () => pickStr(b.dataset.str)));
+$("vbTest").onclick = async () => {
+  const j = await post("/api/vibe/test", {});
+  if(!j.ok) toast(j.message || "The vibration motor could not run", "i-warn");
+};
+["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet", "vbOn"].forEach(id =>
   $(id).addEventListener("click", () => { setSw($(id), !swOn($(id))); showBuzzRows(); }));
 async function buzzTest(sound){
   const j = await post("/api/buzzer/test", {sound});
@@ -2885,6 +2913,10 @@ $("pwrSave").onclick = async () => {
       countdown: swOn($("bzCount")), ui: swOn($("bzUi")), repeat: swOn($("bzRep")),
       repeat_s: Number($("bzRepS").value), quiet_on: swOn($("bzQuiet")),
       quiet_from: $("bzFrom").dataset.hm, quiet_to: $("bzTo").dataset.hm});
+  }
+  if(!$("sndCard").hidden && !$("vbBox").hidden){
+    const str = (document.querySelector("#vbStr [aria-pressed=true]") || {dataset: {}}).dataset.str;
+    await post("/api/vibe", {on: swOn($("vbOn")), strength: str});
   }
   pwrDirty = false; toast("Settings saved", "i-save"); refresh(); pollBattery();
 };

@@ -34,6 +34,7 @@ import gg_power
 import gg_screen
 import gg_touch
 import gg_ups
+import gg_vibe
 import gg_web
 from gg_snapcard import add_card
 
@@ -59,7 +60,7 @@ SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
                     "auto_mute": False, "auto_mute_s": 900,
-                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS}
+                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS, **gg_vibe.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -772,6 +773,9 @@ def main():
         buzzer = gg_buzzer.Buzzer(settings, save=save, backend=gg_buzzer.make_backend(),
                                   clock_synced=clock.synced,
                                   alert_on=lambda: engine.alert_active and not engine.is_muted())
+        vibe = gg_vibe.Vibe(settings, save=save, backend=gg_vibe.make_backend(),
+                            clock_synced=clock.synced)
+        buzzer.also.append(vibe.play)
         power = gg_power.Power(settings, save=save, ups=ups, screen=screen,
                                log=engine.log_note, flush=gg_cloud.flush, sound=buzzer.play)
         engine.on_alert = screen.alert
@@ -782,9 +786,10 @@ def main():
         screen.start()
         power.start()
         buzzer.start()
+        vibe.start()
         buzzer.play("ready")
         gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power,
-                     buzzer=buzzer, clock=clock)
+                     buzzer=buzzer, clock=clock, vibe=vibe)
         gg_cloud.start(note=gg_web.note_viewer)
 
     try:

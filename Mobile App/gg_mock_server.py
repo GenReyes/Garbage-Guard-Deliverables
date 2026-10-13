@@ -118,6 +118,9 @@ STATE = {
     "quiet_on": False,
     "quiet_from": "22:00",
     "quiet_to": "06:00",
+    # Pi vibration motor (Raspberry Pi 5/gg_vibe.py).
+    "vibe_on": True,
+    "vibe_strength": "medium",
 }
 
 BUZZER_SOUNDS = ("accumulation", "shutdown_low", "countdown", "test", "auto_muted",
@@ -153,6 +156,10 @@ def buzzer_fields():
         quiet = (start <= n < end) if start < end else (n >= start or n < end)
     out = {k: STATE[k] for k in BUZZER_KEYS}
     out.update({
+        "vibe_on": STATE["vibe_on"],
+        "vibe_strength": STATE["vibe_strength"],
+        "vibe_available": not os.environ.get("GG_MOCK_NOVIBE"),
+        "vibe_note": "no hardware PWM found; add the pwm-2chan overlay to config.txt" if os.environ.get("GG_MOCK_NOVIBE") else None,
         "buzzer_available": not nobuzz,
         "buzzer_note": "the lgpio library is not installed" if nobuzz else None,
         "quiet_now": quiet,
@@ -609,6 +616,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json_status(409, {"ok": False, "error": "unavailable",
                                                "message": "the lgpio library is not installed"})
             print(f"[BUZZER] would play {data['sound']}", flush=True)
+            return self._json({"ok": True})
+
+        if path == "/api/vibe":
+            if data.get("on") is not None:
+                STATE["vibe_on"] = bool(data["on"])
+            if data.get("strength") in ("low", "medium", "high"):
+                STATE["vibe_strength"] = data["strength"]
+            return self._json({"ok": True, **{k: v for k, v in buzzer_fields().items() if k.startswith("vibe_")}})
+
+        if path == "/api/vibe/test":
+            if data.get("pattern", "test") not in ("accumulation", "shutdown_low", "countdown", "test",
+                                                    "auto_muted", "shutdown_manual", "manual"):
+                return self._json_status(400, {"ok": False, "error": "bad_pattern"})
+            if os.environ.get("GG_MOCK_NOVIBE"):
+                return self._json_status(409, {"ok": False, "error": "unavailable",
+                                               "message": "no hardware PWM found; add the pwm-2chan overlay to config.txt"})
+            print("[VIBE] would vibrate", flush=True)
             return self._json({"ok": True})
 
         if path == "/api/buzzer/ui":
