@@ -709,7 +709,7 @@ model folder, or the camera.
 
 ## What the Android app uses today
 
-As of app version 9.11, when the Pi is out of reach the app uses Firebase as
+As of app version 10.0, when the Pi is out of reach the app uses Firebase as
 `FIREBASE.md` describes: it reads `/gg/state`, `/gg/alerts`, `/gg/snaps`,
 `/gg/preview`, `/gg/usage` and `/gg/pi`, writes `/gg/watchers/<clientId>`,
 and sends commands through `/gg/commands` and `/gg/results`.
@@ -719,7 +719,8 @@ On local Wi-Fi the app calls: `/api/state`, `/frame.jpg`,
 `/api/test_alert`, `/api/capture`, `/api/mute`, `/api/auto_mute`,
 `/api/alerts/read`, `/api/alerts/delete`, `/api/battery`,
 `/api/camera/reconnect`, `/api/restart`, `/api/net/details`,
-`/api/screen_saver`, `/api/screen`, `/api/auto_shutdown`, `/api/shutdown` and
+`/api/screen_saver`, `/api/screen`, `/api/auto_shutdown`, `/api/shutdown`,
+`/api/buzzer`, `/api/buzzer/test`, `/api/vibe`, `/api/vibe/test` and
 `/api/client/bye`. It sends all six `X-GG-*` headers on these calls. It does
 not use `/stream.mjpg`, `/api/window`, `/api/net/ipv4` or the Wi-Fi setup
 endpoints.

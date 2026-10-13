@@ -336,6 +336,58 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         refreshAlerts()
     }
 
+    // ---------- Pi buzzer ----------
+
+    override suspend fun setBuzzer(changes: Map<String, Any>) {
+        post("/api/buzzer", JSONObject(changes))
+        pollState()
+    }
+
+    override suspend fun setVibe(on: Boolean?, strength: String?) {
+        val body = JSONObject()
+        if (on != null) body.put("on", on)
+        if (strength != null) body.put("strength", strength)
+        post("/api/vibe", body)
+        pollState()
+    }
+
+    override suspend fun testBuzzer(sound: String) = post("/api/buzzer/test", JSONObject().put("sound", sound))
+
+    override suspend fun testVibe() = post("/api/vibe/test", JSONObject())
+
+    /**
+     * The buzzer fields of a state object. With [base], fields that are not
+     * in [o] keep their old value, which is how a command's answer is folded
+     * into the last state without reading the whole state again.
+     */
+    internal fun parseBuzzer(o: JSONObject, base: Buzzer? = null): Buzzer? {
+        if (base == null && !o.has("buzzer_on")) return null
+        val b = base ?: Buzzer()
+        fun flag(key: String, old: Boolean) = if (o.has(key) && !o.isNull(key)) o.optBoolean(key, old) else old
+        fun word(key: String, old: String) = if (o.has(key) && !o.isNull(key)) o.optString(key, old) else old
+        fun note(key: String, old: String?) = if (o.has(key)) text(o, key).ifEmpty { null } else old
+        return Buzzer(
+            on = flag("buzzer_on", b.on),
+            volume = word("buzzer_volume", b.volume),
+            alerts = flag("buzzer_alerts", b.alerts),
+            countdown = flag("buzzer_countdown", b.countdown),
+            ui = flag("buzzer_ui", b.ui),
+            repeat = flag("buzzer_repeat", b.repeat),
+            repeatS = if (o.has("buzzer_repeat_s")) o.optInt("buzzer_repeat_s", b.repeatS) else b.repeatS,
+            quietOn = flag("quiet_on", b.quietOn),
+            quietFrom = word("quiet_from", b.quietFrom),
+            quietTo = word("quiet_to", b.quietTo),
+            available = flag("buzzer_available", b.available),
+            note = note("buzzer_note", b.note),
+            quietNow = flag("quiet_now", b.quietNow),
+            quietNote = note("quiet_note", b.quietNote),
+            vibeOn = if (o.has("vibe_on") && !o.isNull("vibe_on")) o.optBoolean("vibe_on") else b.vibeOn,
+            vibeStrength = word("vibe_strength", b.vibeStrength),
+            vibeAvailable = flag("vibe_available", b.vibeAvailable),
+            vibeNote = note("vibe_note", b.vibeNote),
+        )
+    }
+
     override suspend fun networkDetails(): NetDetails? = try {
         parseNet(JSONObject(request("GET", "/api/net/details")))
     } catch (e: CancellationException) {
@@ -475,6 +527,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             screenWakeOnAlert = o.optBoolean("screen_wake_on_alert", true),
             screen = text(o, "screen").ifEmpty { "on" },
             screenNote = text(o, "screen_note").ifEmpty { null },
+            buzzer = parseBuzzer(o),
         )
     }
 

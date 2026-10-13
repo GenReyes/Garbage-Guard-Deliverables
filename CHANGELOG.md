@@ -4,6 +4,31 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 10: Pi buzzer and vibration card (2026-10-13)
+
+App side of `Mobile App/BUZZER_APP.md`. Works on the Pi's Wi-Fi and through
+Firebase.
+
+### App
+
+- New "Pi buzzer" card in Settings, the twin of the dashboard's Sound card:
+  master switch, volume, alerts, countdown and shutdown, button sounds,
+  repeat alarm and its interval, and quiet hours with From and Until shown
+  in 12-hour time. Under it, the vibration motor's own switch and strength.
+- Test alarm, Test tune and Test vibration keys. Each locks until the Pi
+  answers, like every other command key.
+- One Save for the card. It sends only the fields that changed: one
+  command for the buzzer and one for the vibration motor, each only if
+  something of its own changed.
+- Warning lines when the buzzer or the motor is not available (with the
+  Pi's reason), when quiet hours are silencing the buzzer now, and when the
+  Pi's clock is not synchronised.
+- Through Firebase the Pi's answer to a buzzer command is used to update
+  the card, so no extra read of the state is made. A test reads nothing
+  back. Test vibration has no Firebase command and is offered on Wi-Fi only.
+- The card is hidden on a Pi without buzzer fields, and the vibration rows
+  on a Pi without a motor.
+
 ## App version 9.11: closing the app ends the session; demo link (2026-10-13)
 
 ### App

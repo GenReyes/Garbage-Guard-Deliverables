@@ -32,6 +32,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     private val _state = MutableStateFlow(
         LiveState(
             screenMode = "off",
+            buzzer = Buzzer(vibeOn = true),
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
                 RoiPoint(0.55f, 0.92f), RoiPoint(0.08f, 0.82f),
@@ -216,6 +217,35 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             delay(9000)
             shutdownState = "armed"
             _state.update { it.copy(conn = ConnState.ONLINE) }
+        }
+    }
+
+    // ---------- Pi buzzer, invented so the demo can show it ----------
+
+    override suspend fun setBuzzer(changes: Map<String, Any>) {
+        _state.update { s ->
+            val b = s.buzzer ?: return@update s
+            s.copy(
+                buzzer = b.copy(
+                    on = changes["on"] as? Boolean ?: b.on,
+                    volume = changes["volume"] as? String ?: b.volume,
+                    alerts = changes["alerts"] as? Boolean ?: b.alerts,
+                    countdown = changes["countdown"] as? Boolean ?: b.countdown,
+                    ui = changes["ui"] as? Boolean ?: b.ui,
+                    repeat = changes["repeat"] as? Boolean ?: b.repeat,
+                    repeatS = (changes["repeat_s"] as? Int ?: b.repeatS).coerceIn(10, 300),
+                    quietOn = changes["quiet_on"] as? Boolean ?: b.quietOn,
+                    quietFrom = changes["quiet_from"] as? String ?: b.quietFrom,
+                    quietTo = changes["quiet_to"] as? String ?: b.quietTo,
+                )
+            )
+        }
+    }
+
+    override suspend fun setVibe(on: Boolean?, strength: String?) {
+        _state.update { s ->
+            val b = s.buzzer ?: return@update s
+            s.copy(buzzer = b.copy(vibeOn = on ?: b.vibeOn, vibeStrength = strength ?: b.vibeStrength))
         }
     }
 

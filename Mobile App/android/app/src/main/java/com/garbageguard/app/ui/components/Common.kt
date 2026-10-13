@@ -349,7 +349,7 @@ fun accentOf(icon: ImageVector): Color {
         "bell", "trash", "x", "eraser", "warn", "nolink" -> c.bad
         "eyeoff", "bellauto", "wrench", "undo", "sun", "bolt", "gauge", "poly" -> c.warnText
         "shutter", "cam", "eye", "check", "ok", "refresh", "gear", "pen", "save", "shield", "target" -> c.teal
-        "link", "edit", "signal", "filter", "layers", "bottle", "expand", "shrink" -> c.bottle
+        "link", "edit", "signal", "filter", "layers", "bottle", "expand", "shrink", "speaker" -> c.bottle
         "clock", "moon", "sunmoon", "phone", "cal", "bag", "activity", "mail" -> c.bag
         "cloud", "key", "power" -> c.cloud
         "battery", "plug", "container", "up" -> c.container
@@ -625,6 +625,8 @@ fun Stepper(
     value: Int, unit: String, onMinus: () -> Unit, onPlus: () -> Unit,
     /** Name of the lock this field obeys. The keys stop answering while its value is on the way to the Pi. */
     lock: String? = null,
+    /** Shown in place of the number, for values that are not plain numbers, such as a time of day. */
+    text: String? = null,
 ) {
     val c = Gg.colors
     val look = lockLook(lock)
@@ -638,7 +640,7 @@ fun Stepper(
         ) {
             // The unit is mirrored by an equal blank on the left, so the number stays in the middle.
             Box(Modifier.width(44.dp))
-            T("$value", Modifier.weight(1f), size = 1.35f, weight = FontWeight.Black, align = TextAlign.Center, tnum = true)
+            T(text ?: "$value", Modifier.weight(1f), size = 1.35f, weight = FontWeight.Black, align = TextAlign.Center, tnum = true, maxLines = 1)
             T(unit, Modifier.width(44.dp), size = 0.8f, color = c.muted, align = TextAlign.End, maxLines = 1)
         }
         Box(Modifier.width(2.dp).height(48.dp).background(c.edge))

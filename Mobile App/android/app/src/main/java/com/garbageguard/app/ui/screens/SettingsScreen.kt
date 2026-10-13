@@ -124,6 +124,8 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
 
         PowerCard(vm, state, battery)
 
+        BuzzerCard(vm, state)
+
         GgCard {
             Hd(GgIcons.Bell, "Alerts")
             val granted = vm.notifications == PermState.ON
@@ -290,7 +292,7 @@ private fun UsageBar(u: CloudUsage) {
 
 /** .field */
 @Composable
-private fun Field(icon: ImageVector, label: String, content: @Composable () -> Unit) {
+internal fun Field(icon: ImageVector, label: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Ico(icon, size = 14.dp, tint = accentOf(icon))
@@ -308,7 +310,7 @@ private fun Pair2(content: @Composable androidx.compose.foundation.layout.RowSco
 
 /** .row */
 @Composable
-private fun SettingRow(label: String, sub: String, icon: ImageVector, trailing: @Composable () -> Unit) {
+internal fun SettingRow(label: String, sub: String, icon: ImageVector, trailing: @Composable () -> Unit) {
     Row(
         Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -433,7 +435,7 @@ private fun PowerCard(vm: AppViewModel, state: LiveState, battery: Battery) {
 
 /** Says where a card's changes stand: about to go, on their way to the Pi, or nothing pending. */
 @Composable
-private fun SendingTag(vm: AppViewModel, key: String, changed: Boolean, idle: String = "CHANGED") {
+internal fun SendingTag(vm: AppViewModel, key: String, changed: Boolean, idle: String = "CHANGED") {
     val c = Gg.colors
     val phase = vm.locks[key]?.phase
     val text = when {

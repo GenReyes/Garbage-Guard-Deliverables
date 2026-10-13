@@ -1,5 +1,7 @@
 # Pi Buzzer Card: What the App Should Add
 
+**Status: built in app version 10.** The rest of this file is kept as the record of what was agreed.
+
 The Pi now has a passive buzzer in its case. It plays a short tune for each
 History event, repeats the alarm while an alert is raised and not muted, and
 can be silenced for a daily window (quiet hours). The dashboard's Settings tab

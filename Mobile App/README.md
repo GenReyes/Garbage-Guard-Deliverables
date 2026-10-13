@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v9.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
+| `Garbage-Guard v10.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
 | `BUZZER_APP.md` | What the app needs to add for the Pi's buzzer: the card, the fields, the warnings, and how to try it on the mock server. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
@@ -34,6 +34,8 @@ few seconds.
   area (drawn on the live picture), light and dark theme, network details,
   connected phones, and restarting Garbage-Guard on the Pi.
 - **Pi battery:** the UPS HAT readout in the header, with full details on tap.
+- **Pi buzzer:** the buzzer's switch, volume, alarm repeat and quiet hours, the
+  vibration motor's switch and strength, and Test keys for each.
 - **Pi power:** the Pi's screen saver, waking or sleeping its screen from the
   phone, the low-battery auto shutdown with a countdown banner and Cancel,
   and a Shut down button. To try the countdown with no Pi, run the mock
@@ -92,7 +94,7 @@ gg.fb.password=<phone account password>
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v9.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v10.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 

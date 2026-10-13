@@ -57,6 +57,8 @@ data class LiveState(
     val screen: String = "on",
     /** A sentence from the Pi when the screen could not do what was asked. */
     val screenNote: String? = null,
+    /** The Pi's buzzer and vibration motor. Null on a Pi that has neither. */
+    val buzzer: Buzzer? = null,
 )
 
 /** One phone or browser from the "viewers" list in GET /api/state. */
@@ -204,4 +206,35 @@ data class CloudUsage(
     val level: String,
     /** A sentence to show beside the picture when the Pi has slowed or stopped the preview. */
     val note: String?,
+)
+
+/**
+ * The Pi's buzzer settings and what it reports about itself, from the
+ * buzzer_*, quiet_* and vibe_* fields of GET /api/state.
+ */
+data class Buzzer(
+    val on: Boolean = true,
+    /** "low", "medium" or "high". */
+    val volume: String = "medium",
+    val alerts: Boolean = true,
+    val countdown: Boolean = true,
+    val ui: Boolean = false,
+    val repeat: Boolean = true,
+    val repeatS: Int = 30,
+    val quietOn: Boolean = false,
+    /** HH:MM on the Pi's clock. */
+    val quietFrom: String = "22:00",
+    val quietTo: String = "06:00",
+    /** False when the buzzer could not start; [note] says why. */
+    val available: Boolean = true,
+    val note: String? = null,
+    /** True while quiet hours are silencing the buzzer. */
+    val quietNow: Boolean = false,
+    /** Set when the Pi's clock is not synchronised, so quiet hours are not applied. */
+    val quietNote: String? = null,
+    /** The vibration motor. Null on a Pi without one. */
+    val vibeOn: Boolean? = null,
+    val vibeStrength: String = "medium",
+    val vibeAvailable: Boolean = true,
+    val vibeNote: String? = null,
 )

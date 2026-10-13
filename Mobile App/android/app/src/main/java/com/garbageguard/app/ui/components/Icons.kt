@@ -319,6 +319,13 @@ object GgIcons {
             p("M5.5 5.5 12 12l-6.5 6.5")
         }
     }
+    val Speaker by lazy {
+        icon("speaker") {
+            p("M4 9.5h3.5L12 5.5v13l-4.5-4H4z")
+            p("M15.5 9a4.2 4.2 0 0 1 0 6")
+            p("M18 6.5a7.6 7.6 0 0 1 0 11")
+        }
+    }
     val Power by lazy {
         icon("power") {
             p("M12 3v8.5")
