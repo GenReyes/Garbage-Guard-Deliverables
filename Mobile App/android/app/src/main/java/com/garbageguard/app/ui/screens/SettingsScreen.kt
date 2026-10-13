@@ -67,7 +67,7 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
     ) {
         GgCard {
             Hd(GgIcons.Gear, "Detection settings") {
-                SendingTag(vm, "detect", dirty)
+                SendingTag(vm, "detect", dirty, idle = "UNSAVED")
             }
             Field(GgIcons.Eye, "Detection confidence") {
                 Stepper(conf, "%", onMinus = { vm.step(conf = true, delta = -5) }, onPlus = { vm.step(conf = true, delta = 5) }, lock = "detect")
@@ -77,8 +77,10 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 Stepper(limit, "items", onMinus = { vm.step(conf = false, delta = -1) }, onPlus = { vm.step(conf = false, delta = 1) }, lock = "detect")
                 Hint("Alert fires here, resets below ${rearmFor(limit).coerceAtLeast(1)}.", icon = GgIcons.Warn)
             }
-            GgButton("Test alert", vm::testAlert, Modifier.fillMaxWidth(), icon = GgIcons.Bell, lock = "test")
-            Hint("Changes send themselves a second after the last press.", icon = GgIcons.Clock)
+            Pair2 {
+                GgButton("Save", vm::saveSettings, Modifier.weight(1f), icon = GgIcons.Save, kind = BtnKind.INK, enabled = dirty, lock = "detect")
+                GgButton("Test alert", vm::testAlert, Modifier.weight(1f), icon = GgIcons.Bell, lock = "test")
+            }
         }
 
         GgCard {
@@ -403,12 +405,13 @@ private fun PowerCard(vm: AppViewModel, state: LiveState, battery: Battery) {
 
 /** Says where a card's changes stand: about to go, on their way to the Pi, or nothing pending. */
 @Composable
-private fun SendingTag(vm: AppViewModel, key: String, changed: Boolean) {
+private fun SendingTag(vm: AppViewModel, key: String, changed: Boolean, idle: String = "CHANGED") {
     val c = Gg.colors
     val phase = vm.locks[key]?.phase
     val text = when {
         phase == LockPhase.WAITING -> "SENDING"
-        phase == LockPhase.ARMING || changed -> "CHANGED"
+        phase == LockPhase.ARMING -> "CHANGED"
+        changed -> idle
         else -> return
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {

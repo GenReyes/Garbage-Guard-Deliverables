@@ -700,8 +700,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // A value stepped back to what the Pi already has is no longer a change.
         if (draftConf == Math.round(state.value.conf * 100)) draftConf = null
         if (draftLimit == state.value.threshold) draftLimit = null
-        arm(LOCK_DETECT, ::sendDetection)
     }
+
+    /** Detection settings change what raises an alert, so they go only when Save is pressed. */
+    fun saveSettings() = sendDetection()
 
     fun testAlert() = launchAction("Test alert logged", key = LOCK_TEST) { repo.testAlert() }
 

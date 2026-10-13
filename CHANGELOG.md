@@ -4,6 +4,15 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 9.9: Save is back for detection settings (2026-10-13)
+
+### App
+
+- Detection confidence and the accumulation limit go to the Pi only when
+  Save is pressed, since they decide what raises an alert. Save and both
+  fields lock, grey and show the running line until the Pi answers.
+- The Pi power fields still send themselves a second after the last press.
+
 ## App version 9.8: wait for the Pi before a second press (2026-10-13)
 
 ### App

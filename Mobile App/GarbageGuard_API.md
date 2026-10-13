@@ -686,7 +686,7 @@ model folder, or the camera.
 
 ## What the Android app uses today
 
-As of app version 9.8, when the Pi is out of reach the app uses Firebase as
+As of app version 9.9, when the Pi is out of reach the app uses Firebase as
 `FIREBASE.md` describes: it reads `/gg/state`, `/gg/alerts`, `/gg/snaps`,
 `/gg/preview`, `/gg/usage` and `/gg/pi`, writes `/gg/watchers/<clientId>`,
 and sends commands through `/gg/commands` and `/gg/results`.
