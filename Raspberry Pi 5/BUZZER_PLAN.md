@@ -181,7 +181,7 @@ be installed into it (or the environment made with system packages visible).
 - **Settings** (saved in `gg_settings.json`): `buzzer_on` (true),
   `buzzer_volume` (low, medium, high), `buzzer_alerts` (true),
   `buzzer_countdown` (true), `buzzer_ui` (false), `buzzer_repeat` (true),
-  `buzzer_repeat_s` (60, allowed 10 to 300), `quiet_on` (false),
+  `buzzer_repeat_s` (30, allowed 10 to 300), `quiet_on` (false),
   `quiet_from` ("22:00"), `quiet_to` ("06:00"), `vibe_on` (true),
   `vibe_strength` (low, medium, high).
   Volume is the PWM duty cycle: 50% is loudest, and lower duty is quieter.
@@ -271,9 +271,9 @@ Decided with Gen:
 - A third Settings tab holds Power, Sound and vibration and Clock; Monitor keeps
   Detection settings and Monitored area and no longer scrolls.
 
+- The alarm repeat interval defaults to 30 seconds.
+
 Still open:
-1. **Repeat interval default.** It is the quiet gap between repeats of the
-   alarm while the alert is still raised and not muted. 60 seconds is the plan's
-   default; 30 is more urgent, 120 is gentler.
-2. **The stack.** A photo of the UPS HAT on the Pi 5, to confirm pins 32, 33,
-   34, 17 and 1 are reachable.
+1. **The stack.** A photo of the UPS HAT on the Pi 5, to confirm pins 32, 33,
+   34, 17 and 1 are reachable. Needed before the wires are fixed, not before
+   the code is written.
