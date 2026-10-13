@@ -142,9 +142,10 @@ Why 3.3 V and not 5 V for the buzzer: a low level trigger module powered from
 constantly. At 3.3 V it behaves. The motor module can move to 5 V (pin 2 or 4)
 later if its vibration is too weak, once its input logic is known.
 
-The pin numbers assume the header is reachable. How the UPS HAT (E) sits on
-the Pi 5 decides that, so a photo of the stack, or the HAT's pinout page, is
-needed before the wires are fixed.
+The header is reachable: a photo of the Pi shows the NVMe HAT passing the full
+40-pin header through, with long pins standing clear above it, so female jumper
+wires push straight onto the pins and nothing needs soldering. Before fixing the
+wires, run `pinout` on the Pi to confirm which end is pin 1.
 
 **Software PWM or hardware PWM.** Two ways to make the tone:
 - `gpiozero` with `lgpio` (the Pi 5's GPIO library; the old `RPi.GPIO` does not
@@ -275,7 +276,7 @@ Decided with Gen:
 
 - The alarm repeat interval defaults to 30 seconds.
 
-Still open:
-1. **The stack.** A photo of the UPS HAT on the Pi 5, to confirm pins 32, 33,
-   34, 17 and 1 are reachable. Needed before the wires are fixed, not before
-   the code is written.
+Resolved: the stack. The header is exposed (see section 5).
+
+Still open: nothing blocks the code. The bench tests in section 8 settle the
+frequencies and the choice of PWM.
