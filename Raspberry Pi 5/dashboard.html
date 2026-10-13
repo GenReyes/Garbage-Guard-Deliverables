@@ -300,6 +300,13 @@ button,input{font:inherit;color:inherit}
 .pill.offline .ico{color:var(--bad)}
 .ctl{display:flex;flex-direction:column;gap:6px;justify-content:center}
 .ctl-row{display:flex;gap:6px}
+.clk{display:flex;align-items:center;justify-content:center;gap:6px;border:2px solid var(--edge);
+  border-radius:999px;background:linear-gradient(162deg,var(--lite),var(--raised));
+  box-shadow:var(--hard-sm), var(--soft-sm);padding:3px 8px;font-weight:800;font-size:12px;
+  white-space:nowrap;cursor:default;font-variant-numeric:tabular-nums}
+.clk .ico{width:14px;height:14px;color:var(--purple);flex:none}
+.clk.warn{color:#9A6A00;border-color:var(--warn)} .clk.warn .ico{color:var(--warn)}
+[data-theme="dark"] .clk.warn{color:var(--warn)}
 .ctl-row .pill{flex:1;min-width:0;justify-content:center}
 /* phone badge: grey when no app is polling, teal with a beating dot when the
    mobile app is, blue when only a browser on another device is watching */
@@ -1310,6 +1317,7 @@ a.btn{text-decoration:none}
       <button class="btn sm" id="miniBtn" type="button" title="Minimize" aria-label="Minimize dashboard">
         <svg class="ico"><use href="#i-mini"/></svg></button>
     </div>
+    <div class="clk" id="clk" title="Philippine time"><svg class="ico"><use href="#i-clock"/></svg><span id="clkTxt"></span></div>
   </div>
 </header>
 
@@ -2014,9 +2022,7 @@ function setFsPanel(s){
   $("fsLat").textContent = s.latency_ms;
   $("fsLatAvg").textContent = s.avg_latency_ms;
   $("fsFps").textContent = s.cam_fps ? s.cam_fps.toFixed(1) : "–";
-  $("fsTime").textContent = new Date().toLocaleString(undefined,
-    {year:"numeric", month:"2-digit", day:"2-digit",
-     hour:"2-digit", minute:"2-digit", second:"2-digit"});
+  tickClock();
   const c = s.counts || {};
   $("fsBottle").textContent = c.bottle || 0;
   $("fsBag").textContent = c.bag || 0;
@@ -2083,10 +2089,41 @@ $("logs").addEventListener("click", e => {
   const d = e.target.closest("[data-del]");
   if(d){
     const a = view[Number(d.dataset.del)];
-    askDelete(`Delete this ${((EVENTS[a.event]||["record"])[0]).toLowerCase()} from ${(a.timestamp||"").replace("T"," ")}?`,
+    askDelete(`Delete this ${((EVENTS[a.event]||["record"])[0]).toLowerCase()} from ${stamp(a.timestamp).short}?`,
               {ids:[a.id]});
   }
 });
+
+/* Times are shown in 12-hour form. The clock is always Philippine time, whatever
+   the device viewing it is set to. Stored record times are the Pi's own local time. */
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const t12 = (h, m, sec) => `${h % 12 || 12}:${String(m).padStart(2,"0")}${sec == null ? "" : ":" + String(sec).padStart(2,"0")} ${h < 12 ? "AM" : "PM"}`;
+function stamp(ts){
+  const m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)(?::(\d\d))?/.exec(ts || "");
+  if(!m) return {day: "", tm: "", short: ts || ""};
+  const day = `${Number(m[3])} ${MON[Number(m[2]) - 1]} ${m[1]}`;
+  const tm = t12(Number(m[4]), Number(m[5]), m[6] == null ? null : Number(m[6]));
+  return {day, tm, short: `${day}, ${t12(Number(m[4]), Number(m[5]))}`};
+}
+const PH = new Intl.DateTimeFormat("en-US", {timeZone: "Asia/Manila", weekday: "short", day: "numeric",
+  month: "short", year: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true});
+function phNow(){
+  const p = {};
+  for(const x of PH.formatToParts(new Date())) p[x.type] = x.value;
+  const h = Number(p.hour) % 12 || 12, ap = p.dayPeriod.toUpperCase();
+  return {head: `${p.weekday} ${p.day} ${p.month}, ${h}:${p.minute} ${ap}`,
+          full: `${p.day} ${p.month} ${p.year}, ${h}:${p.minute}:${p.second} ${ap}`};
+}
+let clockSynced = true;
+function tickClock(){
+  const n = phNow();
+  $("clk").classList.toggle("warn", !clockSynced);
+  $("clkTxt").textContent = clockSynced ? n.head : "Clock not synced";
+  $("clk").title = clockSynced ? "Philippine time"
+    : "The Pi's clock is not synchronised, so this time may be wrong. " + n.head;
+  if(fsOn) $("fsTime").textContent = (clockSynced ? "" : "⚠ ") + n.full;
+}
+setInterval(tickClock, 1000);
 
 function openViewer(i){
   const a = view[i];
@@ -2094,8 +2131,8 @@ function openViewer(i){
   const src = "/snapshots/" + encodeURIComponent(a.snapshot);
   $("vImg").src = src; $("zImg").src = src;
   const ev = EVENTS[a.event] || [a.event || "Snapshot", "i-shutter"];
-  const ts = (a.timestamp||"").replace("T"," ");
-  const [day, tm] = [ts.slice(0,10), ts.slice(11,19)];
+  const st = stamp(a.timestamp), ts = st.short;
+  const [day, tm] = [st.day, st.tm];
   for(const id of ["vEv","zEv"]){
     $(id).className = "ev " + (a.event||"");
     $(id).innerHTML = `<svg class="ico"><use href="#${ev[1]}"/></svg>${ev[0]}`;
@@ -2265,7 +2302,7 @@ function renderPage(){
     return `<div class="lr ${a.event||""} ${a.read ? "read" : "unread"} ${urgent ? "urgent" : ""}" role="row">
       <div class="c-rd" role="cell"><button class="dot" type="button" data-read="${i}"
           aria-label="${a.read ? "Mark as unread" : "Mark as read"}" title="${a.read ? "Mark as unread" : "Mark as read"}"></button></div>
-      <div role="cell">${(a.timestamp||"").replace("T"," ")}</div>
+      <div role="cell">${stamp(a.timestamp).short}</div>
       <div role="cell"><span class="ev ${a.event||""}"><svg class="ico"><use href="#${ev[1]}"/></svg>${ev[0]}</span></div>
       <div class="c-n" role="cell">${NO_COUNT.includes(a.event)
             ? `<svg class="ico"><use href="#${ev[1]}"/></svg>` : a.smoothed_count}</div>
@@ -2341,6 +2378,7 @@ async function refresh(){
   try{
     const s = await (await fetch("/api/state")).json();
     last = s;
+    clockSynced = s.clock_synced !== false; tickClock();
     setLink(s.connected ? "online" : "nocam");
     cloud = s.cloud || null;
     setViewers(s.viewers);

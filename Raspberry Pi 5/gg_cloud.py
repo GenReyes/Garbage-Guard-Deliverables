@@ -54,7 +54,7 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
               "avg_latency_ms", "fps", "cam_fps", "alert_active", "muted", "mute_left", "mute_total",
               "auto_mute", "auto_mute_s", "auto_muted", "frames", "uptime_s", "reconnects",
               "screen", "screen_mode", "screen_timeout_s", "screen_timeout_battery_s",
-              "screen_dim_pct", "screen_wake_on_alert", "screen_note")
+              "screen_dim_pct", "screen_wake_on_alert", "screen_note", "clock_synced")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 

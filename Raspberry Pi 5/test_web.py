@@ -112,6 +112,11 @@ class ApiTests(unittest.TestCase):
         code, st = self.call("/api/state")
         self.assertEqual((st["screen"], st["screen_mode"], st["screen_timeout_battery_s"]), ("on", "off", 60))
 
+    def test_state_carries_clock(self):
+        code, st = self.call("/api/state")
+        self.assertIn(st["clock_synced"], (True, False))
+        self.assertEqual(st["clock_zone"], "Asia/Manila")
+
     def test_screen_saver_settings_are_clamped(self):
         code, res = self.call("/api/screen_saver", {"mode": "dim", "timeout_s": 5, "dim_pct": 90})
         self.assertEqual((res["ok"], res["screen_mode"], res["screen_timeout_s"], res["screen_dim_pct"]),

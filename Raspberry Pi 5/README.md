@@ -27,6 +27,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_web.py` | Unit tests for the connected-phone tracking in `gg_web.py`. |
 | `gg_cloud.py` | Firebase sync. Copies state, history, compressed snapshots and a preview still to a Firebase Realtime Database, and runs commands phones leave there. Uses only the Python standard library plus OpenCV, so nothing new to install. |
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
+| `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
+| `test_clock.py` | Unit tests for `gg_clock.py`. |
 | `gg_usage.py` | Estimates how much of Firebase's free monthly allowance has been used, and slows or stops the preview before it runs out. |
 | `test_usage.py` | Unit tests for `gg_usage.py`. |
 | `gg_screen.py` | The Pi screen saver: turns the HDMI output off (or dims) after a timer, shorter on battery, wakes on touch or alert. |
@@ -102,6 +104,7 @@ python3 test_snapcard.py
 python3 test_web.py
 python3 test_cloud.py
 python3 test_usage.py
+python3 test_clock.py
 python3 test_screen.py
 python3 test_touch.py
 python3 test_power.py

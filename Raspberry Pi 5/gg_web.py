@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlparse
 
 import gg_cloud
 import gg_net
+import gg_clock
 import gg_power
 import gg_screen
 import gg_ups
@@ -164,11 +165,12 @@ def viewers(now=None):
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
 
-def make_handler(engine, net=None, ups=None, screen=None, power=None):
+def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None):
     net = net or gg_net.make_net()
     ups = ups or gg_ups.Ups()
     screen = screen or gg_screen.Screen(engine.settings, ups=ups)
     power = power or gg_power.Power(engine.settings, ups=ups, screen=screen)
+    clock = clock or gg_clock.Clock()
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -256,6 +258,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None):
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
                 st.update(screen.fields())
+                st.update(clock.fields())
                 st["cloud"] = {k: gg_cloud.STATUS.get(k)
                                for k in ("enabled", "ok", "error", "watchers", "usage")}
                 return self._json(st)

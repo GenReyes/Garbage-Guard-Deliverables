@@ -45,6 +45,23 @@ new fields.
   instead of being fetched every 2 s. Polling takes over while a stream is
   down. Stream traffic is counted in the usage estimate.
 
+## Pi dashboard clock in Philippine time (2026-10-13)
+
+### Pi
+
+- A new line under the Dark button shows the date and time in Philippine time
+  (for example "Tue 13 Oct, 9:16 PM"), whatever time zone the viewing device is
+  set to. The fullscreen view's clock follows it, with seconds.
+- Every time on the dashboard is now 12-hour with AM or PM, including the
+  History list, the snapshot viewer and the delete confirmation.
+- The Pi has no battery-backed clock, so after a power cut with no internet its
+  time can be wrong. The state now carries `clock_synced` (from
+  `timedatectl`) and `clock_zone` (`Asia/Manila`). When the clock is not
+  synchronised the pill turns amber and reads "Clock not synced". If the Pi
+  cannot tell, it reports synced rather than nagging.
+- New `gg_clock.py` and `test_clock.py`. Stored record times are unchanged
+  (the Pi's local time, `YYYY-MM-DD HH:MM:SS`).
+
 ## Pi dashboard Settings tab (2026-10-13)
 
 - A third tab, **Settings**, next to Monitor and History. The Power card moved
