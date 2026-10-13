@@ -89,9 +89,9 @@ while a higher one is playing is dropped, not queued, so sounds never pile up.
 - **Quiet hours.** An optional daily window, with a start and an end time, that
   silences the buzzer and the vibration motor. The phone notification and the
   dashboard banner still appear, and History still records everything. Wrapping
-  past midnight (22:00 to 06:00) works. The one exception is the 5% floor
-  warning, which cannot be cancelled and protects the data, so it still sounds.
-  The window uses the Pi's clock. The Pi has no battery-backed clock, so with no
+  past midnight (22:00 to 06:00) works. There is no exception: the 5% floor
+  warning is silent too, and the dashboard banner and the phone are what warn
+  then. The window uses the Pi's clock. The Pi has no battery-backed clock, so with no
   internet at a field site its time can be wrong; if the clock has not been
   synchronised, quiet hours are not applied and the card says why.
 - **Quiet by default for the small things.** Button sounds are off unless
@@ -124,10 +124,27 @@ connects straight to a PWM pin and no transistor or diode is needed. PWM duty
 sets the strength. At 5 V it can draw around 100 mA, which the Pi's 5 V pin can
 supply, but check how it behaves when the battery is low.
 
-**Pins.** The Pi 5's PWM is on GPIO12 and GPIO13 (also 18 and 19; confirm on the
-board's pinout). Two outputs, one for the buzzer and one for the motor, can use
-the `pwm-2chan` overlay. Keep GPIO2 and GPIO3 free: the UPS HAT's battery
-readings use I2C. Check the HAT's own pinout before choosing pins.
+**Pins.** Only two PWM pins are needed, one signal pin per module, and the two
+3.3 V pins are more than enough for power:
+
+| Wire | Buzzer module | Vibration motor module |
+|---|---|---|
+| IN (signal) | GPIO12, physical pin 32 | GPIO13, physical pin 33 |
+| VCC | 3.3 V, pin 17 | 3.3 V, pin 1 |
+| GND | pin 34 (next to 32 and 33) | pin 39 or any ground |
+
+GPIO12 and GPIO13 are the two channels of the same PWM block, so one
+`pwm-2chan` overlay covers both (confirm on the bench). Keep GPIO2 and GPIO3
+(physical pins 3 and 5) free: the UPS HAT's battery readings use I2C.
+
+Why 3.3 V and not 5 V for the buzzer: a low level trigger module powered from
+5 V can fail to switch off when the Pi's 3.3 V signal is high, so it buzzes
+constantly. At 3.3 V it behaves. The motor module can move to 5 V (pin 2 or 4)
+later if its vibration is too weak, once its input logic is known.
+
+The pin numbers assume the header is reachable. How the UPS HAT (E) sits on
+the Pi 5 decides that, so a photo of the stack, or the HAT's pinout page, is
+needed before the wires are fixed.
 
 **Software PWM or hardware PWM.** Two ways to make the tone:
 - `gpiozero` with `lgpio` (the Pi 5's GPIO library; the old `RPi.GPIO` does not
@@ -164,7 +181,7 @@ be installed into it (or the environment made with system packages visible).
 - **Settings** (saved in `gg_settings.json`): `buzzer_on` (true),
   `buzzer_volume` (low, medium, high), `buzzer_alerts` (true),
   `buzzer_countdown` (true), `buzzer_ui` (false), `buzzer_repeat` (true),
-  `buzzer_repeat_s` (30, allowed 10 to 300), `quiet_on` (false),
+  `buzzer_repeat_s` (60, allowed 10 to 300), `quiet_on` (false),
   `quiet_from` ("22:00"), `quiet_to` ("06:00"), `vibe_on` (true),
   `vibe_strength` (low, medium, high).
   Volume is the PWM duty cycle: 50% is loudest, and lower duty is quieter.
@@ -185,8 +202,27 @@ be installed into it (or the environment made with system packages visible).
 
 ## 7. Dashboard and app
 
-**Dashboard.** A "Sound" section in the Power card (or its own card if the
-Power card gets too long): a master switch, a Low / Medium / High volume bar,
+**Dashboard: a third tab, Settings.** The Monitor tab keeps only what an
+operator adjusts while watching: Detection settings and Monitored area. The
+Power card moves to Settings, where it is split in two so each fits without
+scrolling, and the new Sound and vibration card joins it:
+- **Screen** (saver mode, timers, dim, wake on alert, Sleep now)
+- **Power** (auto shutdown and its threshold, Shut down)
+- **Sound and vibration** (below)
+- **Clock** (below)
+
+At 1024 by 600 the Monitor side column has 409 px of room, and the two cards
+that stay there add up to 408 px, so Monitor needs no scrolling at all once
+Power leaves. The sound card is the tallest, so Settings may still need a short
+scroll; the layout will be checked in screenshots.
+
+**Clock.** The header shows the date and time in Philippine time (Asia/Manila),
+for example "Tue 13 Oct, 5:06 PM", always in that zone whatever the viewing
+device is set to. The fullscreen view's clock follows. If the Pi reports its
+clock is not synchronised, the pill turns amber with "Clock not synced", and
+quiet hours are not applied. New state field: `clock_synced`.
+
+**Sound and vibration card.** A master switch, a Low / Medium / High volume bar,
 switches for Alerts, Countdown and Button sounds, a Repeat switch with its
 interval, Quiet hours with a start and an end time (steppers like the other
 numbers, not a pop-up clock, which is awkward on a touchscreen), the vibration
@@ -222,23 +258,22 @@ be built without the Pi.
 ## 9. Decisions and what is still open
 
 Decided with Gen:
-- The parts are an MH-FMD buzzer module and a PWM vibration motor module with
+- The MH-FMD is a **passive** buzzer module. A PWM vibration motor module with
   VCC, GND and IN pins, 3 to 5 V.
 - The buzzer will be inside the case, which has a hole for the sound.
 - The alarm repeats until muted from the phone or the dashboard, and the repeat
   can be switched off and its interval changed.
-- Quiet hours exist, with a start and an end time the user sets.
+- Quiet hours exist, with a start and an end time the user sets. Nothing sounds
+  during them, including the low battery warning.
+- The Pi's time zone is Manila, and the dashboard shows Philippine time.
+- The motor pulses with the alarm and the shutdown tune.
 - The touchscreen's button sounds exist but are off unless switched on.
+- A third Settings tab holds Power, Sound and vibration and Clock; Monitor keeps
+  Detection settings and Monitored area and no longer scrolls.
 
 Still open:
-1. **Is the MH-FMD passive?** Test it (section 5) before ordering or wiring
-   anything else.
-2. **Repeat interval default.** The plan says 30 seconds. Shorter is more
-   urgent; longer is less annoying.
-3. **The floor warning during quiet hours.** The plan lets it sound. Say if it
-   should stay silent too.
-4. **Time on the Pi.** Confirm the Pi's time zone is Asia/Manila and that it
-   gets the time from the internet at the place it will be used.
-5. **The motor's job.** What should it do on a fixed Pi: pulse with the alarm,
-   or only when the case is handled? Until then it pulses with the alarm and the
-   shutdown tune.
+1. **Repeat interval default.** It is the quiet gap between repeats of the
+   alarm while the alert is still raised and not muted. 60 seconds is the plan's
+   default; 30 is more urgent, 120 is gentler.
+2. **The stack.** A photo of the UPS HAT on the Pi 5, to confirm pins 32, 33,
+   34, 17 and 1 are reachable.
