@@ -4,6 +4,14 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: Test vibration over Firebase (2026-10-13)
+
+### Pi
+
+- New Firebase command `vibe_test` (`{}` or `{"pattern": "test"}`), so the app's
+  Test vibration key can work away from the Pi's Wi-Fi too. Needs a Pi update
+  and an app change to call it.
+
 ## App version 10: Pi buzzer and vibration card (2026-10-13)
 
 App side of `Mobile App/BUZZER_APP.md`. Works on the Pi's Wi-Fi and through

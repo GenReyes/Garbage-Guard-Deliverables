@@ -470,7 +470,7 @@ therefore also shakes it. `POST /api/vibe/test` with `{"pattern": "test"}` (that
 is the default, other patterns are `accumulation`, `shutdown_low`, `countdown`,
 `auto_muted`, `shutdown_manual`, `manual`) shakes it alone, `400 bad_pattern` for
 anything else and `409 unavailable` with `message` when it cannot run. Over
-Firebase this is the `vibe` command.
+Firebase these are the `vibe` and `vibe_test` commands.
 
 ### `POST /api/alerts/read`
 

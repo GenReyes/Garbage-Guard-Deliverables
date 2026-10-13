@@ -149,7 +149,7 @@ class CloudTests(unittest.TestCase):
         self.assertIn("pi", gg)
 
     def test_screen_and_power_commands_are_known(self):
-        for name in ("screen_saver", "screen", "auto_shutdown", "shutdown", "buzzer", "buzzer_test", "vibe"):
+        for name in ("screen_saver", "screen", "auto_shutdown", "shutdown", "buzzer", "buzzer_test", "vibe", "vibe_test"):
             self.assertIn(name, gc.COMMANDS)
         self.assertIn("screen_timeout_battery_s", gc.STATE_KEYS)
         self.assertIn("buzzer_on", gc.STATE_KEYS)

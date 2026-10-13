@@ -51,6 +51,7 @@ COMMANDS = {
     "buzzer": "/api/buzzer",
     "buzzer_test": "/api/buzzer/test",
     "vibe": "/api/vibe",
+    "vibe_test": "/api/vibe/test",
 }
 
 STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "roi", "latency_ms",

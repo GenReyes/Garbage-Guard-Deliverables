@@ -293,6 +293,7 @@ time-ordered key:
 | `auto_shutdown` | `{"on": true, "pct": 15}` or `{"cancel": true}` |
 | `buzzer` | `{"on": true, "volume": "medium", "alerts": true, "countdown": true, "ui": false, "repeat": true, "repeat_s": 30, "quiet_on": false, "quiet_from": "22:00", "quiet_to": "06:00"}` (any field) |
 | `vibe` | `{"on": true, "strength": "medium"}` (either field) |
+| `vibe_test` | `{}` or `{"pattern": "test"}`. Shakes the motor alone. |
 | `buzzer_test` | `{"sound": "accumulation"}` |
 | `shutdown` | `{"confirm": true}`. Powers the Pi off; the app must ask first. The result is written before the Pi goes offline, and the `manual_shutdown` history row follows within a few seconds. |
 
