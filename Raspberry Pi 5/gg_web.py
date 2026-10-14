@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 import gg_cloud
 import gg_net
 import gg_buzzer
+import gg_clean
 import gg_clock
 import gg_power
 import gg_screen
@@ -167,7 +168,8 @@ def viewers(now=None):
             "browsers": sum(r["kind"] == "browser" for r in rows), "list": rows}
 
 
-def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None, buzzer=None, vibe=None):
+def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None, buzzer=None, vibe=None,
+                 clean=None):
     net = net or gg_net.make_net()
     ups = ups or gg_ups.Ups()
     screen = screen or gg_screen.Screen(engine.settings, ups=ups)
@@ -175,6 +177,8 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
     clock = clock or gg_clock.Clock()
     buzzer = buzzer or gg_buzzer.Buzzer(engine.settings, backend=gg_buzzer.FakeBackend())
     vibe = vibe or gg_vibe.Vibe(engine.settings, backend=gg_buzzer.FakeBackend())
+    clean = clean or getattr(engine, "clean", None) or gg_clean.Clean(
+        engine.settings, getattr(engine, "snapshot_dir", "snapshots"))
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -265,6 +269,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                 st.update(clock.fields())
                 st.update(buzzer.fields())
                 st.update(vibe.fields())
+                st.update(clean.fields())
                 st["cloud"] = {k: gg_cloud.STATUS.get(k)
                                for k in ("enabled", "ok", "error", "watchers", "usage")}
                 return self._json(st)
@@ -281,6 +286,9 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
 
             if path == "/stream.mjpg":
                 return self._stream()
+
+            if path.startswith("/snapshots/clean/"):
+                return self._snapshot(path[len("/snapshots/clean/"):], gg_clean.FOLDER)
 
             if path.startswith("/snapshots/"):
                 return self._snapshot(path[len("/snapshots/"):])
@@ -433,6 +441,14 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
             if path == "/api/vibe":
                 return self._json({"ok": True, **vibe.configure(on=data.get("on"), strength=data.get("strength"))})
 
+            if path == "/api/clean":
+                mode = data.get("mode")
+                if mode not in gg_clean.MODES:
+                    return self._json({"ok": False, "error": "bad_mode"}, 400)
+                res = clean.configure(mode=mode)
+                buzzer.play("saved")
+                return self._json({"ok": True, **res})
+
             if path == "/api/vibe/test":
                 name = data.get("pattern", "test")
                 if name not in gg_vibe.PATTERNS:
@@ -474,10 +490,12 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
 
             return self._send(404, "text/plain", "not found")
 
-        def _snapshot(self, name):
+        def _snapshot(self, name, sub=None):
             if not SNAPSHOT_NAME.match(name):
                 return self._send(404, "text/plain", "not found")
             folder = Path(engine.snapshot_dir).resolve()
+            if sub:
+                folder = folder / sub
             target = (folder / name).resolve()
             if target.parent != folder or not target.is_file():
                 return self._send(404, "text/plain", "not found")
@@ -545,9 +563,11 @@ def restart_process(delay=0.6):
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
-def serve(engine, port=8080, ups=None, screen=None, power=None, buzzer=None, clock=None, vibe=None):
+def serve(engine, port=8080, ups=None, screen=None, power=None, buzzer=None, clock=None, vibe=None,
+          clean=None):
     server = QuietServer(("0.0.0.0", port), make_handler(engine, ups=ups, screen=screen, power=power,
-                                                         buzzer=buzzer, clock=clock, vibe=vibe))
+                                                         buzzer=buzzer, clock=clock, vibe=vibe,
+                                                         clean=clean))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

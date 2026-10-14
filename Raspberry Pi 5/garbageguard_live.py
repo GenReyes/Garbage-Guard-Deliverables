@@ -28,6 +28,7 @@ from ultralytics import YOLO
 
 from gg_counter import AccumulationCounter, DisplayIds, scale_polygon, tally
 import gg_buzzer
+import gg_clean
 import gg_clock
 import gg_cloud
 import gg_power
@@ -60,7 +61,8 @@ SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
                     "auto_mute": False, "auto_mute_s": 900,
-                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS, **gg_vibe.DEFAULTS}
+                    **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS, **gg_vibe.DEFAULTS,
+                    **gg_clean.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -241,6 +243,7 @@ class Engine:
         self.raw_frame = None
         self.annotated = None
         self.snapshot_dir = SNAPSHOT_DIR
+        self.clean = gg_clean.Clean(settings, SNAPSHOT_DIR, save=lambda: save_settings(settings))
         self.connected = False
         self.counts = {}
         self.raw_count = 0
@@ -424,6 +427,7 @@ class Engine:
             d = dict(r)
             name = Path(d["snapshot_path"]).name if d.get("snapshot_path") else None
             d["snapshot"] = name if name and (SNAPSHOT_DIR / name).is_file() else None
+            d["clean"] = gg_clean.name_if_present(SNAPSHOT_DIR, d["snapshot"])
             out.append(d)
         return out
 
@@ -455,14 +459,17 @@ class Engine:
                 continue
             try:
                 target = Path(sp).resolve()
-                if target.parent == folder and target.is_file():
-                    target.unlink()
-                    removed += 1
+                if target.parent == folder:
+                    gg_clean.remove(target)
+                    if target.is_file():
+                        target.unlink()
+                        removed += 1
             except OSError:
                 pass
         conn.execute(f"DELETE FROM alerts WHERE {clause}", args)
         conn.commit()
         conn.close()
+        self.clean.forget()
         return {"deleted": len(rows), "files_removed": removed}
 
     def _log_event(self, event, counts, raw, smoothed, peak, snap):
@@ -488,13 +495,21 @@ class Engine:
         with self.lock:
             src = self.annotated if self.annotated is not None else self.raw_frame
             frame = None if src is None else src.copy()
+            raw = None if self.raw_frame is None else self.raw_frame.copy()
+            peak = self.peak_conf
         if frame is None:
             return None
-        with self.lock:
-            peak = self.peak_conf
         frame = add_card(frame, tag, state, peak)
         path = SNAPSHOT_DIR / f"{tag}_{datetime.now():%Y%m%d_%H%M%S_%f}.jpg"
         cv2.imwrite(str(path), frame)
+        if raw is not None and self.clean.wanted(tag):
+            target = gg_clean.path_for(path)
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                cv2.imwrite(str(target), raw, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            except (OSError, cv2.error) as e:
+                print(f"[CLEAN] {e}", flush=True)
+            self.clean.forget()
         return path
 
     def fire_test_alert(self):
@@ -789,7 +804,7 @@ def main():
         vibe.start()
         buzzer.play("ready")
         gg_web.serve(engine, args.port, ups=ups, screen=screen, power=power,
-                     buzzer=buzzer, clock=clock, vibe=vibe)
+                     buzzer=buzzer, clock=clock, vibe=vibe, clean=engine.clean)
         gg_cloud.start(note=gg_web.note_viewer)
 
     try:

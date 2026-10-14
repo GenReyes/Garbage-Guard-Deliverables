@@ -4,6 +4,22 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: clean copies for labelling (2026-10-14)
+
+### Pi
+
+- Every snapshot can also save the camera picture alone, with no boxes, area
+  outline or info card, in `snapshots/clean/` under the same file name. It is
+  the exact frame the model judged, at the camera sub-stream's resolution.
+- A Clean copies chooser in the History header: Off, Manual (Capture only) or
+  All (also detection alerts, muted alerts and tests; the default). It shows
+  how many clean pictures there are and how much space they use.
+- The History viewer gets an Annotated / Clean switch for records that have
+  both. Deleting a record deletes both pictures.
+- API: `POST /api/clean`, `GET /snapshots/clean/<name>`, `clean_*` fields in
+  `/api/state`, a `clean` field on history rows. Firebase: `clean` command,
+  `clean_*` state, `has_clean` on history rows; clean pictures are not uploaded.
+
 ## Pi: sound plan from Brian (2026-10-14)
 
 ### Pi

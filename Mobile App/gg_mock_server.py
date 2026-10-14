@@ -121,6 +121,8 @@ STATE = {
     # Pi vibration motor (Raspberry Pi 5/gg_vibe.py).
     "vibe_on": True,
     "vibe_strength": "medium",
+    # Clean copies of snapshots (Raspberry Pi 5/gg_clean.py).
+    "clean_mode": "all",
 }
 
 BUZZER_SOUNDS = ("accumulation", "shutdown_low", "countdown", "test", "auto_muted",
@@ -155,7 +157,11 @@ def buzzer_fields():
         n = now.hour * 60 + now.minute
         quiet = (start <= n < end) if start < end else (n >= start or n < end)
     out = {k: STATE[k] for k in BUZZER_KEYS}
+    cleans = sum(1 for r in LOG if r.get("clean"))
     out.update({
+        "clean_mode": STATE["clean_mode"],
+        "clean_count": cleans,
+        "clean_bytes": cleans * 60000,
         "vibe_on": STATE["vibe_on"],
         "vibe_strength": STATE["vibe_strength"],
         "vibe_available": not os.environ.get("GG_MOCK_NOVIBE"),
@@ -256,6 +262,8 @@ def add_row(event, total, b, g, c, peak, when, with_image=True):
         "threshold_used": STATE["threshold"],
         "snapshot_path": f"/home/garbageguard/gg/snapshots/{event}_{rid}.jpg" if with_image else None,
         "snapshot": f"{event}_{rid}.jpg" if with_image else None,
+        "clean": f"{event}_{rid}.jpg" if with_image and (STATE["clean_mode"] == "all" or
+                                                        (STATE["clean_mode"] == "manual" and event == "manual")) else None,
         "read": 0,
     })
 
@@ -472,6 +480,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"alerts": LOG[:limit]})
         if path == "/frame.jpg":
             return self._send(200, "image/jpeg", FRAME)
+        if path.startswith("/snapshots/clean/"):
+            name = path[len("/snapshots/clean/"):]
+            if SNAPSHOT_NAME.match(name) and name in {r.get("clean") for r in LOG}:
+                return self._send(200, "image/jpeg", FRAME)
+            return self._send(404, "text/plain", "not found")
         if path.startswith("/snapshots/"):
             name = path[len("/snapshots/"):]
             known = {r["snapshot"] for r in LOG if r["snapshot"]}
@@ -617,6 +630,13 @@ class Handler(BaseHTTPRequestHandler):
                                                "message": "the lgpio library is not installed"})
             print(f"[BUZZER] would play {data['sound']}", flush=True)
             return self._json({"ok": True})
+
+        if path == "/api/clean":
+            if data.get("mode") not in ("off", "manual", "all"):
+                return self._json_status(400, {"ok": False, "error": "bad_mode"})
+            STATE["clean_mode"] = data["mode"]
+            f = buzzer_fields()
+            return self._json({"ok": True, **{k: f[k] for k in ("clean_mode", "clean_count", "clean_bytes")}})
 
         if path == "/api/vibe":
             if data.get("on") is not None:

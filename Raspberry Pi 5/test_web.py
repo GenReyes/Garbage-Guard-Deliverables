@@ -208,6 +208,37 @@ class ApiTests(unittest.TestCase):
         self.call("/api/settings", {"threshold": 5})
         self.assertEqual(last(), [2300, 2700])
 
+    def test_clean_copy_setting(self):
+        code, st = self.call("/api/state")
+        self.assertEqual((st["clean_mode"], st["clean_count"]), ("all", 0))
+        code, res = self.call("/api/clean", {"mode": "off"})
+        self.assertEqual((code, res["clean_mode"]), (200, "off"))
+        self.assertEqual(self.call("/api/clean", {"mode": "lots"})[0], 400)
+        self.assertEqual(self.call("/api/state")[1]["clean_mode"], "off")
+
+    def test_clean_pictures_are_served_from_their_folder(self):
+        import os
+        import tempfile
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        os.mkdir(os.path.join(d.name, "clean"))
+        with open(os.path.join(d.name, "clean", "capture_1.jpg"), "wb") as f:
+            f.write(b"CLEAN")
+        with open(os.path.join(d.name, "capture_1.jpg"), "wb") as f:
+            f.write(b"BOXES")
+        self.engine.snapshot_dir = d.name
+
+        def get(path):
+            try:
+                with urllib.request.urlopen(self.base + path, timeout=5) as r:
+                    return r.status, r.read()
+            except urllib.error.HTTPError as e:
+                return e.code, b""
+        self.assertEqual(get("/snapshots/clean/capture_1.jpg"), (200, b"CLEAN"))
+        self.assertEqual(get("/snapshots/capture_1.jpg"), (200, b"BOXES"))
+        self.assertEqual(get("/snapshots/clean/missing.jpg")[0], 404)
+        self.assertEqual(get("/snapshots/clean/..%2Fcapture_1.jpg")[0], 404)
+
     def test_state_carries_clock(self):
         code, st = self.call("/api/state")
         self.assertIn(st["clock_synced"], (True, False))

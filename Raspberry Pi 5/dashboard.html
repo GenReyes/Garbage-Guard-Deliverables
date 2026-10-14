@@ -1193,6 +1193,9 @@ body :is(div.seg,.fbar) button[aria-pressed="true"] .ico{opacity:1;color:var(--t
 body .fbar{flex:none}
 body div.seg button{flex:1 1 0;min-width:0}
 body .fbar.quick button{padding:0 9px}
+#vPic[hidden]{display:none}
+.cl-lb{font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--mut,#6b6259);white-space:nowrap}
+.cl-use{font-size:11px;font-weight:800;color:var(--mut,#6b6259);white-space:nowrap;min-width:64px;margin-right:4px}
 /* Theme switch: icon only sun | moon bar. The raised thumb slides to the
    chosen side and the icon plays its entrance (sun spins up, moon swings in). */
 .tsw{position:relative;display:flex;flex:none;width:86px;height:36px;padding:0;
@@ -1562,6 +1565,13 @@ body .fbar.quick button{padding:0 9px}
   <section class="page" id="history" role="tabpanel" aria-labelledby="tabHistory">
     <div class="card card-log">
       <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>History</h2>
+        <span class="cl-lb" title="The camera picture alone, with no boxes, for labelling">Clean copies</span>
+        <div class="fbar quick" id="clMode" role="group" aria-label="Save clean copies">
+          <button type="button" data-cl="off" aria-pressed="false" title="Do not save clean copies">Off</button>
+          <button type="button" data-cl="manual" aria-pressed="false" title="Only pictures taken with Capture">Manual</button>
+          <button type="button" data-cl="all" aria-pressed="false" title="Captures, alerts and tests">All</button>
+        </div>
+        <span class="cl-use" id="clUse"></span>
         <button class="btn sm" id="refreshLogs" type="button">
           <svg class="ico a-spin"><use href="#i-refresh"/></svg>Refresh</button>
       </div>
@@ -1838,6 +1848,10 @@ body .fbar.quick button{padding:0 9px}
   <div class="vh">
     <span class="ev" id="vEv"></span>
     <h3 id="vTitle">Snapshot</h3>
+    <div class="fbar quick" id="vPic" role="group" aria-label="Picture" hidden>
+      <button type="button" data-pic="ann" aria-pressed="true">Annotated</button>
+      <button type="button" data-pic="clean" aria-pressed="false">Clean</button>
+    </div>
     <button class="btn sm" id="vOpen" type="button">
       <svg class="ico a-pop"><use href="#i-eye"/></svg>Full size</button>
     <button class="btn sm ink" id="vClose" data-snd="back" type="button">Close</button>
@@ -2329,11 +2343,43 @@ function tickClock(){
 }
 setInterval(tickClock, 1000);
 
+let picMode = "ann", picRec = null;
+function showPic(){
+  const a = picRec;
+  if(!a) return;
+  const clean = picMode === "clean" && !!a.clean;
+  const src = clean ? "/snapshots/clean/" + encodeURIComponent(a.clean)
+                    : "/snapshots/" + encodeURIComponent(a.snapshot);
+  $("vImg").src = src; $("zImg").src = src;
+  $("vPic").hidden = !a.clean;
+  document.querySelectorAll("#vPic button").forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.pic === (clean ? "clean" : "ann") ? "true" : "false"));
+}
+document.querySelectorAll("#vPic button").forEach(b => b.addEventListener("click", () => {
+  picMode = b.dataset.pic; showPic();
+}));
+
+const mb = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(1) + " MB"
+  : Math.max(0, Math.round((n || 0) / 1e3)) + " KB";
+function fillClean(s){
+  if(s.clean_mode === undefined) return;
+  document.querySelectorAll("#clMode button").forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.cl === s.clean_mode ? "true" : "false"));
+  const n = s.clean_count || 0;
+  $("clUse").textContent = `${n} pic${n === 1 ? "" : "s"} · ${mb(s.clean_bytes)}`;
+}
+const CLEAN_SAY = {off: "Clean copies off", manual: "Clean copies for captures only",
+                   all: "Clean copies for captures, alerts and tests"};
+document.querySelectorAll("#clMode button").forEach(b => b.addEventListener("click", async () => {
+  const j = await post("/api/clean", {mode: b.dataset.cl});
+  if(!j.ok) return toast("Could not change clean copies", "i-warn");
+  fillClean(j); toast(CLEAN_SAY[j.clean_mode], "i-shutter");
+}));
+
 function openViewer(i){
   const a = view[i];
   if(!a || !a.snapshot) return;
-  const src = "/snapshots/" + encodeURIComponent(a.snapshot);
-  $("vImg").src = src; $("zImg").src = src;
+  picRec = a; showPic();
   const ev = EVENTS[a.event] || [a.event || "Snapshot", "i-shutter"];
   const st = stamp(a.timestamp), ts = st.short;
   const [day, tm] = [st.day, st.tm];
@@ -2903,6 +2949,7 @@ function hideTop(el){ try{ if(el.hidePopover && el.matches(":popover-open")) el.
 function paintScreen(s){
   fillPower(s);
   fillBuzzer(s);
+  fillClean(s);
   if(!KIOSK || waking) return;
   const sv = $("saver");
   if(s.screen === "dim" || s.screen === "off"){

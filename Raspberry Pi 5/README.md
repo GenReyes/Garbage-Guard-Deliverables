@@ -31,6 +31,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_buzzer.py` | Unit tests for `gg_buzzer.py`. |
 | `gg_vibe.py` | The vibration motor on GPIO13: pulse patterns that follow the buzzer's sounds, with a strength setting. |
 | `test_vibe.py` | Unit tests for `gg_vibe.py`. |
+| `gg_clean.py` | Clean copies: the camera picture alone, saved in `snapshots/clean/` next to each snapshot for labelling. Off, Manual or All. |
+| `test_clean.py` | Unit tests for `gg_clean.py`, plus the engine saving and deleting clean copies. |
 | `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
 | `test_clock.py` | Unit tests for `gg_clock.py`. |
 | `gg_usage.py` | Estimates how much of Firebase's free monthly allowance has been used, and slows or stops the preview before it runs out. |

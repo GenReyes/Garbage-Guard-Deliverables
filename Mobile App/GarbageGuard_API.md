@@ -454,6 +454,28 @@ An unknown name answers `400 bad_sound`. Sounds: `accumulation`, `shutdown_low`,
 Over Firebase these are the `buzzer` and
 `buzzer_test` commands.
 
+### `POST /api/clean`
+
+Clean copies: the camera picture alone, with no boxes, area outline or info
+card, saved next to a snapshot so it can be labelled for training.
+`{"mode": "off"|"manual"|"all"}`. `manual` keeps them for Capture only, `all`
+also for detection alerts, muted alerts and test alerts (the default). Any
+other mode answers `400 bad_mode`. Reply: `{"ok": true}` plus the fields below,
+which are also in `GET /api/state`.
+
+| Field | Meaning |
+|---|---|
+| `clean_mode` | `off`, `manual` or `all`. |
+| `clean_count` | How many clean pictures are on the Pi. |
+| `clean_bytes` | How much space they use, in bytes. Refreshed every 10 s. |
+
+A history row that has a clean copy carries `"clean": "<name>"` (the same name
+as `snapshot`), otherwise `"clean": null`. Load it from
+`GET /snapshots/clean/<name>`. Deleting the row deletes both pictures. Over
+Firebase this is the `clean` command; the history rows carry `has_clean`, but
+the clean pictures themselves are never uploaded, so they can only be opened on
+the Pi's own Wi-Fi.
+
 ### `POST /api/vibe`
 
 The Pi's vibration motor: `{"on": true, "strength": "low"|"medium"|"high"}`,
