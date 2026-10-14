@@ -1,5 +1,6 @@
 package com.garbageguard.app.ui.screens
 
+import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.ui.components.LockPhase
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -107,8 +108,8 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
                 Tag(if (hasArea) "Saved" else "Whole frame", if (hasArea) Tone.OK else Tone.WARN)
             }
             Pair2 {
-                GgButton("Draw", { vm.startDrawing(edit = false) }, Modifier.weight(1f), icon = GgIcons.Pen, kind = BtnKind.TEAL)
-                GgButton("Edit", { vm.startDrawing(edit = true) }, Modifier.weight(1f), icon = GgIcons.Edit, enabled = hasArea)
+                GgButton("Draw", { vm.startDrawing(edit = false) }, Modifier.weight(1f), icon = GgIcons.Pen, kind = BtnKind.TEAL, sound = Sfx.OPEN)
+                GgButton("Edit", { vm.startDrawing(edit = true) }, Modifier.weight(1f), icon = GgIcons.Edit, enabled = hasArea, sound = Sfx.OPEN)
             }
             GgButton(
                 "Clear area", { vm.overlay = Overlay.ClearArea }, Modifier.fillMaxWidth(),

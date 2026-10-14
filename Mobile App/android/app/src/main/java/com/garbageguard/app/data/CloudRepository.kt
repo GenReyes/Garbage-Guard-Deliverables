@@ -323,10 +323,12 @@ class CloudRepository(
     private fun parseAlertNode(raw: String): List<AlertRow> {
         val rows = JSONArray()
         val hasSnap = HashMap<Long, Boolean>()
+        val hasClean = HashMap<Long, Boolean>()
         fun take(o: JSONObject?) {
             if (o == null) return
             rows.put(o)
             hasSnap[o.optLong("id")] = o.optBoolean("has_snap", false)
+            hasClean[o.optLong("id")] = o.optBoolean("has_clean", false)
         }
         if (raw.trimStart().startsWith("[")) {
             val a = JSONArray(raw)
@@ -337,7 +339,8 @@ class CloudRepository(
         }
         // The picture is not the Pi's file here but a compressed copy under /gg/snaps/<id>.
         return parser.parseAlerts(rows)
-            .map { it.copy(snapshot = if (hasSnap[it.id] == true) SNAP_PREFIX + it.id else null) }
+            // Clean copies are never uploaded: the row only says one is on the Pi.
+            .map { it.copy(snapshot = if (hasSnap[it.id] == true) SNAP_PREFIX + it.id else null, clean = null, hasClean = hasClean[it.id] == true) }
             .sortedByDescending { it.id }
     }
 
@@ -630,6 +633,18 @@ class CloudRepository(
     override suspend fun testVibe() {
         onNotice("Test vibration only works on the Pi's own Wi-Fi.")
         commandFailed()
+    }
+
+    override suspend fun setClean(mode: String) {
+        val result = command("clean", JSONObject().put("mode", mode))
+        val base = lastState
+        val clean = if (result == null) null else parser.parseClean(result)
+        if (base != null && clean != null) {
+            lastState = base.copy(clean = clean)
+            countDown()
+        } else {
+            pollState()
+        }
     }
 
     /** The Pi's network screen is local only. */

@@ -96,6 +96,8 @@ import com.garbageguard.app.data.Battery
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.ui.Tab
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
+import com.garbageguard.app.notify.Sounds
 import com.garbageguard.app.ui.theme.Gg
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -151,16 +153,16 @@ private const val FIT_FLOOR = 0.6f
 fun Modifier.blockTouches(): Modifier =
     clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
 
-/** A press with no ripple, a tick under the finger and a soft sound. Switch-like things use [toggle]. */
+/** A press with no ripple, a tick under the finger and a soft sound. Choice-like things use [toggle]; [sound] picks any other. */
 @Composable
-fun Modifier.pressable(toggle: Boolean = false, enabled: Boolean = true, onClick: () -> Unit): Modifier {
+fun Modifier.pressable(toggle: Boolean = false, enabled: Boolean = true, sound: Sfx? = null, onClick: () -> Unit): Modifier {
     val view = LocalView.current
     return clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
         enabled = enabled,
     ) {
-        if (toggle) Feel.toggle(view) else Feel.tap(view)
+        Feel.play(view, sound ?: if (toggle) Sfx.CHOICE else Sfx.TAP)
         onClick()
     }
 }
@@ -273,6 +275,8 @@ fun GgButton(
     accent: Color? = null,
     /** Name of the lock this key obeys. While its command is unanswered the key cannot be pressed. */
     lock: String? = null,
+    /** The key's sound. Left out, it follows the label and kind: Save sounds like saving, Cancel like going back. */
+    sound: Sfx? = null,
 ) {
     val c = Gg.colors
     val look = lockLook(lock)
@@ -307,7 +311,7 @@ fun GgButton(
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
                 // A small tick, so keys feel like the physical buttons they are drawn as.
-                Feel.tap(view)
+                Feel.play(view, sound ?: soundFor(kind, text))
                 onClick()
             }
             .then(sizeMod)
@@ -324,6 +328,20 @@ fun GgButton(
         }
     }
 }
+
+/** The sound a key makes when none is given, from what it says and how it is drawn. */
+fun soundFor(kind: BtnKind, label: String?): Sfx {
+    if (kind == BtnKind.DANGER) return Sfx.DANGER
+    val l = label?.lowercase()?.trim() ?: return Sfx.TAP
+    return when {
+        l in BACK_WORDS || l.startsWith("back") || l.startsWith("close") -> Sfx.BACK
+        l in CONFIRM_WORDS || l.startsWith("save") || l.startsWith("apply") || l.startsWith("yes") -> Sfx.CONFIRM
+        else -> Sfx.TAP
+    }
+}
+
+private val BACK_WORDS = setOf("cancel", "close", "back", "no", "not now", "later", "keep", "done", "dismiss")
+private val CONFIRM_WORDS = setOf("save", "apply", "yes", "ok", "confirm", "connect", "send", "allow", "turn on")
 
 private fun defaultIcon(label: String): ImageVector? = when (label.lowercase()) {
     "cancel", "close" -> GgIcons.X
@@ -467,7 +485,7 @@ fun AutoSwitch(
                 indication = null,
                 enabled = look?.waiting != true,
             ) {
-                Feel.toggle(view)
+                Feel.play(view, if (checked) Sfx.SWITCH_OFF else Sfx.SWITCH_ON)
                 onToggle()
             },
         verticalAlignment = Alignment.CenterVertically,
@@ -598,7 +616,7 @@ fun Segmented(
                         indication = null,
                         enabled = free,
                     ) {
-                        if (!on) Feel.toggle(view)
+                        if (!on) Feel.play(view, Sfx.CHOICE)
                         onSelect(i)
                     },
                 contentAlignment = Alignment.Center,
@@ -632,7 +650,7 @@ fun Stepper(
     val look = lockLook(lock)
     val free = look?.waiting != true
     Row(Modifier.fillMaxWidth().barFrame(c).lockRing(look, 13.dp, c), verticalAlignment = Alignment.CenterVertically) {
-        StepCell("−", free, onMinus)
+        StepCell("−", free, Sfx.STEP_DOWN, onMinus)
         Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
         Row(
             Modifier.weight(1f).height(48.dp).barSunk(c).padding(horizontal = 12.dp),
@@ -644,13 +662,13 @@ fun Stepper(
             T(unit, Modifier.width(44.dp), size = 0.8f, color = c.muted, align = TextAlign.End, maxLines = 1)
         }
         Box(Modifier.width(2.dp).height(48.dp).background(c.edge))
-        StepCell("+", free, onPlus)
+        StepCell("+", free, Sfx.STEP_UP, onPlus)
     }
 }
 
 /** One end key of a stepper. */
 @Composable
-private fun StepCell(label: String, enabled: Boolean, onClick: () -> Unit) {
+private fun StepCell(label: String, enabled: Boolean, sound: Sfx, onClick: () -> Unit) {
     val c = Gg.colors
     val view = LocalView.current
     val src = remember { MutableInteractionSource() }
@@ -661,7 +679,7 @@ private fun StepCell(label: String, enabled: Boolean, onClick: () -> Unit) {
             .zIndex(if (pressed) 0f else 1f)
             .then(if (pressed) Modifier.barSunk(c) else Modifier.barRaised(c))
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
-                Feel.tap(view)
+                Feel.play(view, sound)
                 onClick()
             },
         contentAlignment = Alignment.Center,
@@ -726,15 +744,14 @@ fun logoPainter() = painterResource(if (Gg.colors.isDark) R.drawable.gg_logo_dar
 @Composable
 fun BrandLogo(size: Dp, modifier: Modifier = Modifier, onLongHold: (() -> Unit)? = null) {
     val view = LocalView.current
-    val hold = if (onLongHold == null) Modifier else Modifier.pointerInput(onLongHold) {
+    // A tap plays the Garbage-Guard chime; a long hold, where there is one, does more.
+    val hold = Modifier.pointerInput(onLongHold) {
         awaitEachGesture {
             awaitFirstDown(requireUnconsumed = false)
-            // Null means three seconds passed with the finger still down.
-            val released = withTimeoutOrNull(3000) {
-                waitForUpOrCancellation()
-                true
-            }
-            if (released == null) {
+            // Null means three seconds passed with the finger still down; false, the touch became a scroll.
+            val tapped = withTimeoutOrNull(3000) { waitForUpOrCancellation() != null }
+            if (tapped == true) Feel.play(view, Sfx.LOGO)
+            if (tapped == null && onLongHold != null) {
                 Feel.thump(view)
                 onLongHold()
                 waitForUpOrCancellation()
@@ -809,7 +826,7 @@ fun AppHeader(conn: ConnState, battery: Battery, onBattery: () -> Unit, onToggle
         ConnPill(conn, Modifier.longPress(onPillLongPress), cloud = cloud)
         GgButton(
             null, onToggleTheme, icon = if (c.isDark) GgIcons.Sun else GgIcons.Moon,
-            small = true, square = true,
+            small = true, square = true, sound = if (c.isDark) Sfx.THEME_LIGHT else Sfx.THEME_DARK,
         )
     }
 }
@@ -869,7 +886,7 @@ private fun RowScope.NavItem(icon: ImageVector, label: String, selected: Boolean
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) {
-                if (!selected) Feel.toggle(view)
+                if (!selected) Feel.play(view, Sfx.TAB)
                 onClick()
             },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -906,14 +923,16 @@ fun GgSheet(onDismiss: () -> Unit, dismissable: Boolean = true, content: @Compos
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { fade.animateTo(1f, tween(180)) }
     LaunchedEffect(Unit) { slide.animateTo(0f, tween(220)) }
-    BackHandler(onBack = onDismiss)
+    LaunchedEffect(Unit) { Sounds.playIfQuiet(Sfx.OPEN) }
+    val view = LocalView.current
+    BackHandler { Feel.play(view, Sfx.BACK); onDismiss() }
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier
                 .fillMaxSize()
                 .alpha(fade.value)
                 .background(Color(0x8C0A0806))
-                .pressable(enabled = dismissable, onClick = onDismiss),
+                .pressable(enabled = dismissable, sound = Sfx.BACK, onClick = onDismiss),
         )
         val shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
         Column(

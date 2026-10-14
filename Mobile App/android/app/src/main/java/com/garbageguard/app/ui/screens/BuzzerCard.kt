@@ -1,6 +1,24 @@
 package com.garbageguard.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
+import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
+import com.garbageguard.app.ui.components.neuWell
+import com.garbageguard.app.ui.components.pressable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -176,6 +194,7 @@ fun BuzzerCard(vm: AppViewModel, state: LiveState) {
                 enabled = reachable && b.available, lock = "buzzer_test",
             )
         }
+        PiSoundPicker(vm, enabled = reachable && b.available)
         if (b.vibeOn != null) {
             GgButton(
                 "Test vibration", vm::testVibe, Modifier.fillMaxWidth(), icon = GgIcons.Phone,
@@ -187,6 +206,72 @@ fun BuzzerCard(vm: AppViewModel, state: LiveState) {
             else "Tests use the volume saved on the Pi, so save first.",
             icon = GgIcons.Ok,
         )
+    }
+}
+
+/**
+ * Every sound the Pi's buzzer knows, by the name the API uses, with the words
+ * the app shows. The same list as SOUNDS in the Pi's gg_buzzer.py.
+ */
+val PI_SOUNDS = listOf(
+    "accumulation" to "Alarm", "test" to "Test tune", "boot" to "Power on", "ready" to "Detection ready",
+    "saved" to "Saved", "wifi_ok" to "Wi-Fi connected", "wifi_fail" to "Wi-Fi failed",
+    "cam_lost" to "Camera lost", "cam_back" to "Camera back", "phone_join" to "Phone joined",
+    "manual" to "Capture", "muted" to "Muted", "unmuted" to "Unmuted", "auto_muted" to "Auto-muted",
+    "countdown" to "Low-battery beep", "shutdown_low" to "Low-battery shutdown", "shutdown_manual" to "Shut down",
+    "logo" to "Logo", "tap" to "Tap", "switch_on" to "Switch on", "switch_off" to "Switch off",
+    "choice" to "Choice", "step_up" to "Plus", "step_down" to "Minus", "tab" to "Tab",
+    "open" to "Open", "back" to "Back", "confirm" to "Confirm", "danger" to "Danger", "denied" to "Denied",
+    "theme_light" to "Light theme", "theme_dark" to "Dark theme", "minimize" to "Minimize",
+    "restore" to "Restore", "point" to "Point", "point_undo" to "Undo point", "wake" to "Wake",
+)
+
+/** Picks any of the Pi's sounds and plays it on the Pi's buzzer. */
+@Composable
+private fun PiSoundPicker(vm: AppViewModel, enabled: Boolean) {
+    val c = Gg.colors
+    val view = LocalView.current
+    var open by remember { mutableStateOf(false) }
+    var pick by rememberSaveable { mutableStateOf("boot") }
+    val label = PI_SOUNDS.firstOrNull { it.first == pick }?.second ?: pick
+    Field(GgIcons.Speaker, "Play a Pi sound") {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .neuWell(c, 12.dp)
+                        .pressable(sound = Sfx.OPEN) { open = true }
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    T(label, Modifier.weight(1f), size = 0.9f, weight = FontWeight.Bold, color = c.text, maxLines = 1)
+                    T("\u25BE", size = 0.8f, color = c.muted)
+                }
+                DropdownMenu(
+                    expanded = open,
+                    onDismissRequest = { open = false },
+                    containerColor = c.raised,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(2.dp, c.edge),
+                    modifier = Modifier.heightIn(max = 360.dp),
+                ) {
+                    PI_SOUNDS.forEach { (name, text) ->
+                        DropdownMenuItem(
+                            text = { T(text, size = 0.9f, color = if (name == pick) c.teal else c.text) },
+                            onClick = {
+                                Feel.play(view, Sfx.CHOICE)
+                                open = false
+                                pick = name
+                            },
+                        )
+                    }
+                }
+            }
+            GgButton("Play", { vm.testBuzzer(pick) }, icon = GgIcons.Speaker, enabled = enabled, lock = "buzzer_test")
+        }
     }
 }
 

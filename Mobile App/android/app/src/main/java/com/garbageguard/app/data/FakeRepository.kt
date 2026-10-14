@@ -33,6 +33,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         LiveState(
             screenMode = "off",
             buzzer = Buzzer(vibeOn = true),
+            clean = CleanCopies(mode = "all", count = 19, bytes = 19L * 61_000),
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
                 RoiPoint(0.55f, 0.92f), RoiPoint(0.08f, 0.82f),
@@ -242,6 +243,12 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         }
     }
 
+    override suspend fun setClean(mode: String) {
+        _state.update { s -> s.copy(clean = (s.clean ?: CleanCopies()).copy(mode = mode)) }
+    }
+
+    override fun cleanUrl(name: String): String? = snapshotUrl(name)
+
     override suspend fun setVibe(on: Boolean?, strength: String?) {
         _state.update { s ->
             val b = s.buzzer ?: return@update s
@@ -386,6 +393,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
                 thresholdUsed = 20,
                 read = i >= 3,
                 snapshot = if (hasSnap) "seed_$i.jpg" else null,
+                clean = if (hasSnap && !ev.isMuteEvent) "seed_$i.jpg" else null,
             )
         }
     }

@@ -27,6 +27,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.LiveState
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.ui.Overlay
 import com.garbageguard.app.ui.components.AlertFlag
@@ -139,18 +140,21 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
         },
         right = {
             if (vm.drawing) {
-                RailGroup { RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen) }
+                RailGroup { RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen, sound = Sfx.BACK) }
                 RailGroup {
-                    RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) })
-                    RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() })
-                    RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true, lock = "area")
+                    RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) }, sound = Sfx.POINT_UNDO)
+                    RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() }, sound = Sfx.DANGER)
+                    // An outline needs three points; with fewer, Apply only refuses.
+                    RailKey(GgIcons.Check, "APPLY", vm::applyArea, lit = true, lock = "area",
+                        sound = if (vm.drawPoints.size < 3) Sfx.DENIED else Sfx.CONFIRM)
                 }
             } else {
                 RailGroup {
                     // Two small keys share the top row: leave fullscreen, and switch the theme.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, null, { vm.toggleTheme(c.isDark) }, Modifier.weight(1f))
-                        RailKey(GgIcons.Shrink, null, vm::closeFullscreen, Modifier.weight(1f))
+                        RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, null, { vm.toggleTheme(c.isDark) }, Modifier.weight(1f),
+                            sound = if (c.isDark) Sfx.THEME_LIGHT else Sfx.THEME_DARK)
+                        RailKey(GgIcons.Shrink, null, vm::closeFullscreen, Modifier.weight(1f), sound = Sfx.BACK)
                     }
                 }
                 RailGroup {
@@ -175,7 +179,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
             image = image,
             drawPoints = if (vm.drawing) vm.drawPoints else null,
             onTap = {
-                Feel.tap(view)
+                Feel.play(view, Sfx.POINT)
                 vm.drawPoints.add(it)
             },
         )

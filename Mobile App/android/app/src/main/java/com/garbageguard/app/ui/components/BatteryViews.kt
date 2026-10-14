@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.data.Battery
 import com.garbageguard.app.notify.Feel
 import com.garbageguard.app.ui.theme.Gg
@@ -207,7 +208,7 @@ fun BatteryChip(b: Battery, onClick: () -> Unit, modifier: Modifier = Modifier) 
             .then(if (pressed) Modifier.background(c.sunk).neuInset(c, 12.dp) else Modifier.background(raisedBrush(c)))
             .border(2.dp, if (low) c.bad else c.edge, shape)
             .clickable(interactionSource = src, indication = null) {
-                Feel.tap(view)
+                Feel.play(view, Sfx.OPEN)
                 onClick()
             }
             .defaultMinSize(minHeight = 44.dp)

@@ -1,5 +1,6 @@
 package com.garbageguard.app.notify
 
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import com.garbageguard.app.R
@@ -14,15 +15,32 @@ object Feel {
     @Volatile var haptics = true
 
     /** A key press. */
-    fun tap(view: View) {
-        if (haptics) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        Sounds.play(R.raw.gg_tap, 0.55f)
+    fun tap(view: View) = play(view, Sfx.TAP)
+
+    /** A choice changing. */
+    fun toggle(view: View) = play(view, Sfx.CHOICE)
+
+    /** Any control: its own sound and a vibration that fits it. */
+    fun play(view: View, sfx: Sfx) {
+        if (haptics) view.performHapticFeedback(hapticFor(sfx))
+        Sounds.play(sfx)
     }
 
-    /** A switch, tab or choice changing. */
-    fun toggle(view: View) {
-        if (haptics) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        Sounds.play(R.raw.gg_switch, 0.55f)
+    private fun hapticFor(sfx: Sfx): Int {
+        val v = Build.VERSION.SDK_INT
+        val key = HapticFeedbackConstants.VIRTUAL_KEY
+        return when (sfx) {
+            Sfx.CONFIRM, Sfx.SAVED -> if (v >= 30) HapticFeedbackConstants.CONFIRM else key
+            Sfx.DENIED -> if (v >= 30) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS
+            Sfx.SWITCH_ON -> if (v >= 34) HapticFeedbackConstants.TOGGLE_ON else HapticFeedbackConstants.KEYBOARD_TAP
+            Sfx.SWITCH_OFF -> if (v >= 34) HapticFeedbackConstants.TOGGLE_OFF else HapticFeedbackConstants.KEYBOARD_TAP
+            Sfx.STEP_UP, Sfx.STEP_DOWN, Sfx.CHOICE, Sfx.POINT, Sfx.POINT_UNDO ->
+                if (v >= 30) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.KEYBOARD_TAP
+            Sfx.BACK -> HapticFeedbackConstants.CLOCK_TICK
+            Sfx.DANGER, Sfx.LOGO -> HapticFeedbackConstants.LONG_PRESS
+            Sfx.TAB, Sfx.THEME_LIGHT, Sfx.THEME_DARK -> HapticFeedbackConstants.KEYBOARD_TAP
+            else -> key
+        }
     }
 
     /** Something weighty: a long hold recognised, a round lost. */

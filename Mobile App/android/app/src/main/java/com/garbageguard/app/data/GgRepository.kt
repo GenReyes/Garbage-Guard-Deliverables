@@ -116,4 +116,10 @@ interface GgRepository {
 
     /** POST /api/vibe/test. */
     suspend fun testVibe() {}
+
+    /** POST /api/clean {"mode": "off"|"manual"|"all"}. */
+    suspend fun setClean(mode: String) {}
+
+    /** Where the clean copy of a snapshot can be loaded. Null where it cannot, as over Firebase. */
+    fun cleanUrl(name: String): String? = null
 }

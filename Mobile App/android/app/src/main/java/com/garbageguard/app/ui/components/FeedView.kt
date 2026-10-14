@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.garbageguard.app.data.RoiPoint
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.ui.theme.Gg
 
 // Fake detection boxes from the mockup, in a 160 x 100 frame: x, y, w, h.
@@ -428,6 +429,7 @@ private fun TvKey(
     casing: Casing,
     spinning: Boolean = false,
     lock: String? = null,
+    sound: Sfx = Sfx.TAP,
     onClick: () -> Unit,
 ) {
     val c = Gg.colors
@@ -451,7 +453,7 @@ private fun TvKey(
             .lockRing(look, 10.dp, c)
             .border(2.dp, BEZEL_INK, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
-                Feel.tap(view)
+                Feel.play(view, sound)
                 onClick()
             }
             .height(42.dp)
@@ -567,7 +569,7 @@ fun TvFeed(
             // Reconnects the camera; the arrows turn until the picture is back.
             TvKey(GgIcons.Refresh, null, teal = false, enabled = !noPi && !reconnecting, casing = k, spinning = reconnecting, onClick = onReconnect)
             TvKey(GgIcons.Shutter, "CAPTURE", teal = true, enabled = online, casing = k, lock = "capture", onClick = onCapture)
-            TvKey(GgIcons.Expand, null, teal = false, enabled = true, casing = k, onClick = onFullscreen)
+            TvKey(GgIcons.Expand, null, teal = false, enabled = true, casing = k, sound = Sfx.OPEN, onClick = onFullscreen)
         }
 
         T(
@@ -720,6 +722,7 @@ fun RailKey(
     enabled: Boolean = true,
     toggle: Boolean = false,
     lock: String? = null,
+    sound: Sfx? = null,
 ) {
     val c = Gg.colors
     val k = railCasing()
@@ -749,7 +752,7 @@ fun RailKey(
             .lockRing(look, 10.dp, c)
             .border(2.dp, c.edge, shape)
             .clickable(interactionSource = src, indication = null, enabled = enabled) {
-                if (toggle) Feel.toggle(view) else Feel.tap(view)
+                Feel.play(view, sound ?: if (toggle) Sfx.CHOICE else Sfx.TAP)
                 onClick()
             }
             .padding(horizontal = 3.dp, vertical = if (label == null) 8.dp else 5.dp),

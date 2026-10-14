@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.data.ConnState
 import com.garbageguard.app.data.LiveState
 import com.garbageguard.app.ui.AppViewModel
@@ -339,7 +340,7 @@ fun MutePick(seconds: Int, onPick: (Int) -> Unit) {
                 DropdownMenuItem(
                     text = { T(text, size = 0.9f, color = if (value == seconds) c.teal else c.text) },
                     onClick = {
-                        Feel.toggle(view)
+                        Feel.play(view, Sfx.CHOICE)
                         open = false
                         onPick(value)
                     },

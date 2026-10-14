@@ -39,12 +39,17 @@ import androidx.lifecycle.AndroidViewModel
 import com.garbageguard.app.notify.Alerts
 import com.garbageguard.app.notify.AppGraph
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
+import com.garbageguard.app.notify.Sounds
+import com.garbageguard.app.ui.screens.PI_SOUNDS
 import com.garbageguard.app.notify.WatchService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import com.garbageguard.app.data.RoiPoint
 import com.garbageguard.app.ui.theme.ThemeMode
@@ -330,6 +335,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch { AppGraph.notices.collect { showToast(it) } }
+        // The link to the Pi and its camera have their own sounds when they drop or come back,
+        // the same tunes the Pi plays. Only while the app is open and linked.
+        viewModelScope.launch {
+            var last: ConnState? = null
+            state.map { it.conn }.distinctUntilChanged().collect { now ->
+                val was = last
+                last = now
+                if (was == null || !AppGraph.foreground || !AppGraph.linked) return@collect
+                Sounds.play(
+                    when {
+                        now == ConnState.NO_PI -> Sfx.LINK_LOST
+                        now == ConnState.NO_CAMERA -> Sfx.CAM_LOST
+                        was == ConnState.NO_PI -> Sfx.LINK_UP
+                        else -> Sfx.CAM_BACK
+                    }
+                )
+            }
+        }
         refreshSystemState()
         // Coming back to an app that was only put in the background returns to its Pi.
         // After the app was closed, it opens at the start page, with the address still filled in.
@@ -420,6 +443,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 true
             } ?: false
             val ok = finished && !outcome.failed
+            Sounds.play(if (ok) Sfx.SAVED else Sfx.DENIED)
             val flash = Lock(if (ok) LockPhase.OK else LockPhase.FAIL, System.currentTimeMillis(), 1100)
             locks[key] = flash
             showToast(if (ok) message ?: "Done" else "The Pi did not confirm. Nothing was changed.")
@@ -505,8 +529,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun testBuzzer(sound: String) =
-        launchAction(if (sound == "test") "The Pi played the test tune" else "The Pi sounded the alarm", key = LOCK_BUZZ_TEST) { repo.testBuzzer(sound) }
+    fun testBuzzer(sound: String) = launchAction(
+        when (sound) {
+            "test" -> "The Pi played the test tune"
+            "accumulation" -> "The Pi sounded the alarm"
+            else -> "The Pi played " + (PI_SOUNDS.firstOrNull { it.first == sound }?.second ?: sound)
+        },
+        key = LOCK_BUZZ_TEST,
+    ) { repo.testBuzzer(sound) }
+
+    /** Which snapshots also get a clean copy for labelling: "off", "manual" or "all". */
+    fun setClean(mode: String) = launchAction(
+        when (mode) {
+            "off" -> "Clean copies off"
+            "manual" -> "Clean copies for Capture only"
+            else -> "Clean copies for every snapshot"
+        },
+        key = LOCK_CLEAN,
+    ) { repo.setClean(mode) }
+
+    fun cleanUrl(name: String?): String? = name?.let { repo.cleanUrl(it) }
 
     fun testVibe() = launchAction("The Pi vibrated", key = LOCK_VIBE_TEST) { repo.testVibe() }
 
@@ -947,6 +989,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_BUZZER = "buzzer"
         const val LOCK_BUZZ_TEST = "buzzer_test"
         const val LOCK_VIBE_TEST = "vibe_test"
+        const val LOCK_CLEAN = "clean"
         const val LOCK_WAKE_ALERT = "wake_alert"
         const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"
         const val LOCK_SCREEN = "screen"

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -92,6 +93,7 @@ fun HistoryTools(vm: AppViewModel, visible: List<AlertRow>) {
             GgButton("Mark read", vm::markVisibleRead, icon = GgIcons.Check, small = true, enabled = visible.any { !it.read }, lock = "hist_read")
             GgButton("Delete", { vm.overlay = Overlay.Delete(null) }, icon = GgIcons.Trash, kind = BtnKind.DANGER, small = true, enabled = visible.isNotEmpty(), lock = "hist_delete")
         }
+        CleanCopiesBar(vm)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Ico(filterIcon(vm.filter), size = 12.dp, tint = accentOf(filterIcon(vm.filter)))
             T(
@@ -100,6 +102,43 @@ fun HistoryTools(vm: AppViewModel, visible: List<AlertRow>) {
             )
         }
     }
+}
+
+private val CLEAN_MODES = listOf("off", "manual", "all")
+
+/**
+ * Clean copies: the Pi can keep each snapshot's picture a second time with no
+ * boxes or outline, for labelling. Off, Manual (Capture only) or All. Shown
+ * only when the Pi has the feature.
+ */
+@Composable
+private fun CleanCopiesBar(vm: AppViewModel) {
+    val c = Gg.colors
+    val state by vm.state.collectAsState()
+    val clean = state.clean ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Ico(GgIcons.Eraser, size = 12.dp, tint = accentOf(GgIcons.Eraser))
+            T("CLEAN COPIES", size = 0.68f, weight = FontWeight.Black, color = c.muted, spacing = 0.05f)
+            T(
+                "${clean.count} " + (if (clean.count == 1) "picture" else "pictures") + " \u00B7 " + sizeWords(clean.bytes),
+                Modifier.weight(1f), size = 0.68f, weight = FontWeight.Bold, color = c.muted, align = TextAlign.End, fit = true,
+            )
+        }
+        Segmented(
+            listOf("Off", "Manual", "All"),
+            selected = CLEAN_MODES.indexOf(clean.mode).coerceAtLeast(0),
+            lock = AppViewModel.LOCK_CLEAN,
+            onSelect = { if (CLEAN_MODES[it] != clean.mode) vm.setClean(CLEAN_MODES[it]) },
+        )
+    }
+}
+
+/** 1.2 MB, 640 KB. */
+private fun sizeWords(bytes: Long): String = when {
+    bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1e9)
+    bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1e6)
+    else -> "${(bytes + 999) / 1000} KB"
 }
 
 /**

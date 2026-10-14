@@ -1,5 +1,11 @@
 package com.garbageguard.app.ui.screens
 
+import com.garbageguard.app.ui.components.Segmented
+import androidx.compose.ui.text.style.TextAlign
+import com.garbageguard.app.notify.Sfx
+import com.garbageguard.app.notify.Feel
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -136,7 +142,7 @@ fun OverlayHost(
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, vm.visibleRows(alerts).size, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
-            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), { vm.overlay = Overlay.Delete(row.id) }, close)
+            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), vm.cleanUrl(row.clean), { vm.overlay = Overlay.Delete(row.id) }, close)
         }
         Overlay.ClearArea -> GgSheet(close) {
             SheetTitle("Clear monitored area?")
@@ -525,11 +531,17 @@ private fun SheetTextIn(text: String, modifier: Modifier) {
 
 /** .viewer, the snapshot with its numbers. */
 @Composable
-private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Unit, close: () -> Unit) {
-    val image = rememberSnapshot(imageUrl)
+private fun SnapshotViewer(row: AlertRow, imageUrl: String?, cleanUrl: String?, onDelete: () -> Unit, close: () -> Unit) {
+    // Annotated is the snapshot as saved, boxes and outline drawn in; Clean is the camera picture alone.
+    var clean by rememberSaveable(row.id) { mutableStateOf(false) }
+    val image = rememberSnapshot(if (clean && cleanUrl != null) cleanUrl else imageUrl)
     val c = Gg.colors
     var fullSize by remember { mutableStateOf(false) }
-    BackHandler { if (fullSize) fullSize = false else close() }
+    val view = LocalView.current
+    BackHandler {
+        Feel.play(view, Sfx.BACK)
+        if (fullSize) fullSize = false else close()
+    }
 
     if (fullSize) {
         // Full size means the whole screen, sideways, like the live feed.
@@ -538,9 +550,9 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .pressable { fullSize = false },
+                .pressable(sound = Sfx.BACK) { fullSize = false },
             contentAlignment = Alignment.Center,
-        ) { FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image) }
+        ) { FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image) }
         return
     }
 
@@ -556,7 +568,19 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             EventPill(row.event)
-            Box(Modifier.weight(1f))
+            Box(Modifier.weight(1f)) {
+                when {
+                    cleanUrl != null -> Segmented(
+                        listOf("Annotated", "Clean"), selected = if (clean) 1 else 0,
+                        onSelect = { clean = it == 1 },
+                    )
+                    // Over Firebase the clean picture stays on the Pi; say so instead of offering it.
+                    row.hasClean -> T(
+                        "CLEAN COPY ON THE PI'S WI-FI", Modifier.fillMaxWidth(), size = 0.62f,
+                        color = c.muted, align = TextAlign.Center, spacing = 0.04f, fit = true,
+                    )
+                }
+            }
             GgButton("Close", close, kind = BtnKind.INK, small = true)
         }
     }
@@ -595,7 +619,7 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GgButton("Delete", onDelete, Modifier.weight(1f), icon = GgIcons.Trash, kind = BtnKind.DANGER)
-                GgButton("Full size", { fullSize = true }, Modifier.weight(1.4f), icon = GgIcons.Expand, kind = BtnKind.TEAL)
+                GgButton("Full size", { fullSize = true }, Modifier.weight(1.4f), icon = GgIcons.Expand, kind = BtnKind.TEAL, sound = Sfx.OPEN)
             }
         }
     }
@@ -614,8 +638,8 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             // A wide window, such as a tablet on its side: the picture takes
             // the full height and the readings stand in a column beside it.
             Row(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxHeight().background(FEED_BLACK).pressable { fullSize = true }) {
-                    FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image)
+                Box(Modifier.weight(1f).fillMaxHeight().background(FEED_BLACK).pressable(sound = Sfx.OPEN) { fullSize = true }) {
+                    FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
                 }
                 Box(Modifier.fillMaxHeight().width(2.dp).background(c.edge))
                 Column(Modifier.width(minOf(wide * 0.42f, 380.dp)).fillMaxHeight()) {
@@ -634,8 +658,8 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, onDelete: () -> Uni
             Column(Modifier.fillMaxSize()) {
                 header()
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
-                Box(Modifier.fillMaxWidth().weight(1f).background(FEED_BLACK).pressable { fullSize = true }) {
-                    FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), cover = false, image = image)
+                Box(Modifier.fillMaxWidth().weight(1f).background(FEED_BLACK).pressable(sound = Sfx.OPEN) { fullSize = true }) {
+                    FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
                 }
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
                 readings(Modifier.height(sheet))

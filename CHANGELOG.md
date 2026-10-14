@@ -4,6 +4,30 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 11: a sound for every action, clean copies (2026-10-14)
+
+The app side of the Pi's sound plan and clean copies.
+
+### App
+
+- Every kind of action has its own sound, the same tune the Pi's buzzer
+  plays for it, an octave lower and softer for a phone speaker: switch on
+  and off, choice bars, + and −, tabs, open, back and close, Save and other
+  confirm keys, Delete and other danger keys, the logo, the theme key,
+  placing and undoing area points, and Apply with too few points.
+- Events have sounds too: a chime when the app opens (the Pi's power-on
+  tune), Saved or Denied when the Pi confirms or refuses a command, and
+  sounds when the Pi or its camera drops out or comes back.
+- Each sound has a vibration that fits it (confirm, reject, toggle on and
+  off, a tick for steps). Both follow the App sounds and Vibration switches.
+- `Mobile App/android/tools/make_sounds.py` builds the app's sounds from the
+  Pi's `SOUNDS` table, so the two stay alike.
+- History: a Clean copies bar (Off, Manual, All) with how many clean
+  pictures the Pi keeps and their size. The snapshot viewer gets an
+  Annotated / Clean switch. Over Firebase it says the clean copy is on the
+  Pi's Wi-Fi only, since clean pictures are never uploaded.
+- Pi buzzer card: "Play a Pi sound" plays any of the Pi's sounds.
+
 ## Pi: sounds for the rest of the touchscreen (2026-10-14)
 
 ### Pi

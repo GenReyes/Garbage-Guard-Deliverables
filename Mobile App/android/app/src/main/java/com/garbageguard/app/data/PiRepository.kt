@@ -80,6 +80,9 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     override fun snapshotUrl(name: String): String? =
         if (baseUrl.isEmpty()) null else "$baseUrl/snapshots/$name"
 
+    override fun cleanUrl(name: String): String? =
+        if (baseUrl.isEmpty()) null else "$baseUrl/snapshots/clean/$name"
+
     /** Starts polling the Pi at [address], for example 192.168.1.101:8080. */
     fun start(address: String) {
         val base = toBaseUrl(address) ?: return
@@ -355,6 +358,20 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     override suspend fun testVibe() = post("/api/vibe/test", JSONObject())
 
+    override suspend fun setClean(mode: String) {
+        post("/api/clean", JSONObject().put("mode", mode))
+        pollState()
+    }
+
+    internal fun parseClean(o: JSONObject): CleanCopies? {
+        if (!o.has("clean_mode") || o.isNull("clean_mode")) return null
+        return CleanCopies(
+            mode = text(o, "clean_mode").ifEmpty { "all" },
+            count = o.optInt("clean_count", 0),
+            bytes = o.optLong("clean_bytes", 0L),
+        )
+    }
+
     /**
      * The buzzer fields of a state object. With [base], fields that are not
      * in [o] keep their old value, which is how a command's answer is folded
@@ -528,6 +545,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             screen = text(o, "screen").ifEmpty { "on" },
             screenNote = text(o, "screen_note").ifEmpty { null },
             buzzer = parseBuzzer(o),
+            clean = parseClean(o),
         )
     }
 
@@ -574,6 +592,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
                     else -> false
                 },
                 snapshot = if (o.isNull("snapshot")) null else o.optString("snapshot").ifEmpty { null },
+                clean = if (o.isNull("clean")) null else o.optString("clean").ifEmpty { null },
             )
         }
 

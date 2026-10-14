@@ -57,6 +57,8 @@ data class LiveState(
     val screen: String = "on",
     /** A sentence from the Pi when the screen could not do what was asked. */
     val screenNote: String? = null,
+    /** Clean copies of snapshots, for labelling. Null on an older Pi without them. */
+    val clean: CleanCopies? = null,
     /** The Pi's buzzer and vibration motor. Null on a Pi that has neither. */
     val buzzer: Buzzer? = null,
 )
@@ -114,6 +116,22 @@ data class AlertRow(
     val read: Boolean,
     /** Bare file name for GET /snapshots/<name>. null means no image. */
     val snapshot: String?,
+    /** Bare file name for GET /snapshots/clean/<name>: the same picture with no boxes or outline. */
+    val clean: String? = null,
+    /** True when the Pi keeps a clean copy, even where it cannot be loaded (over Firebase). */
+    val hasClean: Boolean = clean != null,
+)
+
+/**
+ * Clean copies: the camera picture alone, with no boxes, area outline or info
+ * card, kept beside a snapshot so it can be labelled for training.
+ * The clean_* fields of GET /api/state.
+ */
+data class CleanCopies(
+    /** "off", "manual" (Capture only) or "all" (also detection, muted and test alerts). */
+    val mode: String = "all",
+    val count: Int = 0,
+    val bytes: Long = 0,
 )
 
 /** Same formula as rearm_level() in pi/gg_counter.py. */

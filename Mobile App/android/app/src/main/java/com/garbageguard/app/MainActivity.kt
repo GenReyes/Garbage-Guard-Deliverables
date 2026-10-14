@@ -12,6 +12,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.notify.AppGraph
+import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sounds
 import com.garbageguard.app.ui.GgApp
 
 class MainActivity : ComponentActivity() {
@@ -31,6 +33,12 @@ class MainActivity : ComponentActivity() {
         // buttons sit on the tabs themselves.
         if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         setContent { GgApp(vm) }
+        // The opening chime, the same tune the Pi plays when it powers on. Not on a rotation.
+        if (savedInstanceState == null) {
+            Feel.sounds = vm.uiSounds
+            Sounds.init(this)
+            Sounds.boot()
+        }
     }
 
     override fun onStart() {
