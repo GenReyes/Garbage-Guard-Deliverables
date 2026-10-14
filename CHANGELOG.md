@@ -4,6 +4,21 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: sounds for the rest of the touchscreen (2026-10-14)
+
+### Pi
+
+- New button sounds `point` and `point_undo` for placing and undoing a point
+  while drawing the monitored area, and `wake` for the first tap on the dark
+  screen saver.
+- The battery card, Draw and Edit play `open`, Apply plays `confirm`, Clear plays
+  `danger`. Apply with fewer than 3 points, or Edit with no saved area, plays
+  only `denied`.
+- Tapping outside a dialog to close it, and tapping the full-size picture to go
+  back, play `back`.
+- Every warning message plays `denied` (at most once per tap).
+- Wi-Fi page: network rows and connection cards play `open`.
+
 ## Pi: clean copies for labelling (2026-10-14)
 
 ### Pi

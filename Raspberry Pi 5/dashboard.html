@@ -1417,7 +1417,7 @@ body .fbar.quick button{padding:0 9px}
     <p class="v"><span id="lat">–</span><small> ms</small></p>
     <p class="k">Avg <span id="latAvg">–</span> ms</p></div>
 
-  <div class="box batt b-none" id="batt" title="Battery details" role="button" tabindex="0" aria-haspopup="dialog">
+  <div class="box batt b-none" id="batt" data-snd="open" title="Battery details" role="button" tabindex="0" aria-haspopup="dialog">
     <p class="k"><svg class="ico" id="battIco"><use href="#i-batt"/></svg><span id="battSrc">Battery</span></p>
     <div class="bt-row">
       <span class="bt-cell" aria-hidden="true"><i class="bt-fill" id="battFill"></i><i class="seg"></i>
@@ -1548,12 +1548,12 @@ body .fbar.quick button{padding:0 9px}
       <section class="card card-area">
         <div class="hd"><svg class="ico"><use href="#i-poly"/></svg><h2>Monitored area</h2></div>
         <div class="pair" style="margin-bottom:5px">
-          <button class="btn teal" id="new" type="button"><svg class="ico a-tilt"><use href="#i-pen"/></svg>Draw</button>
-          <button class="btn" id="edit" type="button"><svg class="ico a-tilt"><use href="#i-edit"/></svg>Edit</button>
-          <button class="btn" id="clear" type="button"><svg class="ico a-shake"><use href="#i-eraser"/></svg>Clear</button>
-          <button class="btn ink" id="apply" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Apply</button>
+          <button class="btn teal" id="new" data-snd="open" type="button"><svg class="ico a-tilt"><use href="#i-pen"/></svg>Draw</button>
+          <button class="btn" id="edit" data-snd="open" type="button"><svg class="ico a-tilt"><use href="#i-edit"/></svg>Edit</button>
+          <button class="btn" id="clear" data-snd="danger" type="button"><svg class="ico a-shake"><use href="#i-eraser"/></svg>Clear</button>
+          <button class="btn ink" id="apply" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Apply</button>
         </div>
-        <button class="btn" id="undo" type="button" style="width:100%;display:none">
+        <button class="btn" id="undo" data-snd="point_undo" type="button" style="width:100%;display:none">
           <svg class="ico a-left"><use href="#i-undo"/></svg>Undo last point</button>
         <p class="hint"><svg class="ico"><use href="#i-poly"/></svg>
           Tap the video to outline the water, 3 points or more. Anything outside is ignored.</p>
@@ -1837,7 +1837,7 @@ body .fbar.quick button{padding:0 9px}
   </div>
 </section>
 
-<div id="saver" popover="manual" hidden aria-hidden="true"></div>
+<div id="saver" data-snd="wake" popover="manual" hidden aria-hidden="true"></div>
 <div id="pwrBanner" popover="manual" hidden role="alert">
   <svg class="ico"><use href="#i-warn"/></svg>
   <div class="pb-txt"><b id="pbHead">Shutting down</b><span id="pbSub"></span></div>
@@ -1961,7 +1961,19 @@ const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed
 let PAGE = 5, draft=null, editing=false, last=null, rows=[], view=[], page=0, prevCounts={};
 let kind = "all";
 
+let deniedAt = 0;
+function uiSnd(name){
+  try{ if(!KIOSK || !buzzUi) return; }catch(e){ return; }
+  if(name === "denied"){
+    const now = Date.now();
+    if(now - deniedAt < 600) return;
+    deniedAt = now;
+  }
+  fetch("/api/buzzer/ui", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({sound: name})}).catch(() => {});
+}
 function toast(m, icon){
+  if(icon === "i-warn") uiSnd("denied");
   $("toastMsg").textContent = m;
   $("toast").querySelector("use").setAttribute("href", "#" + (icon || "i-ok"));
   const t = $("toast"); t.classList.add("show");
@@ -2034,8 +2046,7 @@ async function post(path, body){
   const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
                                body: JSON.stringify(body||{})});
   const j = await r.json();
-  if(j && j.ok === false && KIOSK && buzzUi) fetch("/api/buzzer/ui", {method: "POST",
-    headers: {"Content-Type": "application/json"}, body: JSON.stringify({sound: "denied"})}).catch(() => {});
+  if(j && j.ok === false) uiSnd("denied");
   return j;
 }
 
@@ -3088,10 +3099,12 @@ function uiSound(t){
 }
 document.addEventListener("pointerdown", e => {
   if(!KIOSK || !buzzUi) return;
+  if(e.target.closest("#overlay")) return editing ? uiSnd("point") : undefined;
   const t = e.target.closest("[data-snd], button, .sw, a, .logo");
-  if(!t) return;
-  fetch("/api/buzzer/ui", {method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({sound: uiSound(t)})}).catch(() => {});
+  if(t && t.id === "apply" && !(editing && draft && draft.length >= 3)) return;
+  if(t && t.id === "edit" && !(last && last.roi && last.roi.length)) return;
+  if(t) return uiSnd(uiSound(t));
+  if(e.target.matches("dialog[open]") || e.target.closest("#zoom")) uiSnd("back");
 }, true);
 
 $("settings").addEventListener("click", e => {

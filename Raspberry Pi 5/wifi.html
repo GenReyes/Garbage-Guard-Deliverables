@@ -695,7 +695,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       var bits=[d.device];if(ip)bits.push(ip);
       if(d.role==='wifi'&&d.link){bits.push(d.link.signal+'% signal')}
       else if(d.speed)bits.push(d.speed);
-      return '<button type="button" class="ifc role-'+d.role+(c[0]==='off'||c[0]==='bad'?' st-off':'')+'" data-dev="'+esc(d.device)+'">'+
+      return '<button type="button" data-snd="open" class="ifc role-'+d.role+(c[0]==='off'||c[0]==='bad'?' st-off':'')+'" data-dev="'+esc(d.device)+'">'+
         '<span class="bub">'+ico(d.role==='wifi'&&c[0]!=='ok'?'i-wifioff':r[1])+'</span>'+
         '<span class="nm">'+esc(r[0].replace(' (internet)',''))+(c[0]==='ok'&&d.role!=='camera'?' · '+esc(name):'')+'</span>'+
         '<span style="display:flex;gap:5px">'+(d.default&&on?'<span class="chip inet">'+ico('i-globe')+'Internet</span>':'')+
@@ -728,7 +728,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     var sub=!cloud||!cloud.configured?'Not set up. Phones still work on the same Wi-Fi.':
       !cloud.enabled?'Off. Phones still work on the same Wi-Fi.':
       st.ok?(st.watchers?(st.watchers+' phone'+(st.watchers>1?'s':'')+' on another network using it now'):'Waiting for a phone away from this Wi-Fi'):(st.error||'Signing in...');
-    return '<button type="button" class="ifc role-cloud'+(c[0]==='off'?' st-off':'')+'" data-dev="cloud">'+
+    return '<button type="button" data-snd="open" class="ifc role-cloud'+(c[0]==='off'?' st-off':'')+'" data-dev="cloud">'+
       '<span class="bub">'+ico('i-cloud')+'</span><span class="nm">Firebase</span>'+
       '<span><span class="chip '+c[0]+'">'+ico(c[1])+c[2]+'</span></span>'+
       '<span class="sub">'+esc(sub)+'</span></button>';
@@ -867,7 +867,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       var h='';
       r.networks.forEach(function(n,i){
         var m=n.in_use?ico('i-check')+'Connected':n.enterprise?ico('i-x')+'Not supported':n.secure?ico('i-lock')+'Secured':ico('i-open')+'Open';
-        h+='<button class="net'+(n.in_use?' use':'')+'" type="button" style="animation-delay:'+(i*40)+'ms" data-i="'+i+'"'+(n.enterprise?' disabled':'')+'>'+
+        h+='<button data-snd="open" class="net'+(n.in_use?' use':'')+'" type="button" style="animation-delay:'+(i*40)+'ms" data-i="'+i+'"'+(n.enterprise?' disabled':'')+'>'+
           bars(n.signal)+'<span class="nm">'+esc(n.ssid)+'</span><span class="meta">'+m+'</span></button>';
       });
       $('nets').innerHTML=h;

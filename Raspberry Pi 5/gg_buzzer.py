@@ -69,6 +69,9 @@ SOUNDS = {
     "theme_dark": (0, "ui", [(2600, 30), (1900, 50)]),
     "minimize": (0, "ui", [(2600, 30), (2200, 30), (1700, 50)]),
     "restore": (0, "ui", [(1700, 30), (2200, 30), (2600, 50)]),
+    "point": (0, "ui", [(2400, 12), (2700, 18)]),
+    "point_undo": (0, "ui", [(2700, 12), (2200, 18)]),
+    "wake": (0, "ui", [(2000, 30), (0, 10), (2500, 50)]),
 }
 UI_SOUNDS = tuple(n for n, (_, g, _) in SOUNDS.items() if g == "ui")
 EVENT_SOUND = {"accumulation": "accumulation", "low_battery_shutdown": "shutdown_low",

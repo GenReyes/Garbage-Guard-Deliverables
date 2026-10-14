@@ -306,7 +306,7 @@ class ThreadTests(unittest.TestCase):
 
 class SoundPlanTests(unittest.TestCase):
     NAMES = ("tap switch_on switch_off choice step_up step_down tab open back confirm danger "
-             "denied logo theme_light theme_dark minimize restore").split()
+             "denied logo theme_light theme_dark minimize restore point point_undo wake").split()
     EVENTS = "boot ready wifi_ok wifi_fail cam_lost cam_back phone_join saved".split()
     LONG_OK = {"logo", "danger", "denied"}
 

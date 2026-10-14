@@ -450,7 +450,8 @@ An unknown name answers `400 bad_sound`. Sounds: `accumulation`, `shutdown_low`,
 `unmuted`, `ready`, `boot`, `wifi_ok`, `wifi_fail`, `cam_lost`, `cam_back`,
 `phone_join`, `saved`, and the button sounds `tap`, `switch`, `switch_on`,
 `switch_off`, `choice`, `step_up`, `step_down`, `tab`, `open`, `back`, `confirm`,
-`danger`, `denied`, `logo`, `theme_light`, `theme_dark`, `minimize`, `restore`.
+`danger`, `denied`, `logo`, `theme_light`, `theme_dark`, `minimize`, `restore`,
+`point`, `point_undo`, `wake`.
 Over Firebase these are the `buzzer` and
 `buzzer_test` commands.
 
