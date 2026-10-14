@@ -165,3 +165,114 @@ Tags for wifi.html:
 ### 7. Mobile app
 
 Nothing is required. If the app's Pi buzzer card has a test list, `boot`, `wifi_ok` and `logo` are good ones to add.
+
+## Second pass: what is still missing (main at d0ccccf)
+
+Most of the plan above is now on main: the new sounds are in `gg_buzzer.py`, both pages send them through `data-snd`, the boot chime runs from `start.sh`, and the server plays `wifi_ok`, `wifi_fail` and `saved`. A tap-by-tap check of both pages still found the gaps below.
+
+### Why a tap can still be silent
+
+Before treating a silent button as a bug, check these four conditions, because each one silences every UI sound on purpose:
+
+1. **Button sounds is off.** `buzzer_ui` still defaults to `False` in `gg_buzzer.DEFAULTS`, so a fresh Pi or a reset settings file plays no tap sounds at all. This is the most likely reason the dashboard seemed to have no sound. Recommendation: change the default to `True`.
+2. **The page was opened from another device.** Both pages only send sounds when they are opened on the Pi itself (`localhost`). A laptop or phone browser at `http://<pi>:8080` never triggers the buzzer, so test sounds on the Pi's own touchscreen.
+3. **The master Buzzer switch is off or quiet hours are active.**
+4. **The buzzer is unavailable** (the note under the Buzzer card says why).
+
+### Dashboard buttons still using the generic `tap`
+
+| Element | Suggested `data-snd` | Reason |
+|---|---|---|
+| `capture`, `fsCapture` | `shutter` (new) | Taking a picture should sound like a camera shutter. |
+| `muteBtn`, `unmuteBtn`, `fsMuteBtn`, `fsUnmuteBtn` | `none` (skip) | The server already plays `muted` or `unmuted`, so a `tap` in front of it only adds noise. Have `uiSnd` return early when the name is `none`. |
+| `rfBtn` (tap) | `refresh` (new) | Reconnecting the camera needs its own sound. |
+| `rfBtn` (5 s hold) | `hold_tick` once per second, then `danger` when the restart starts | The hold currently gives no audible countdown, so the user cannot tell whether the hold is registering. |
+| `refreshLogs`, `rbReload` | `refresh` (new) | |
+| `newer` / `older` | `page_prev` / `page_next` (new) | Paging sounds like the steppers: up for older, down for newer. |
+| `markAll` | `confirm` | |
+| `delShown`, `pwrOff`, and the row delete button (`data-del`) | `caution` (new) | Each opens a confirm dialog. The `danger` sound stays on the dialog's Yes, so opening and confirming sound different. |
+| Read/unread dot (`data-read`) | `choice` | It is a toggle, not a command. |
+| `scrSleep` | `sleep` (new) | Falling and slower than `minimize`, so turning the screen off is not mistaken for minimizing. |
+| `vOpen` | `open` | |
+
+The sun and moon, tab, stepper, switch and choice-bar buttons are untagged but already get the right sound from the fallbacks in `uiSound()`. The buzzer and vibration test buttons play their own sounds.
+
+### Wi-Fi page
+
+| Element | Suggested `data-snd` | Reason |
+|---|---|---|
+| `skipTop` (Dashboard, top bar) | `open` | It matches `stSkip` and `dGo`, which already use `open`. |
+| On-screen keyboard keys (`.k`) | `key` (new) | The keyboard is the busiest part of the page. A very short, high click keeps typing a password from sounding like a stream of button presses. |
+| Backspace key | `key_del` (new) | |
+| `Clear` key | `back` | |
+| `Next field` key | `tab` | |
+| IP field buttons (`.in`) | `choice` | Selecting a field is a choice, not an action. |
+
+The keys are built as strings in JavaScript (`'<button class="k ...'`), so the attribute has to be added to that string. A delegated rule in the Wi-Fi listener, `if (t.matches('.k')) s = 'key';`, before the generic `tap` would also work.
+
+### Event sounds that exist but are never played
+
+`cam_lost`, `cam_back` and `phone_join` are in `SOUNDS`, but no code plays them.
+
+- **Camera.** In `garbageguard_live.py`, the engine sets `self.connected` in several places (around lines 556, 598 and 651). Play `cam_lost` when it changes from `True` to `False` and `cam_back` when it changes back. Only play on a change, and skip the first connection after start-up, because `ready` already covers it. A small `_set_connected(value)` helper keeps this in one place.
+- **Phone.** In `gg_web.note_viewer`, a new row is created when a client appears or returns after `VIEWER_TTL`. When that new row has `kind == "app"`, call the buzzer's `phone_join`. `note_viewer` has no access to the buzzer at the moment, so pass a callback in from `serve()`, the same way `power` receives `sound=buzzer.play`.
+
+### Other events worth a sound
+
+These are optional. Each one should play only on a change of state, never on every poll.
+
+| Name (new) | When | Sequence | Priority |
+|---|---|---|---|
+| `charger_on` | UPS switches from battery to mains | `[(1800, 40), (2300, 80)]` | 2 |
+| `charger_off` | UPS switches from mains to battery | `[(2300, 40), (1800, 80)]` | 2 |
+| `wifi_lost` | Wi-Fi drops while Garbage-Guard is running | `[(2300, 80), (0, 30), (1700, 160)]` | 2 |
+| `phone_leave` | The last app viewer times out | `[(2600, 30), (0, 20), (2200, 30)]` | 1 |
+
+`charger_off` matters most, because it gives an audible warning before the low-battery countdown starts. `gg_power` already tracks whether the charger is plugged in for its pause logic, so the hook belongs there and uses the existing `sound` callback.
+
+### Sequences for the new UI sounds
+
+All of these stay inside the 1400 to 2800 Hz range and under the 150 ms UI limit that `test_buzzer.py` checks.
+
+| Name | Sequence | Length |
+|---|---|---|
+| `shutter` | `[(2600, 10), (0, 25), (2000, 40)]` | 75 ms |
+| `refresh` | `[(2200, 15), (0, 20), (2200, 15)]` | 50 ms |
+| `page_next` | `[(2100, 15), (2400, 20)]` | 35 ms |
+| `page_prev` | `[(2400, 15), (2100, 20)]` | 35 ms |
+| `caution` | `[(2000, 30), (0, 20), (2000, 30)]` | 80 ms |
+| `sleep` | `[(2200, 50), (1700, 90)]` | 140 ms |
+| `hold_tick` | `[(2000, 20)]` | 20 ms |
+| `key` | `[(2600, 8)]` | 8 ms |
+| `key_del` | `[(1900, 12)]` | 12 ms |
+
+Because `UI_SOUNDS` is built from the `ui` group, adding these rows to `SOUNDS` with group `"ui"` is enough for `/api/buzzer/ui` to accept them. `caution` and `denied` both repeat one note twice, but they differ by 500 Hz in pitch. If they still sound too alike on the real buzzer, lengthen the `caution` notes.
+
+### Boot sound timing
+
+`start.sh` plays `boot` only after the desktop has logged in and labwc has run its autostart, which on a Pi 5 takes roughly 20 to 40 seconds. The screen is dark and silent until then. To get a chime closer to power-on, add a small systemd one-shot service that runs early in boot:
+
+```ini
+# /etc/systemd/system/gg-boot-sound.service
+[Unit]
+Description=Garbage-Guard boot chime
+After=local-fs.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/<user>/Garbage-Guard/Raspberry Pi 5
+ExecStart=/usr/bin/timeout 5 /usr/bin/python3 gg_buzzer.py --play boot
+ExecStartPost=/usr/bin/touch /run/gg-boot-sound
+
+[Install]
+WantedBy=sysinit.target
+```
+
+In `start.sh`, skip the chime when `/run/gg-boot-sound` exists, so it does not play twice. `/run` is cleared on every boot, so the next boot plays it again. `install_autostart.sh` could install and enable the unit, with `sudo`, alongside the labwc entry. `gg_buzzer.py --play` already reads the saved settings and respects the master switch and quiet hours, so the service needs no extra logic.
+
+### Tests to add
+
+- test_buzzer.py: the new `ui` names exist and each is 150 ms or shorter. This is already covered by the existing loop once the names are in `SOUNDS`.
+- test_web.py: `/api/buzzer/ui` accepts `shutter`, `key` and `caution` and rejects `none`.
+- garbageguard_live / gg_web: when the camera goes up, down and up again, it plays `cam_lost` then `cam_back` exactly once each. A second poll with the same state plays nothing.
