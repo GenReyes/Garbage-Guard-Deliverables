@@ -1092,6 +1092,12 @@ a.btn{text-decoration:none}
 #settings .card-pow{padding:8px 10px;gap:6px;min-height:0;overflow:hidden}
 #settings .card-pow .hd{margin-bottom:0}
 #settings .card-pow[hidden]{display:none}
+/* Buzzer and Quiet cards stay on screen, greyed out, until the Pi reports them. */
+#settings .waitnote{display:none}
+#settings .card-pow.wait .waitnote{display:flex}
+#sndCard.wait #bzRepRow{display:none}
+#settings .card-pow.wait > :not(.hd):not(.waitnote){opacity:.4;filter:grayscale(1);pointer-events:none}
+#settings .card-pow.wait .hint.gen,#settings .card-pow.wait .hint.bad{display:none}
 .c-scr .hd .ico{color:var(--indigo)}
 .c-pow .hd .ico{color:var(--orange)}
 .c-snd .hd .ico{color:#0F7BD4}
@@ -1665,9 +1671,10 @@ body .fbar.quick button{padding:0 9px}
         <button class="btn danger wide" id="pwrOff" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down now</button>
         <p class="hint"><svg class="ico"><use href="#i-warn"/></svg>Start the Pi again with the UPS HAT switch.</p>
       </section>
-      <section class="card card-pow c-snd" id="sndCard" hidden>
+      <section class="card card-pow c-snd wait" id="sndCard">
         <div class="hd"><svg class="ico"><use href="#i-bellon"/></svg><h2>Buzzer</h2>
-          <span class="chip" id="bzChip"><span>ON</span></span></div>
+          <span class="chip off" id="bzChip"><span>OFFLINE</span></span></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
         <div class="prow"><label><svg class="ico"><use href="#i-bellon"/></svg>Buzzer</label>
           <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
         <div class="seg" id="bzVol" role="group" aria-label="Volume">
@@ -1696,8 +1703,9 @@ body .fbar.quick button{padding:0 9px}
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
-      <section class="card card-pow c-qt" id="quietCard" hidden>
+      <section class="card card-pow c-qt wait" id="quietCard">
         <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet and vibration</h2></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
         <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
           <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
         <div class="pair2" id="bzQuietRows">
@@ -2622,6 +2630,7 @@ function setLink(st){
   off.classList.toggle("busy", busy);
   off.querySelector("use").setAttribute("href", busy ? "#i-refresh" : "#" + (st === "nopi" ? "i-nolink" : "i-camoff"));
   off.lastChild.textContent = st === "nopi" ? "No link to Pi" : busy ? "Reconnecting camera…" : "No camera signal";
+  if(st === "nopi") setBuzzWait(true);
 }
 
 let viewers = null, cloud = null;
@@ -2965,8 +2974,8 @@ function pickVol(v){
 let buzzUi = false;
 function fillBuzzer(s){
   const card = $("sndCard");
-  card.hidden = $("quietCard").hidden = s.buzzer_on == null;
-  if(card.hidden) return;
+  setBuzzWait(s.buzzer_on == null);
+  if(card.classList.contains("wait")) return;
   buzzUi = !!s.buzzer_ui && !!s.buzzer_available;
   const note = $("bzNote");
   note.hidden = s.buzzer_available !== false;
@@ -2988,6 +2997,11 @@ function fillBuzzer(s){
   setTime($("bzFrom"), s.quiet_from); setTime($("bzTo"), s.quiet_to);
   setSw($("vbOn"), s.vibe_on); pickStr(s.vibe_strength);
   showBuzzRows();
+}
+function setBuzzWait(wait){
+  $("sndCard").classList.toggle("wait", wait);
+  $("quietCard").classList.toggle("wait", wait);
+  if(wait){ $("bzChip").classList.add("off"); $("bzChip").querySelector("span").textContent = "OFFLINE"; }
 }
 function showBuzzRows(){
   const chip = $("bzChip"), on = swOn($("bzOn"));
@@ -3031,14 +3045,14 @@ $("pwrSave").onclick = async () => {
     timeout_battery_s: Number($("scrBat").value), dim_pct: Number($("scrDim").value),
     wake_on_alert: $("scrWake").getAttribute("aria-checked") === "true"});
   await post("/api/auto_shutdown", {on: $("shutSw").getAttribute("aria-checked") === "true", pct: Number($("shutPct").value)});
-  if(!$("sndCard").hidden){
+  if(!$("sndCard").classList.contains("wait")){
     const vol = (document.querySelector("#bzVol [aria-pressed=true]") || {dataset: {}}).dataset.vol;
     await post("/api/buzzer", {on: swOn($("bzOn")), volume: vol, alerts: swOn($("bzAlerts")),
       countdown: swOn($("bzCount")), ui: swOn($("bzUi")), repeat: swOn($("bzRep")),
       repeat_s: Number($("bzRepS").value), quiet_on: swOn($("bzQuiet")),
       quiet_from: $("bzFrom").dataset.hm, quiet_to: $("bzTo").dataset.hm});
   }
-  if(!$("sndCard").hidden && !$("vbBox").hidden){
+  if(!$("sndCard").classList.contains("wait") && !$("vbBox").hidden){
     const str = (document.querySelector("#vbStr [aria-pressed=true]") || {dataset: {}}).dataset.str;
     await post("/api/vibe", {on: swOn($("vbOn")), strength: str});
   }
