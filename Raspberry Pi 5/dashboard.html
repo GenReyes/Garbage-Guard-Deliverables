@@ -1105,6 +1105,100 @@ a.btn{text-decoration:none}
 .setfoot .hint{margin:0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .setfoot .btn{min-width:140px;justify-content:center}
 
+/* Settings: four even cards that fit one screen at 1024x600, no scrolling.
+   Rows are compact (label beside its switch, or above its stepper bar) and
+   the steppers and choice bars copy the mobile app: one outlined bar, the
+   - and + keys raised at its ends, the value sunk between them. */
+#settings .setwrap{gap:7px;padding:0 4px 2px}
+#settings .setgrid{flex:1;min-height:0;align-items:stretch;gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+#settings .card-pow{padding:8px 10px;gap:6px;min-height:0;overflow:hidden}
+#settings .card-pow .hd{margin-bottom:0}
+#settings .card-pow[hidden]{display:none}
+.c-scr .hd .ico{color:var(--indigo)}
+.c-pow .hd .ico{color:var(--orange)}
+.c-snd .hd .ico{color:#0F7BD4}
+.c-qt .hd .ico{color:var(--purple)}
+#settings .grow{flex:1}
+#settings .prow{margin:0;min-height:30px;gap:10px}
+#settings .prow label,#settings .pfield label{display:flex;align-items:center;gap:6px;min-width:0;
+  font-size:11px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+#settings .prow label .ico,#settings .pfield label .ico{width:13px;height:13px;flex:none;color:var(--muted)}
+#settings .pfield label{margin:0 0 4px;color:var(--muted);font-size:10px}
+#settings .pfield label .ico{width:12px;height:12px}
+#settings .sw.lt{min-height:28px}
+#settings .hint{margin:0;font-size:10px}
+#settings .btn.wide{width:100%}
+#settings .tests{margin:0;gap:6px}
+#settings #vbBox{display:flex;flex-direction:column;gap:6px}
+#settings #vbBox[hidden]{display:none}
+#settings .pair2{display:grid;grid-template-columns:1fr;gap:6px}
+#settings .setfoot{padding:4px 2px 0;position:static}
+#settings .setfoot .btn{min-height:34px}
+.chip{display:inline-flex;align-items:center;gap:4px;flex:none;padding:1px 7px;border-radius:999px;
+  border:2px solid var(--edge);background:var(--ok-tint);font-size:9.5px;font-weight:900;
+  letter-spacing:.06em;color:var(--text)}
+.chip .ico{width:11px!important;height:11px!important;color:var(--ok)!important;animation:none!important}
+.chip.off{background:var(--bad-tint)}
+.chip[hidden]{display:none}
+
+#settings .pfield[hidden],#settings .prow[hidden]{display:none}
+.cells{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.cells span{display:flex;align-items:baseline;justify-content:center;gap:1px;padding:5px 0;
+  border:2px solid var(--edge);border-radius:9px;background:var(--sunk);box-shadow:inset 0 2px 5px rgba(0,0,0,.14)}
+.cells b{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.cells small{font-size:9px;font-weight:800;color:var(--muted)}
+.cells span.lo b{color:#A35A00}
+[data-theme="dark"] .cells span.lo b{color:var(--warn)}
+#settings .pv{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums}
+/* settings switches: a pale sunk track when off, like the app */
+#settings .sw.lt > i{background:var(--sunk);box-shadow:inset 2px 2px 4px var(--shade), inset -1px -1px 3px var(--lite)}
+#settings .sw.lt[aria-checked="true"] > i{background:var(--teal);box-shadow:inset 0 2px 4px rgba(0,0,0,.35), 0 0 8px rgba(23,166,143,.55)}
+
+/* stepper bar */
+.well.stp{display:flex;align-items:stretch;gap:0;padding:0;height:36px;border-radius:12px;overflow:hidden;
+  background:var(--sunk);box-shadow:var(--soft-sm), inset 0 3px 6px rgba(0,0,0,.14)}
+.prow .well.stp{width:150px;padding:0}
+.stp .step{position:relative;z-index:1;width:40px;height:auto;border:0;border-radius:0;flex:none;
+  font-size:19px;font-weight:800;color:var(--text);
+  background:linear-gradient(180deg,var(--lite),var(--raised));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade)}
+.stp .step:first-child{border-right:2px solid var(--edge);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), 5px 0 8px -4px rgba(0,0,0,.35)}
+.stp .step:last-child{border-left:2px solid var(--edge);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), -5px 0 8px -4px rgba(0,0,0,.35)}
+.stp .step:hover{transform:none;filter:brightness(1.03)}
+.stp .step:active{transform:none;background:var(--sunk);box-shadow:inset 3px 3px 7px var(--shade)}
+.stp .step::after{inset:-6px 0}
+#settings .stp input,.stp input{flex:1 1 0;min-width:0;width:0;text-align:center;font-size:16px;font-weight:900;padding:0 0 0 36px;line-height:1;
+  background:transparent}
+.stp .u{width:36px;flex:none;align-self:center;text-align:left;line-height:1;margin:0;padding:0 0 0 2px;font-size:10px;font-weight:800;color:var(--muted)}
+#settings .stp input[data-time]{font-size:14px;text-align:center;padding:0}
+.stp input[data-time] + .u{display:none}
+#settings .card-pow > *{flex-shrink:0}
+#settings .card-pow > .grow{flex-shrink:1}
+/* the clock note replaces the general tip, so the card never overflows */
+#bzQuietNote:not([hidden]) ~ .hint.gen{display:none}
+[data-theme="dark"] .stp{box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] .stp .step{background:linear-gradient(180deg,#4F4841,#3D3832);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35)}
+[data-theme="dark"] .stp .step:first-child{box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 5px 0 8px -4px rgba(0,0,0,.7)}
+[data-theme="dark"] .stp .step:last-child{box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), -5px 0 8px -4px rgba(0,0,0,.7)}
+[data-theme="dark"] .stp .step:active{background:var(--sunk);box-shadow:inset 3px 3px 7px #000}
+
+/* choice bar, same build: the chosen cell is raised, the rest sunk */
+#settings .seg{display:flex;gap:0;height:34px;border:2px solid var(--edge);border-radius:12px;overflow:hidden;
+  background:var(--sunk);box-shadow:var(--soft-sm), inset 0 3px 6px rgba(0,0,0,.14)}
+#settings .seg button{flex:1;min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+  font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#settings .seg button + button{border-left:2px solid var(--edge)}
+#settings .seg button[aria-pressed="true"]{position:relative;z-index:1;color:var(--text);
+  background:linear-gradient(180deg,var(--lite),var(--raised));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), 0 0 9px rgba(0,0,0,.3)}
+[data-theme="dark"] #settings .seg{box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] #settings .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#4F4841,#3D3832);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 0 0 9px rgba(0,0,0,.7)}
+
 /* power card, screen saver layer, shutdown banner */
 .card-pow{flex:none}
 .card-pow .hd .ico{color:var(--orange)}
@@ -1395,7 +1489,7 @@ a.btn{text-decoration:none}
         <div class="hd"><svg class="ico"><use href="#i-gear"/></svg><h2>Detection settings</h2></div>
         <div class="field">
           <label for="conf"><svg class="ico"><use href="#i-eye"/></svg>Detection confidence</label>
-          <div class="well">
+          <div class="well stp">
             <button class="step" type="button" data-for="conf" data-d="-5" aria-label="Lower confidence">−</button>
             <input id="conf" type="number" min="5" max="95" step="5" inputmode="numeric">
             <span class="u">%</span>
@@ -1405,7 +1499,7 @@ a.btn{text-decoration:none}
         </div>
         <div class="field">
           <label for="thresh"><svg class="ico"><use href="#i-bell"/></svg>Accumulation limit</label>
-          <div class="well">
+          <div class="well stp">
             <button class="step" type="button" data-for="thresh" data-d="-1" aria-label="Lower limit">−</button>
             <input id="thresh" type="number" min="1" max="200" step="1" inputmode="numeric">
             <span class="u">items</span>
@@ -1498,122 +1592,122 @@ a.btn{text-decoration:none}
   <section class="page" id="settings" role="tabpanel" aria-labelledby="tabSettings">
     <div class="setwrap">
     <div class="setgrid">
-      <section class="card card-pow" id="scrCard">
+      <section class="card card-pow c-scr" id="scrCard">
         <div class="hd"><svg class="ico"><use href="#i-sunmoon"/></svg><h2>Screen saver</h2></div>
         <div class="seg" id="scrMode" role="group" aria-label="Screen saver mode">
           <button type="button" data-mode="off" aria-pressed="false">Off</button>
           <button type="button" data-mode="dim" aria-pressed="false">Dim</button>
           <button type="button" data-mode="never" aria-pressed="false">Never</button>
         </div>
-        <div class="prow"><label for="scrMin">Turn off after</label>
-          <div class="well">
+        <div class="pfield"><label for="scrMin"><svg class="ico"><use href="#i-clock"/></svg>Turn off after</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrMin" data-d="-1" aria-label="Less time">−</button>
-            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric">
-            <span class="u">min</span>
+            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric"><span class="u">min</span>
             <button class="step" type="button" data-for="scrMin" data-d="1" aria-label="More time">+</button>
           </div></div>
-        <div class="prow"><label for="scrBat">On battery</label>
-          <div class="well">
+        <div class="pfield"><label for="scrBat"><svg class="ico"><use href="#i-batt"/></svg>On battery</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrBat" data-d="-30" aria-label="Less time on battery">−</button>
-            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric">
-            <span class="u">sec</span>
+            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric"><span class="u">sec</span>
             <button class="step" type="button" data-for="scrBat" data-d="30" aria-label="More time on battery">+</button>
           </div></div>
-        <div class="prow" id="scrDimRow"><label for="scrDim">Dim level</label>
-          <div class="well">
+        <div class="pfield" id="scrDimRow"><label for="scrDim"><svg class="ico"><use href="#i-sunmoon"/></svg>Dim level</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrDim" data-d="-5" aria-label="Darker">−</button>
-            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
+            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric"><span class="u">%</span>
             <button class="step" type="button" data-for="scrDim" data-d="5" aria-label="Brighter">+</button>
           </div></div>
-        <div class="prow"><label>Wake on alert</label>
+        <div class="prow"><label><svg class="ico"><use href="#i-bell"/></svg>Wake on alert</label>
           <button class="sw lt" id="scrWake" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <button class="btn" id="scrSleep" type="button" style="width:100%;margin-top:8px"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
-        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          Tap to wake. The first tap only wakes.</p>
-        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
-          <span></span></p>
+        <button class="btn sm wide" id="scrSleep" type="button"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>Tap to wake. The first tap only wakes.</p>
+        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
-      <section class="card card-pow" id="powCard">
-        <div class="hd"><svg class="ico"><use href="#i-batt"/></svg><h2>Power</h2></div>
-        <div class="sub"><svg class="ico"><use href="#i-bolt"/></svg>Low battery</div>
-        <div class="prow"><label>Auto shutdown</label>
+      <section class="card card-pow c-pow" id="powCard">
+        <div class="hd"><svg class="ico"><use href="#i-power"/></svg><h2>Power</h2>
+          <span class="chip" id="powChip" hidden><svg class="ico"><use href="#i-batt"/></svg><span></span></span></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg>Auto shutdown</label>
           <button class="sw lt" id="shutSw" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <div class="prow"><label for="shutPct">Shut down at</label>
-          <div class="well">
+        <div class="pfield"><label for="shutPct"><svg class="ico"><use href="#i-gauge"/></svg>Shut down at</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="shutPct" data-d="-5" aria-label="Lower">−</button>
-            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
+            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric"><span class="u">%</span>
             <button class="step" type="button" data-for="shutPct" data-d="5" aria-label="Higher">+</button>
           </div></div>
-        <div class="sub"><svg class="ico"><use href="#i-power"/></svg>Now</div>
-        <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:4px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>Shuts down cleanly when the battery drops this low.</p>
+        <div class="pfield" id="cellBox" hidden><label><svg class="ico"><use href="#i-batt"/></svg>Cells (4 × 21700)</label>
+          <div class="cells" id="cells"></div></div>
+        <div class="prow" id="packRow" hidden><label><svg class="ico"><use href="#i-clock"/></svg><span id="packLbl">Time left</span></label>
+          <b class="pv" id="packVal">–</b></div>
+        <span class="grow"></span>
+        <button class="btn danger wide" id="pwrOff" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down now</button>
+        <p class="hint"><svg class="ico"><use href="#i-warn"/></svg>Start the Pi again with the UPS HAT switch.</p>
       </section>
-      <section class="card card-pow" id="sndCard" style="grid-column:1/-1" hidden>
-        <div class="hd"><svg class="ico"><use href="#i-bell"/></svg><h2>Sound</h2></div>
-        <div class="sndgrid">
-          <div class="sndcol">
-            <div class="prow"><label>Buzzer</label>
-              <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="seg" id="bzVol" role="group" aria-label="Volume">
-              <button type="button" data-vol="low" aria-pressed="false">Low</button>
-              <button type="button" data-vol="medium" aria-pressed="false">Medium</button>
-              <button type="button" data-vol="high" aria-pressed="false">High</button>
-            </div>
-            <div class="prow"><label>Alerts</label>
-              <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow"><label>Countdown and shutdown</label>
-              <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow"><label>Button sounds</label>
-              <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
-            <div id="vbBox">
-              <div class="prow"><label>Vibration</label>
-                <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
-              <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
-                <button type="button" data-str="low" aria-pressed="false">Low</button>
-                <button type="button" data-str="medium" aria-pressed="false">Medium</button>
-                <button type="button" data-str="high" aria-pressed="false">High</button>
-              </div>
-            </div>
-          </div>
-          <div class="sndcol">
-            <div class="prow"><label>Repeat alarm</label>
-              <button class="sw lt" id="bzRep" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow" id="bzRepRow"><label for="bzRepS">Repeat every</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzRepS" data-d="-10" aria-label="Shorter">−</button>
-                <input id="bzRepS" type="number" min="10" max="300" step="10" inputmode="numeric">
-                <span class="u">sec</span>
-                <button class="step" type="button" data-for="bzRepS" data-d="10" aria-label="Longer">+</button>
-              </div></div>
-            <div class="prow"><label>Quiet hours</label>
-              <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
-            <div class="prow" id="bzFromRow"><label for="bzFrom">From</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
-                <input id="bzFrom" type="text" data-time="1" readonly>
-                <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
-              </div></div>
-            <div class="prow" id="bzToRow"><label for="bzTo">Until</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
-                <input id="bzTo" type="text" data-time="1" readonly>
-                <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
-              </div></div>
-            <div class="tests">
-              <button class="btn" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test alarm</button>
-              <button class="btn" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test tune</button>
-            </div>
-            <div class="tests" id="vbTests">
-              <button class="btn" id="vbTest" type="button"><svg class="ico"><use href="#i-act"/></svg>Test vibration</button>
-            </div>
-          </div>
+      <section class="card card-pow c-snd" id="sndCard" hidden>
+        <div class="hd"><svg class="ico"><use href="#i-bellon"/></svg><h2>Buzzer</h2>
+          <span class="chip" id="bzChip"><span>ON</span></span></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-bellon"/></svg>Buzzer</label>
+          <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="seg" id="bzVol" role="group" aria-label="Volume">
+          <button type="button" data-vol="low" aria-pressed="false">Low</button>
+          <button type="button" data-vol="medium" aria-pressed="false">Medium</button>
+          <button type="button" data-vol="high" aria-pressed="false">High</button>
+        </div>
+        <div class="prow"><label><svg class="ico"><use href="#i-bell"/></svg>Alerts</label>
+          <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg>Low-battery beeps</label>
+          <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-act"/></svg>Button sounds</label>
+          <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-refresh"/></svg>Repeat alarm</label>
+          <button class="sw lt" id="bzRep" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="pfield" id="bzRepRow"><label for="bzRepS"><svg class="ico"><use href="#i-clock"/></svg>Repeat every</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzRepS" data-d="-10" aria-label="Shorter">−</button>
+            <input id="bzRepS" type="number" min="10" max="300" step="10" inputmode="numeric"><span class="u">sec</span>
+            <button class="step" type="button" data-for="bzRepS" data-d="10" aria-label="Longer">+</button>
+          </div></div>
+        <span class="grow"></span>
+        <div class="tests">
+          <button class="btn sm" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Alarm</button>
+          <button class="btn sm" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bellon"/></svg>Tune</button>
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
-        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+      </section>
+      <section class="card card-pow c-qt" id="quietCard" hidden>
+        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet and vibration</h2></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
+          <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
+        <div class="pair2" id="bzQuietRows">
+        <div class="pfield" id="bzFromRow"><label for="bzFrom"><svg class="ico"><use href="#i-sunmoon"/></svg>From</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzFrom" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        <div class="pfield" id="bzToRow"><label for="bzTo"><svg class="ico"><use href="#i-sunmoon"/></svg>Until</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzTo" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        </div>
         <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
-        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          Quiet hours silence the buzzer and the vibration. Tests use the saved volume and strength.</p>
+        <div id="vbBox">
+        <div class="prow"><label><svg class="ico"><use href="#i-phone"/></svg>Vibration</label>
+          <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+          <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
+            <button type="button" data-str="low" aria-pressed="false">Low</button>
+            <button type="button" data-str="medium" aria-pressed="false">Medium</button>
+            <button type="button" data-str="high" aria-pressed="false">High</button>
+          </div>
+        </div>
+        <span class="grow"></span>
+        <div class="tests" id="vbTests">
+          <button class="btn sm" id="vbTest" type="button"><svg class="ico"><use href="#i-phone"/></svg>Test vibration</button>
+        </div>
+        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence buzzer and motor. Tests use the saved settings.</p>
       </section>
     </div>
       <div class="setfoot">
@@ -2334,8 +2428,11 @@ $("quick").addEventListener("click", e => {
   if(q === "any"){ $("dFrom").value = ""; $("dTo").value = ""; }
   else if(q === "today"){ $("dFrom").value = now; $("dTo").value = now; }
   else {
-    const back = new Date(now + "T00:00:00");
-    back.setDate(back.getDate() - (Number(q) - 1));
+    // Count back in whole UTC days. Going through local midnight and
+    // toISOString() slipped a day east of UTC (the Pi is UTC+8), so the range
+    // came out as 8 or 31 days and the 7 days / 30 days chip never lit up.
+    const back = new Date(now + "T00:00:00Z");
+    back.setUTCDate(back.getUTCDate() - (Number(q) - 1));
     $("dFrom").value = back.toISOString().slice(0,10);
     $("dTo").value = now;
   }
@@ -2844,7 +2941,7 @@ function pickVol(v){
 let buzzUi = false;
 function fillBuzzer(s){
   const card = $("sndCard");
-  card.hidden = s.buzzer_on == null;
+  card.hidden = $("quietCard").hidden = s.buzzer_on == null;
   if(card.hidden) return;
   buzzUi = !!s.buzzer_ui && !!s.buzzer_available;
   const note = $("bzNote");
@@ -2869,6 +2966,9 @@ function fillBuzzer(s){
   showBuzzRows();
 }
 function showBuzzRows(){
+  const chip = $("bzChip"), on = swOn($("bzOn"));
+  chip.classList.toggle("off", !on);
+  chip.querySelector("span").textContent = on ? "ON" : "OFF";
   $("bzRepRow").style.display = swOn($("bzRep")) ? "" : "none";
   const q = swOn($("bzQuiet")) ? "" : "none";
   $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
@@ -2925,6 +3025,26 @@ $("scrSleep").onclick = async () => { await post("/api/screen", {action: "sleep"
 let pwrEnd = 0, pwrFloor = false;
 function paintPower(b){
   fillShutdown(b);
+  const pc = $("powChip");
+  pc.hidden = !(b && b.ok);
+  if(b && b.ok){
+    const p = Math.round(b.percent);
+    pc.querySelector("span").textContent = (b.on_ac ? "AC · " : "BATTERY ") + p + "%";
+    pc.classList.toggle("off", !b.on_ac && p <= 20);
+  }
+  const cells = b && b.ok && Array.isArray(b.cells_v) ? b.cells_v : null;
+  $("cellBox").hidden = !cells;
+  if(cells){
+    const lo = Math.min(...cells);
+    $("cells").innerHTML = cells.map(v =>
+      `<span class="${v === lo && Math.max(...cells) - lo > 0.05 ? "lo" : ""}"><b>${v.toFixed(2)}</b><small>V</small></span>`).join("");
+  }
+  const m = b && b.ok ? b.minutes_left : null;
+  $("packRow").hidden = m == null;
+  if(m != null){
+    $("packLbl").textContent = b.charging ? "Full in" : "Time left";
+    $("packVal").textContent = m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`;
+  }
   const counting = !!b && b.shutdown_state === "counting" && b.shutdown_in_s != null;
   if(counting){
     pwrEnd = Date.now() + b.shutdown_in_s * 1000;
