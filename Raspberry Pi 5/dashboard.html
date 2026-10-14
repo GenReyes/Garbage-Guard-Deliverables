@@ -720,16 +720,6 @@ main{flex:1;min-height:0;display:flex}
   font-weight:800;width:104px}
 .tools .sp{flex:1}
 .tools.dates{padding:3px 0 0;border-bottom:0;gap:5px}
-/* One bar of choices: the chosen one is pressed into the bar, the rest stand out. */
-.fbar{display:flex;align-items:stretch;gap:0;background:var(--sunk);
-  border:2px solid var(--edge);border-radius:11px;box-shadow:var(--well);padding:2px;overflow:hidden}
-.fbar button{display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;
-  border:0;border-radius:8px;background:transparent;font:inherit;font-size:11.5px;font-weight:800;
-  color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s, color .15s, box-shadow .15s}
-.fbar button .ico{width:14px;height:14px}
-.fbar button:active{transform:translateY(1px)}
-.fbar button[aria-pressed="true"]{background:var(--teal);color:#fff;box-shadow:var(--hard-sm)}
-.fbar.quick button{font-size:11px;padding:0 8px}
 .scope{font-size:11.5px;font-weight:800;color:var(--muted);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .tablewrap{flex:1;min-height:0;min-width:0;overflow:auto;border:2px solid var(--edge);
@@ -1186,28 +1176,38 @@ a.btn{text-decoration:none}
 [data-theme="dark"] .stp .step:last-child{box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), -5px 0 8px -4px rgba(0,0,0,.7)}
 [data-theme="dark"] .stp .step:active{background:var(--sunk);box-shadow:inset 3px 3px 7px #000}
 
-/* choice bar, same build: the chosen cell is raised, the rest sunk */
-#settings .seg{display:flex;gap:0;height:34px;border:2px solid var(--edge);border-radius:12px;overflow:hidden;
+/* Choice bars, copied from the app: every group of options is one outlined
+   bar, the cells split by ink lines. The chosen cell is raised and lit, the
+   rest stay sunk and muted. Used for the screen saver mode, volume, strength,
+   the History filters and date chips, and the theme switch. */
+body :is(div.seg,.fbar){display:flex;align-items:stretch;gap:0;padding:0;height:34px;
+  border:2px solid var(--edge);border-radius:12px;overflow:hidden;
   background:var(--sunk);box-shadow:var(--soft-sm), inset 0 3px 6px rgba(0,0,0,.14)}
-#settings .seg button{flex:1;min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none;
-  font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-#settings .seg button + button{border-left:2px solid var(--edge)}
-#settings .seg button[aria-pressed="true"]{position:relative;z-index:1;color:var(--text);
+body :is(div.seg,.fbar) button{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:5px;
+  min-height:0;margin:0;padding:0 10px;border:0;border-radius:0;background:transparent;box-shadow:none;
+  font:inherit;font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;cursor:pointer;transition:background .15s, color .15s}
+body :is(div.seg,.fbar) button + button{border-left:2px solid var(--edge)}
+body :is(div.seg,.fbar) button .ico{width:14px;height:14px;opacity:.55}
+body :is(div.seg,.fbar) button:active{transform:none;background:rgba(0,0,0,.06)}
+body :is(div.seg,.fbar) button[aria-pressed="true"]{position:relative;z-index:1;color:var(--text);
   background:linear-gradient(180deg,var(--lite),var(--raised));
   box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), 0 0 9px rgba(0,0,0,.3)}
-[data-theme="dark"] #settings .seg{box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
-[data-theme="dark"] #settings .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#4F4841,#3D3832);
+body :is(div.seg,.fbar) button[aria-pressed="true"] .ico{opacity:1;color:var(--teal)}
+[data-theme="dark"] :is(div.seg,.fbar){box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] :is(div.seg,.fbar) button[aria-pressed="true"]{background:linear-gradient(180deg,#4F4841,#3D3832);
   box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 0 0 9px rgba(0,0,0,.7)}
+body .fbar{flex:none}
+body div.seg button{flex:1 1 0;min-width:0}
+body .fbar.quick button{padding:0 9px}
+/* theme switch in the status strip */
+.ctl-row .themebar{flex:1;min-width:0;height:36px}
+.themebar button{padding:0 6px!important}
+.themebar .ico{width:15px!important;height:15px!important}
 
 /* power card, screen saver layer, shutdown banner */
 .card-pow{flex:none}
 .card-pow .hd .ico{color:var(--orange)}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.seg button{min-height:34px;border:2px solid var(--edge);border-radius:10px;font:inherit;font-size:12px;
-  font-weight:900;cursor:pointer;color:var(--text);background:linear-gradient(162deg,var(--lite),var(--raised));
-  box-shadow:var(--soft-sm)}
-.seg button:active{box-shadow:var(--press)}
-.seg button[aria-pressed="true"]{background:var(--teal);color:#fff;box-shadow:var(--press)}
 .sw.lt{color:var(--text);padding:0}
 .sw.lt[aria-checked="true"]{color:var(--text)}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px}
@@ -1406,13 +1406,12 @@ a.btn{text-decoration:none}
         <i id="phnC"><svg><use href="#i-cloudidle"/></svg></i></button>
     </div>
     <div class="ctl-row">
-      <button class="btn sm" id="theme" type="button">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
-            <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
-          <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
-        </svg><span id="themeLbl">Dark</span></button>
+      <div class="seg themebar" id="theme" role="group" aria-label="Appearance">
+        <button type="button" data-t="light" aria-pressed="true" title="Light mode"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>Light</button>
+        <button type="button" data-t="dark" aria-pressed="false" title="Dark mode"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.6A8.5 8.5 0 1 1 9.4 3.5a6.6 6.6 0 0 0 11.1 11.1z"/></svg>Dark</button>
+      </div>
       <a class="btn sm" id="wifiBtn" href="/wifi" hidden title="Wi-Fi setup" aria-label="Wi-Fi setup">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.6a9 9 0 0 1 12.4 0M9 16.2a4.4 4.4 0 0 1 6 0"/><circle cx="12" cy="19.4" r=".9" fill="currentColor"/></svg></a>
@@ -1927,10 +1926,16 @@ function toast(m, icon){
 
 function applyTheme(mode){
   document.documentElement.dataset.theme = mode;
-  $("themeLbl").textContent = $("fsThemeLbl").textContent = mode==="dark" ? "Light" : "Dark";
+  $("fsThemeLbl").textContent = mode==="dark" ? "Light" : "Dark";
+  document.querySelectorAll("#theme button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.t === mode)));
   try{ localStorage.setItem("gg-theme", mode); }catch(e){}
 }
-$("theme").onclick = $("fsTheme").onclick = () =>
+$("theme").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if(b) applyTheme(b.dataset.t);
+});
+$("fsTheme").onclick = () =>
   applyTheme(document.documentElement.dataset.theme==="dark" ? "light" : "dark");
 try{ applyTheme(localStorage.getItem("gg-theme")||"light"); }catch(e){ applyTheme("light"); }
 
