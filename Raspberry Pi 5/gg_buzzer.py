@@ -44,10 +44,33 @@ SOUNDS = {
     "muted": (2, "events", [(2300, 60), (2000, 60), (1700, 60)]),
     "unmuted": (2, "events", [(1700, 60), (2000, 60), (2300, 60)]),
     "ready": (1, "events", [(1700, 80), (2000, 80), (2300, 160)]),
+    "boot": (3, "events", [(1500, 90), (1900, 90), (2300, 90), (2700, 220)]),
+    "wifi_ok": (2, "events", [(2000, 60), (0, 30), (2600, 140)]),
+    "wifi_fail": (2, "events", [(1700, 120), (0, 40), (1400, 220)]),
+    "cam_lost": (2, "events", [(2000, 80), (1500, 160)]),
+    "cam_back": (2, "events", [(1500, 80), (2000, 160)]),
+    "phone_join": (1, "events", [(2200, 30), (0, 20), (2600, 30)]),
+    "saved": (1, "events", [(2300, 25), (0, 15), (2700, 40)]),
     "tap": (0, "ui", [(2200, 15)]),
     "switch": (0, "ui", [(1900, 35), (2300, 45)]),
+    "switch_on": (0, "ui", [(1900, 35), (2300, 45)]),
+    "switch_off": (0, "ui", [(2300, 35), (1900, 45)]),
+    "choice": (0, "ui", [(2100, 25)]),
+    "step_up": (0, "ui", [(2500, 18)]),
+    "step_down": (0, "ui", [(1800, 18)]),
+    "tab": (0, "ui", [(2000, 20), (0, 15), (2400, 25)]),
+    "open": (0, "ui", [(1800, 30), (2400, 40)]),
+    "back": (0, "ui", [(2400, 30), (1800, 40)]),
+    "confirm": (0, "ui", [(1900, 40), (0, 20), (2500, 80)]),
+    "danger": (0, "ui", [(2300, 80), (1600, 160)]),
+    "denied": (0, "ui", [(1500, 60), (0, 40), (1500, 60)]),
+    "logo": (0, "ui", [(1700, 60), (2000, 60), (2300, 60), (2700, 140)]),
+    "theme_light": (0, "ui", [(1900, 30), (2600, 50)]),
+    "theme_dark": (0, "ui", [(2600, 30), (1900, 50)]),
+    "minimize": (0, "ui", [(2600, 30), (2200, 30), (1700, 50)]),
+    "restore": (0, "ui", [(1700, 30), (2200, 30), (2600, 50)]),
 }
-UI_SOUNDS = ("tap", "switch")
+UI_SOUNDS = tuple(n for n, (_, g, _) in SOUNDS.items() if g == "ui")
 EVENT_SOUND = {"accumulation": "accumulation", "low_battery_shutdown": "shutdown_low",
                "manual_shutdown": "shutdown_manual", "test": "test",
                "auto_muted": "auto_muted", "manual": "manual", "muted": "muted",
@@ -418,3 +441,35 @@ class Buzzer:
                     print(f"[BUZZER] {e}", flush=True)
                     time.sleep(1.0)
         threading.Thread(target=loop, daemon=True).start()
+
+
+def play_once(name, base=None):
+    import json
+    import gg_clock
+    base = base or os.path.dirname(os.path.abspath(__file__))
+    settings = dict(DEFAULTS)
+    try:
+        with open(os.path.join(base, "gg_settings.json")) as f:
+            saved = json.load(f)
+        if isinstance(saved, dict):
+            settings.update({k: saved[k] for k in DEFAULTS if k in saved})
+    except (OSError, ValueError):
+        pass
+    backend = make_backend()
+    buzzer = Buzzer(settings, backend=backend, clock_synced=gg_clock.Clock().synced)
+    try:
+        if buzzer.play(name):
+            buzzer.drain()
+    finally:
+        backend.close()
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == "--play" and sys.argv[2] in SOUNDS:
+        try:
+            play_once(sys.argv[2])
+        except Exception as e:
+            print(f"[BUZZER] {e}", flush=True)
+    else:
+        print("usage: python3 gg_buzzer.py --play <sound>")

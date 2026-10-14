@@ -4,6 +4,26 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: sound plan from Brian (2026-10-14)
+
+### Pi
+
+- 17 button sounds (switch on and off, choice, step up and down, tab, open, back,
+  confirm, danger, denied, logo, theme, minimize, restore) plus the old `tap` and
+  `switch`. The dashboard and the Wi-Fi page pick the sound from a `data-snd`
+  tag or from the kind of control, and a failed request plays `denied`.
+- New event sounds: `boot`, `wifi_ok`, `wifi_fail`, `cam_lost`, `cam_back`,
+  `phone_join`, `saved`.
+- A boot chime at power on: `start.sh` runs `python3 gg_buzzer.py --play boot`
+  in autostart mode, before the camera and model start. It honours the buzzer
+  switch and quiet hours and closes the pin before the detector opens it.
+- The Pi plays `wifi_ok` or `wifi_fail` when a Wi-Fi connect finishes, and
+  `saved` after settings, buzzer or screen saver changes are saved.
+- `cam_lost`, `cam_back` and `phone_join` exist and can be tested but nothing
+  plays them yet.
+- `/api/buzzer/ui` accepts every button sound; the app's test list can use any
+  sound name.
+
 ## Pi: v7 model is the default (2026-10-14)
 
 ### Pi

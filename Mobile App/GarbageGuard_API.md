@@ -447,7 +447,11 @@ hear it. It ignores the switches and quiet hours, but not a missing buzzer:
 that answers `409 {"ok": false, "error": "unavailable", "message": "..."}`.
 An unknown name answers `400 bad_sound`. Sounds: `accumulation`, `shutdown_low`,
 `countdown`, `test`, `auto_muted`, `shutdown_manual`, `manual`, `muted`,
-`unmuted`, `ready`, `tap`, `switch`. Over Firebase these are the `buzzer` and
+`unmuted`, `ready`, `boot`, `wifi_ok`, `wifi_fail`, `cam_lost`, `cam_back`,
+`phone_join`, `saved`, and the button sounds `tap`, `switch`, `switch_on`,
+`switch_off`, `choice`, `step_up`, `step_down`, `tab`, `open`, `back`, `confirm`,
+`danger`, `denied`, `logo`, `theme_light`, `theme_dark`, `minimize`, `restore`.
+Over Firebase these are the `buzzer` and
 `buzzer_test` commands.
 
 ### `POST /api/vibe`
@@ -578,7 +582,7 @@ are not in the mock server. The app should not call them.
 | Endpoint | Notes |
 |---|---|
 | `GET /start`, `GET /wifi` | HTML pages for the touchscreen startup splash and Wi-Fi setup. |
-| `POST /api/buzzer/ui` | `{"sound": "tap"|"switch"}`. The touchscreen's own button sounds. Local only; anyone else gets `403 local_only`. |
+| `POST /api/buzzer/ui` | `{"sound": "<a button sound>"}`: any of the button sounds listed under `/api/buzzer/test`. The touchscreen's own button sounds. Local only; anyone else gets `403 local_only`. |
 | `GET /api/net` | Network status: `wifi_connected`, `ssid`, `internet`, `has_wifi_hw`, `camera_conflict`, `local`. Read-only, safe to call. |
 | `GET /api/wifi/scan`, `POST /api/wifi/connect`, `POST /api/wifi/fix_camera` | Answer only to requests from the Pi itself. Anyone else gets `403 local_only`. Passwords are never logged or returned. |
 

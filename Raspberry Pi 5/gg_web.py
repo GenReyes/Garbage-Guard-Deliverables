@@ -296,6 +296,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                     return
                 res = net.connect(str(data.get("ssid") or ""), data.get("password") or None,
                                   bool(data.get("hidden")))
+                buzzer.play("wifi_ok" if res.get("ok") else "wifi_fail")
                 return self._json(res)
 
             if path == "/api/net/ipv4":
@@ -353,6 +354,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                     conf = float(conf) / 100.0
                 s = engine.update_settings(conf=conf,
                                            threshold=data.get("threshold"))
+                buzzer.play("saved")
                 return self._json({"ok": True, "settings": s})
 
             if path == "/api/roi":
@@ -384,6 +386,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                                        timeout_battery_s=data.get("timeout_battery_s"),
                                        dim_pct=data.get("dim_pct"),
                                        wake_on_alert=data.get("wake_on_alert"))
+                buzzer.play("saved")
                 return self._json({"ok": True, **res})
 
             if path == "/api/screen":
@@ -415,6 +418,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                                        ui=data.get("ui"), repeat=data.get("repeat"),
                                        repeat_s=data.get("repeat_s"), quiet_on=data.get("quiet_on"),
                                        quiet_from=data.get("quiet_from"), quiet_to=data.get("quiet_to"))
+                buzzer.play("saved")
                 return self._json({"ok": True, **res})
 
             if path == "/api/buzzer/test":

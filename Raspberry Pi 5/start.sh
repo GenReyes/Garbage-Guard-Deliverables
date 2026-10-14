@@ -24,6 +24,8 @@ echo "======================================================"
 echo " GARBAGE-GUARD"
 echo "======================================================"
 
+[ "$AUTO" = "1" ] && { timeout 5 python3 gg_buzzer.py --play boot || true; }
+
 if ! ping -c 1 -W 2 "$CAMERA_IP" >/dev/null 2>&1; then
     echo "Camera at $CAMERA_IP did not answer."
     echo "Bringing up the camera-link network profile..."

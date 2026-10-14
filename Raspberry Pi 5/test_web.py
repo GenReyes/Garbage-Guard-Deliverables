@@ -79,6 +79,9 @@ class FakeEngine:
     def snapshot_state(self):
         return {"connected": True}
 
+    def update_settings(self, conf=None, threshold=None):
+        return dict(self.settings)
+
 
 class FakeUps:
     def status(self):
@@ -159,8 +162,51 @@ class ApiTests(unittest.TestCase):
 
     def test_button_sound_endpoint(self):
         self.call("/api/buzzer", {"ui": True})
+        self.buzzer.drain()
         code, res = self.call("/api/buzzer/ui", {"sound": "tap"})
         self.assertEqual((code, res["played"]), (200, True))
+
+    def test_every_planned_button_sound_is_accepted(self):
+        self.call("/api/buzzer", {"ui": True})
+        self.buzzer.drain()
+        for name in gg_buzzer.UI_SOUNDS:
+            code, res = self.call("/api/buzzer/ui", {"sound": name})
+            self.assertEqual((code, res["ok"]), (200, True), name)
+        self.assertEqual(self.call("/api/buzzer/ui", {"sound": "accumulation"})[1]["played"], False)
+        self.assertEqual(self.call("/api/buzzer/ui", {"sound": "boot"})[1]["played"], False)
+
+    def test_wifi_result_and_saves_make_a_sound(self):
+        class Net:
+            result = {"ok": True}
+
+            def connect(self, ssid, password, hidden):
+                return self.result
+        net = Net()
+        server = w.QuietServer(("127.0.0.1", 0), w.make_handler(
+            self.engine, net=net, ups=FakeUps(), screen=self.screen, power=self.power,
+            buzzer=self.buzzer, vibe=self.vibe))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        base = self.base
+        self.base = f"http://127.0.0.1:{server.server_address[1]}"
+        self.addCleanup(setattr, self, "base", base)
+
+        def last():
+            self.buzzer.drain()
+            tones = [e[1] for e in self.sounds.events if e[0] == "tone"]
+            self.sounds.events.clear()
+            return tones
+        self.call("/api/wifi/connect", {"ssid": "x"})
+        self.assertEqual(last(), [2000, 2600])
+        net.result = {"ok": False}
+        self.call("/api/wifi/connect", {"ssid": "x"})
+        self.assertEqual(last(), [1700, 1400])
+        self.call("/api/buzzer", {"volume": "low"})
+        self.assertEqual(last(), [2300, 2700])
+        self.call("/api/screen_saver", {"mode": "dim"})
+        self.assertEqual(last(), [2300, 2700])
+        self.call("/api/settings", {"threshold": 5})
+        self.assertEqual(last(), [2300, 2700])
 
     def test_state_carries_clock(self):
         code, st = self.call("/api/state")

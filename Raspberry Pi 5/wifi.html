@@ -400,8 +400,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     <h2 id="stTitle">Starting up</h2>
     <p id="stMsg">Checking for a saved Wi-Fi network.</p>
     <div class="row">
-      <button class="btn teal" id="stSetup" type="button" hidden><svg class="ico a-wave"><use href="#i-wifi"/></svg>Set up Wi-Fi</button>
-      <button class="btn" id="stSkip" type="button"><svg class="ico a-right"><use href="#i-grid"/></svg>Skip to dashboard</button>
+      <button class="btn teal" id="stSetup" data-snd="open" type="button" hidden><svg class="ico a-wave"><use href="#i-wifi"/></svg>Set up Wi-Fi</button>
+      <button class="btn" id="stSkip" data-snd="open" type="button"><svg class="ico a-right"><use href="#i-grid"/></svg>Skip to dashboard</button>
     </div>
   </section>
 
@@ -415,8 +415,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       <div class="col">
         <div class="card hd">
           <h2><svg class="ico"><use href="#i-wifi"/></svg><span id="curLine">Wi-Fi networks</span></h2>
-          <button class="btn sm" id="rescan" type="button"><svg class="ico a-spin"><use href="#i-refresh"/></svg>Rescan</button>
-          <button class="btn sm" id="hiddenBtn" type="button"><svg class="ico a-pop"><use href="#i-plus"/></svg>Other</button>
+          <button class="btn sm" id="rescan" data-snd="tap" type="button"><svg class="ico a-spin"><use href="#i-refresh"/></svg>Rescan</button>
+          <button class="btn sm" id="hiddenBtn" data-snd="open" type="button"><svg class="ico a-pop"><use href="#i-plus"/></svg>Other</button>
         </div>
         <div class="banner info" id="cableNote" hidden><svg class="ico"><use href="#i-cable"/></svg><span id="cableTxt"></span></div>
         <div class="banner warn" id="viewOnly" hidden><svg class="ico"><use href="#i-lock"/></svg>View only. Wi-Fi and IP settings can only be changed on the Pi's own touchscreen.</div>
@@ -427,7 +427,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 
   <section class="view" id="vInfo">
     <div class="card hd">
-      <button class="btn sm" id="iBack" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
+      <button class="btn sm" id="iBack" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
       <h2 id="iTitle"><svg class="ico"><use href="#i-wifi"/></svg>Connection</h2>
       <span class="chip" id="iChip"></span>
     </div>
@@ -441,31 +441,31 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
         </div>
         <div class="banner info" id="iCamNote" hidden><svg class="ico"><use href="#i-cam"/></svg>
           <span>This cable only talks to the camera. Its address is fixed so the camera keeps working.</span></div>
-        <button class="btn" id="iIp" type="button"><svg class="ico a-spin"><use href="#i-gear"/></svg>IP settings</button>
-        <button class="btn" id="iWifi" type="button" hidden><svg class="ico a-wave"><use href="#i-wifi"/></svg>Change Wi-Fi network</button>
+        <button class="btn" id="iIp" data-snd="open" type="button"><svg class="ico a-spin"><use href="#i-gear"/></svg>IP settings</button>
+        <button class="btn" id="iWifi" data-snd="open" type="button" hidden><svg class="ico a-wave"><use href="#i-wifi"/></svg>Change Wi-Fi network</button>
       </div>
     </div>
   </section>
 
   <section class="view" id="vIp">
     <div class="card hd">
-      <button class="btn sm" id="ipBack" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
+      <button class="btn sm" id="ipBack" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
       <h2><svg class="ico"><use href="#i-gear"/></svg><span id="ipTitle">IP settings</span></h2>
-      <button class="btn sm teal" id="ipSave" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Review</button>
+      <button class="btn sm teal" id="ipSave" data-snd="open" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Review</button>
     </div>
     <div class="ipv">
       <div class="card ipf">
         <div class="seg" role="radiogroup" aria-label="Address mode">
-          <button type="button" id="mAuto" role="radio"><svg class="ico"><use href="#i-auto"/></svg>Automatic (recommended)</button>
-          <button type="button" id="mMan" role="radio"><svg class="ico"><use href="#i-pen"/></svg>Manual</button>
+          <button type="button" id="mAuto" data-snd="choice" role="radio"><svg class="ico"><use href="#i-auto"/></svg>Automatic (recommended)</button>
+          <button type="button" id="mMan" data-snd="choice" role="radio"><svg class="ico"><use href="#i-pen"/></svg>Manual</button>
         </div>
         <div id="manual">
           <div class="fld"><label><svg class="ico"><use href="#i-pin"/></svg>IP address</label>
             <button class="in" type="button" data-f="address"></button><span class="msg" data-m="address"></span></div>
           <div class="fld"><label><svg class="ico"><use href="#i-hash"/></svg>Subnet</label>
-            <div class="step"><button class="btn sm sq" type="button" id="pMinus" aria-label="Smaller network">−</button>
+            <div class="step"><button class="btn sm sq" type="button" id="pMinus" data-snd="step_down" aria-label="Smaller network">−</button>
               <button class="in" type="button" data-f="prefix" tabindex="-1"></button>
-              <button class="btn sm sq" type="button" id="pPlus" aria-label="Larger network">+</button></div>
+              <button class="btn sm sq" type="button" id="pPlus" data-snd="step_up" aria-label="Larger network">+</button></div>
             <span class="msg" data-m="prefix"></span></div>
           <div class="fld"><label><svg class="ico"><use href="#i-route"/></svg>Gateway</label>
             <button class="in" type="button" data-f="gateway"></button><span class="msg" data-m="gateway"></span></div>
@@ -491,15 +491,15 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 
   <section class="view" id="vCloud">
     <div class="card hd">
-      <button class="btn sm" id="cfBack" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
+      <button class="btn sm" id="cfBack" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
       <h2><svg class="ico"><use href="#i-cloud"/></svg>Firebase</h2>
       <span class="chip off" id="cfChip">Off</span>
     </div>
     <div class="cv">
       <div class="card cf">
         <div class="seg" role="radiogroup" aria-label="Firebase sync">
-          <button type="button" id="cfOn" role="radio"><svg class="ico"><use href="#i-cloud"/></svg>Sync on</button>
-          <button type="button" id="cfOff" role="radio"><svg class="ico"><use href="#i-x"/></svg>Off</button>
+          <button type="button" id="cfOn" data-snd="choice" role="radio"><svg class="ico"><use href="#i-cloud"/></svg>Sync on</button>
+          <button type="button" id="cfOff" data-snd="choice" role="radio"><svg class="ico"><use href="#i-x"/></svg>Off</button>
         </div>
         <div id="cfFields">
           <div class="fld"><label><svg class="ico"><use href="#i-link"/></svg>Database URL</label>
@@ -514,9 +514,9 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
         <div class="banner info cres" id="cfRes"><svg class="ico"><use href="#i-info"/></svg>
           <span id="cfResTxt">Same Wi-Fi always comes first. Firebase is only for phones away from this network.</span></div>
         <div class="cacts">
-          <button class="btn" id="cfTest" type="button"><svg class="ico a-pop"><use href="#i-test"/></svg>Test</button>
-          <button class="btn teal" id="cfSave" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Test and save</button>
-          <button class="btn" id="cfRestore" type="button"><svg class="ico a-left"><use href="#i-undo"/></svg>Restore working</button>
+          <button class="btn" id="cfTest" data-snd="tap" type="button"><svg class="ico a-pop"><use href="#i-test"/></svg>Test</button>
+          <button class="btn teal" id="cfSave" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Test and save</button>
+          <button class="btn" id="cfRestore" data-snd="tap" type="button"><svg class="ico a-left"><use href="#i-undo"/></svg>Restore working</button>
         </div>
       </div>
       <div class="side">
@@ -537,19 +537,19 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
       <div class="banner warn"><svg class="ico"><use href="#i-warn"/></svg>
         <span>The connection restarts for a few seconds. If the address is wrong, phones lose contact with the Pi. You can switch back to Automatic here at any time.</span></div>
       <div class="acts">
-        <button class="btn" id="cNo" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Change something</button>
-        <button class="btn teal" id="cYes" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Apply</button>
+        <button class="btn" id="cNo" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Change something</button>
+        <button class="btn teal" id="cYes" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg>Apply</button>
       </div>
     </div>
   </section>
 
   <section class="view" id="vPass">
     <div class="card pw">
-      <button class="btn sm" id="pBack" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
+      <button class="btn sm" id="pBack" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-back"/></svg>Back</button>
       <div class="ssid"><svg class="ico"><use href="#i-wifi"/></svg><span id="pSsid">Network</span></div>
       <div class="field" id="field"></div>
-      <button class="btn sm" id="pShow" type="button">Show</button>
-      <button class="btn teal" id="pGo" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg><span id="pGoTxt">Connect</span></button>
+      <button class="btn sm" id="pShow" data-snd="tap" type="button">Show</button>
+      <button class="btn teal" id="pGo" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-check"/></svg><span id="pGoTxt">Connect</span></button>
     </div>
     <div class="err" id="pErr" role="alert"></div>
     <div style="flex:1"></div>
@@ -567,9 +567,9 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
     <h2 id="dTitle">Connected</h2>
     <p id="dMsg"></p>
     <div class="row">
-      <button class="btn teal" id="dFix" type="button" hidden><svg class="ico a-pop"><use href="#i-cam"/></svg>Fix camera link</button>
-      <button class="btn" id="dNet" type="button"><svg class="ico a-left"><use href="#i-wifi"/></svg>Network screen</button>
-      <button class="btn" id="dGo" type="button"><svg class="ico a-right"><use href="#i-grid"/></svg>Open dashboard</button>
+      <button class="btn teal" id="dFix" data-snd="tap" type="button" hidden><svg class="ico a-pop"><use href="#i-cam"/></svg>Fix camera link</button>
+      <button class="btn" id="dNet" data-snd="open" type="button"><svg class="ico a-left"><use href="#i-wifi"/></svg>Network screen</button>
+      <button class="btn" id="dGo" data-snd="open" type="button"><svg class="ico a-right"><use href="#i-grid"/></svg>Open dashboard</button>
     </div>
   </section>
 </main>
@@ -588,6 +588,22 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
   var saved='light';try{saved=localStorage.getItem('gg-theme')||'light'}catch(e){}
   applyTheme(saved==='dark'?'dark':'light');
   $('themeBtn').onclick=function(e){var b=e.target.closest('button');if(b)applyTheme(b.getAttribute('data-t'))};
+
+  var KIOSK=['localhost','127.0.0.1','[::1]'].indexOf(location.hostname)>=0;
+  function snd(name){if(!KIOSK)return;
+    var x=new XMLHttpRequest();x.open('POST','/api/buzzer/ui');
+    x.setRequestHeader('Content-Type','application/json');x.send(JSON.stringify({sound:name}))}
+  document.addEventListener('pointerdown',function(e){
+    var t=e.target.closest('[data-snd], button, .logo');if(!t)return;
+    var s=t.getAttribute('data-snd');
+    if(!s){
+      if(t.disabled)s='denied';
+      else if(t.matches('.tsw button'))s=t.getAttribute('data-t')==='dark'?'theme_dark':'theme_light';
+      else if(t.matches('.logo'))s='logo';
+      else s='tap';
+    }
+    snd(s);
+  },true);
 
   /* a small ripple from the touch point on every button */
   document.addEventListener('pointerdown',function(e){

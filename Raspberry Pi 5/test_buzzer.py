@@ -220,7 +220,7 @@ class EventTests(unittest.TestCase):
     def test_sounds_stay_in_the_band_a_small_buzzer_can_be_heard(self):
         for name, (_p, _g, seq) in g.SOUNDS.items():
             for hz, _ms in seq:
-                self.assertTrue(hz == 0 or 1500 <= hz <= 2400, name)
+                self.assertTrue(hz == 0 or 1400 <= hz <= 2800, name)
 
 
 class RepeatTests(unittest.TestCase):
@@ -302,6 +302,73 @@ class ThreadTests(unittest.TestCase):
                 break
             time.sleep(0.01)
         self.assertEqual([e[1] for e in backend.events if e[0] == "tone"], [2200])
+
+
+class SoundPlanTests(unittest.TestCase):
+    NAMES = ("tap switch_on switch_off choice step_up step_down tab open back confirm danger "
+             "denied logo theme_light theme_dark minimize restore").split()
+    EVENTS = "boot ready wifi_ok wifi_fail cam_lost cam_back phone_join saved".split()
+    LONG_OK = {"logo", "danger", "denied"}
+
+    @staticmethod
+    def length(name):
+        return sum(ms for _, ms in g.SOUNDS[name][2])
+
+    def test_every_planned_name_exists_in_its_group(self):
+        for n in self.NAMES:
+            self.assertEqual(g.SOUNDS[n][1], "ui", n)
+        for n in self.EVENTS:
+            self.assertEqual(g.SOUNDS[n][1], "events", n)
+
+    def test_ui_whitelist_is_built_from_the_table(self):
+        self.assertEqual(set(g.UI_SOUNDS), {n for n, v in g.SOUNDS.items() if v[1] == "ui"})
+        self.assertIn("switch", g.UI_SOUNDS)
+        self.assertNotIn("accumulation", g.UI_SOUNDS)
+
+    def test_ui_sounds_stay_short(self):
+        for n in g.UI_SOUNDS:
+            self.assertLessEqual(self.length(n), 350 if n in self.LONG_OK else 150, n)
+
+    def test_all_pitches_stay_in_range(self):
+        for n in self.NAMES + self.EVENTS:
+            for hz, _ in g.SOUNDS[n][2]:
+                self.assertTrue(hz == 0 or 1400 <= hz <= 2800, (n, hz))
+
+    def test_old_switch_is_the_same_as_switch_on(self):
+        self.assertEqual(g.SOUNDS["switch"], g.SOUNDS["switch_on"])
+
+    def test_priorities_follow_the_plan(self):
+        self.assertEqual({g.SOUNDS[n][0] for n in self.NAMES}, {0})
+        self.assertEqual((g.SOUNDS["phone_join"][0], g.SOUNDS["saved"][0]), (1, 1))
+        for n in ("wifi_ok", "wifi_fail", "cam_lost", "cam_back"):
+            self.assertEqual(g.SOUNDS[n][0], 2)
+        self.assertEqual(g.SOUNDS["boot"][0], 3)
+
+    def test_ui_sounds_follow_the_button_switch_and_events_do_not(self):
+        r = Rig(buzzer_ui=False)
+        self.assertFalse(r.b.ui("back"))
+        self.assertTrue(r.b.play("saved"))
+        r = Rig(buzzer_ui=True)
+        self.assertTrue(r.b.ui("denied"))
+        self.assertFalse(r.b.ui("boot"))
+
+    def test_play_once_plays_the_saved_settings_and_closes_the_pin(self):
+        import json
+        import gg_clock
+        made = []
+        real = g.make_backend
+        g.make_backend = lambda: made.append(g.FakeBackend()) or made[-1]
+        self.addCleanup(setattr, g, "make_backend", real)
+        old = gg_clock.Clock.synced
+        gg_clock.Clock.synced = lambda self: True
+        self.addCleanup(setattr, gg_clock.Clock, "synced", old)
+        with tempfile.TemporaryDirectory() as d:
+            g.play_once("boot", base=d)
+            self.assertEqual([e[1] for e in made[-1].events if e[0] == "tone"], [1500, 1900, 2300, 2700])
+            with open(os.path.join(d, "gg_settings.json"), "w") as f:
+                json.dump({"buzzer_on": False}, f)
+            g.play_once("boot", base=d)
+            self.assertEqual([e for e in made[-1].events if e[0] == "tone"], [])
 
 
 class BackendTests(unittest.TestCase):

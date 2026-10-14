@@ -1430,7 +1430,7 @@ body .fbar.quick button{padding:0 9px}
     <div class="ctl-row">
       <span class="pill online" id="connPill"><svg class="ico" id="connIco"><use href="#i-signal"/></svg>
         <span id="conn">Connecting</span></span>
-      <button class="phn none" id="phn" type="button" title="No phone connected" aria-label="Mobile app connections">
+      <button class="phn none" id="phn" data-snd="open" type="button" title="No phone connected" aria-label="Mobile app connections">
         <svg class="ico"><use href="#i-phoneoff"/></svg><b id="phnN"></b>
         <i id="phnC"><svg><use href="#i-cloudidle"/></svg></i></button>
     </div>
@@ -1444,7 +1444,7 @@ body .fbar.quick button{padding:0 9px}
       <a class="btn sm" id="wifiBtn" href="/wifi" hidden title="Wi-Fi setup" aria-label="Wi-Fi setup">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.6a9 9 0 0 1 12.4 0M9 16.2a4.4 4.4 0 0 1 6 0"/><circle cx="12" cy="19.4" r=".9" fill="currentColor"/></svg></a>
-      <button class="btn sm" id="miniBtn" type="button" title="Minimize" aria-label="Minimize dashboard">
+      <button class="btn sm" id="miniBtn" data-snd="minimize" type="button" title="Minimize" aria-label="Minimize dashboard">
         <svg class="ico"><use href="#i-mini"/></svg></button>
     </div>
     <div class="clk" id="clk" title="Philippine time"><svg class="ico"><use href="#i-clock"/></svg><span id="clkTxt"></span></div>
@@ -1481,7 +1481,7 @@ body .fbar.quick button{padding:0 9px}
           <svg class="trace" viewBox="0 0 46 44" preserveAspectRatio="none" aria-hidden="true">
             <rect x="1.5" y="1.5" width="43" height="41" rx="13" pathLength="100"/></svg>
         </button>
-        <button class="hw sq fsbtn" id="fsOpen" type="button" aria-label="Enter fullscreen"
+        <button class="hw sq fsbtn" id="fsOpen" data-snd="open" type="button" aria-label="Enter fullscreen"
                 title="Fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M9.5 3.5H3.5v6"/><path class="c tr" d="M14.5 3.5h6v6"/><path class="c br" d="M20.5 14.5v6h-6"/><path class="c bl" d="M3.5 14.5v6h6"/></svg></button>
       </div>
       <div class="screen" id="screen">
@@ -1537,7 +1537,7 @@ body .fbar.quick button{padding:0 9px}
             Alert fires here, resets below <b id="rearm">–</b>.</p>
         </div>
         <div class="pair">
-          <button class="btn ink" id="save" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
+          <button class="btn ink" id="save" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
           <button class="btn" id="test" type="button"><svg class="ico a-ring"><use href="#i-bell"/></svg>Test alert</button>
         </div>
       </section>
@@ -1742,14 +1742,14 @@ body .fbar.quick button{padding:0 9px}
     </div>
       <div class="setfoot">
         <span class="hint"><svg class="ico"><use href="#i-ok"/></svg>Changes apply when you press Save.</span>
-        <button class="btn ink" id="pwrSave" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
+        <button class="btn ink" id="pwrSave" data-snd="confirm" type="button"><svg class="ico a-pop"><use href="#i-save"/></svg>Save</button>
       </div>
     </div>
   </section>
 </main>
 </div>
 
-<button class="bub" id="bub" type="button" aria-label="Open the dashboard" title="Open the dashboard">
+<button class="bub" id="bub" data-snd="restore" type="button" aria-label="Open the dashboard" title="Open the dashboard">
   <span class="ring" id="bubRing"></span>
   <span class="logo" id="bubLogo"></span>
   <span class="dot2"></span>
@@ -1778,7 +1778,7 @@ body .fbar.quick button{padding:0 9px}
       <button type="button" class="t-moon" data-t="dark" aria-pressed="false" aria-label="Dark mode" title="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mn" d="M20.5 14.6A8.5 8.5 0 1 1 9.4 3.5a6.6 6.6 0 0 0 11.1 11.1z"/><path class="star" d="M18.2 2.4v3.6M16.4 4.2h3.6"/></svg></button>
     </div>
-    <button class="fsbtn out fs-exit" id="fsClose" type="button"
+    <button class="fsbtn out fs-exit" id="fsClose" data-snd="back" type="button"
             aria-label="Exit fullscreen" title="Exit fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M3.5 9.5h6v-6"/><path class="c tr" d="M20.5 9.5h-6v-6"/><path class="c br" d="M14.5 20.5v-6h6"/><path class="c bl" d="M9.5 20.5v-6h-6"/></svg></button>
   </div>
 
@@ -1831,7 +1831,7 @@ body .fbar.quick button{padding:0 9px}
 <div id="pwrBanner" popover="manual" hidden role="alert">
   <svg class="ico"><use href="#i-warn"/></svg>
   <div class="pb-txt"><b id="pbHead">Shutting down</b><span id="pbSub"></span></div>
-  <button class="btn" id="pbCancel" type="button">Cancel</button>
+  <button class="btn" id="pbCancel" data-snd="back" type="button">Cancel</button>
 </div>
 
 <dialog id="viewer">
@@ -1840,7 +1840,7 @@ body .fbar.quick button{padding:0 9px}
     <h3 id="vTitle">Snapshot</h3>
     <button class="btn sm" id="vOpen" type="button">
       <svg class="ico a-pop"><use href="#i-eye"/></svg>Full size</button>
-    <button class="btn sm ink" id="vClose" type="button">Close</button>
+    <button class="btn sm ink" id="vClose" data-snd="back" type="button">Close</button>
   </div>
   <div class="vb">
     <div class="vshot"><img id="vImg" alt="Saved snapshot"></div>
@@ -1851,7 +1851,7 @@ body .fbar.quick button{padding:0 9px}
 <dialog id="zoom" aria-label="Snapshot, full size">
   <div class="zpic"><img id="zImg" alt="Saved snapshot, full size"></div>
   <aside class="zbar">
-    <button class="btn ink" id="zClose" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Close</button>
+    <button class="btn ink" id="zClose" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Close</button>
     <span class="ev" id="zEv"></span>
     <div class="zinfo" id="zInfo"></div>
     <span class="zhint">Tap anywhere to go back</span>
@@ -1864,7 +1864,7 @@ body .fbar.quick button{padding:0 9px}
     <h3>Connected phones</h3>
     <span class="tagx" id="phnSum">–</span>
     <span class="tagx cl-chip off" id="phnCloud"><svg class="ico"><use href="#i-cloud"/></svg><span>Firebase off</span></span>
-    <button class="btn sm ink" id="phnClose" type="button">Close</button>
+    <button class="btn sm ink" id="phnClose" data-snd="back" type="button">Close</button>
   </div>
   <div class="use" id="phnUse" style="display:none;margin:0 13px 11px">
     <div class="use-top"><svg class="ico"><use href="#i-cloud"/></svg><span>Firebase this month</span><b id="useN">–</b></div>
@@ -1881,8 +1881,8 @@ body .fbar.quick button{padding:0 9px}
   </div>
   <p id="offText" style="margin:12px 14px;font-size:14px;line-height:1.4">Detection and alerts stop. To start it again, use the switch on the UPS HAT.</p>
   <div class="pair" style="margin:0 14px 14px">
-    <button class="btn" id="offNo" type="button">Cancel</button>
-    <button class="btn bad" id="offYes" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
+    <button class="btn" id="offNo" data-snd="back" type="button">Cancel</button>
+    <button class="btn bad" id="offYes" data-snd="danger" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
   </div>
 </dialog>
 
@@ -1891,7 +1891,7 @@ body .fbar.quick button{padding:0 9px}
     <svg class="ico" id="bdIco" style="width:18px;height:18px"><use href="#i-batt"/></svg>
     <h3>Pi battery</h3>
     <span class="tagx" id="bdTag">–</span>
-    <button class="btn sm ink" id="bdClose" type="button">Close</button>
+    <button class="btn sm ink" id="bdClose" data-snd="back" type="button">Close</button>
   </div>
   <div class="bd b-none" id="bdBody">
     <div class="bd-hero">
@@ -1927,8 +1927,8 @@ body .fbar.quick button{padding:0 9px}
     <div class="row"><svg class="ico"><use href="#i-warn"/></svg>
       <p id="cfmText">Delete?</p></div>
     <div class="acts">
-      <button class="btn sm" id="cfmNo" type="button">Cancel</button>
-      <button class="btn sm danger" id="cfmYes" type="button">
+      <button class="btn sm" id="cfmNo" data-snd="back" type="button">Cancel</button>
+      <button class="btn sm danger" id="cfmYes" data-snd="danger" type="button">
         <svg class="ico a-tilt"><use href="#i-trash"/></svg>Delete</button>
     </div>
   </div>
@@ -2019,7 +2019,10 @@ $("overlay").addEventListener("pointerdown", e => {
 async function post(path, body){
   const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
                                body: JSON.stringify(body||{})});
-  return r.json();
+  const j = await r.json();
+  if(j && j.ok === false && KIOSK && buzzUi) fetch("/api/buzzer/ui", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify({sound: "denied"})}).catch(() => {});
+  return j;
 }
 
 $("new").onclick = () => { showTab("monitor"); setEditing(true, []); toast("Tap the video to outline the water","i-pen"); };
@@ -2511,7 +2514,7 @@ function renderPage(){
       <div class="c-n" role="cell">${NO_COUNT.includes(a.event)
             ? `<svg class="ico"><use href="#${ev[1]}"/></svg>` : a.smoothed_count}</div>
       <div role="cell">${a.snapshot
-            ? `<button class="btn sm" type="button" data-view="${i}"><svg class="ico a-pop"><use href="#i-eye"/></svg>View</button>`
+            ? `<button class="btn sm" type="button" data-view="${i}" data-snd="open"><svg class="ico a-pop"><use href="#i-eye"/></svg>View</button>`
             : `<span class="noimg">No image</span>`}</div>
       <div class="c-act" role="cell"><button class="btn sm danger" type="button" data-del="${i}"
             aria-label="Delete this record"><svg class="ico a-tilt"><use href="#i-trash"/></svg></button></div></div>`;
@@ -3025,12 +3028,23 @@ async function buzzTest(sound){
 }
 $("bzTestAlarm").onclick = () => buzzTest("accumulation");
 $("bzTestTune").onclick = () => buzzTest("test");
+function uiSound(t){
+  if(t.dataset.snd) return t.dataset.snd;
+  if(t.disabled || t.getAttribute("aria-disabled") === "true") return "denied";
+  if(t.matches(".sw")) return t.getAttribute("aria-checked") === "true" ? "switch_off" : "switch_on";
+  if(t.matches(".step")) return Number(t.dataset.d) > 0 ? "step_up" : "step_down";
+  if(t.matches(".tsw button")) return t.dataset.t === "dark" ? "theme_dark" : "theme_light";
+  if(t.matches(".tabs button")) return "tab";
+  if(t.matches("div.seg button, .fbar button")) return "choice";
+  if(t.matches(".logo")) return "logo";
+  return "tap";
+}
 document.addEventListener("pointerdown", e => {
   if(!KIOSK || !buzzUi) return;
-  const t = e.target.closest("button, .sw, a");
-  if(!t || t.disabled) return;
+  const t = e.target.closest("[data-snd], button, .sw, a, .logo");
+  if(!t) return;
   fetch("/api/buzzer/ui", {method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({sound: t.matches(".sw, .seg button") ? "switch" : "tap"})}).catch(() => {});
+    body: JSON.stringify({sound: uiSound(t)})}).catch(() => {});
 }, true);
 
 $("settings").addEventListener("click", e => {
