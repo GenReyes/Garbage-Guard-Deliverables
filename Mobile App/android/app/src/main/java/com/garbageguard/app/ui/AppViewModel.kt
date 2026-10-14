@@ -39,6 +39,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.garbageguard.app.notify.Alerts
 import com.garbageguard.app.notify.AppGraph
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Haptics
 import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.notify.Sounds
 import com.garbageguard.app.ui.screens.PI_SOUNDS
@@ -150,6 +151,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * waiting, accepted and timed-out looks be shown with no Pi at all.
      */
     var demoLink by mutableIntStateOf(0)
+
+    /**
+     * Demo only. Off, the pretend Pi runs by itself. On, the Simulation card
+     * in Settings drives it by hand, and each change sounds and vibrates as
+     * the real event would. Declared before init, which can end a demo.
+     */
+    var simulating by mutableStateOf(false)
+        private set
+    var simSecondPhone by mutableStateOf(false)
+        private set
 
     /** The Pi's estimate of the free Firebase allowance, when reached through Firebase. */
     val cloudUsage: StateFlow<CloudUsage?> = AppGraph.cloud.usage
@@ -276,6 +287,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putBoolean(KEY_HAPTICS, haptics).apply()
     }
 
+    /** How hard the app's own vibration patterns are. Plain key clicks follow the phone's own setting. */
+    var hapticStrength by mutableStateOf(
+        runCatching { Haptics.Strength.valueOf(prefs.getString(KEY_HAPTIC_STRENGTH, "NORMAL")!!) }.getOrDefault(Haptics.Strength.NORMAL)
+    )
+        private set
+
+    fun chooseHapticStrength(strength: Haptics.Strength) {
+        hapticStrength = strength
+        Haptics.strength = strength
+        prefs.edit().putString(KEY_HAPTIC_STRENGTH, strength.name).apply()
+        Haptics.play(Haptics.Buzz.SAVED) // a sample of the new strength
+    }
+
     fun toggleKeepScreenOn() {
         keepScreenOn = !keepScreenOn
         prefs.edit().putBoolean(KEY_AWAKE, keepScreenOn).apply()
@@ -320,6 +344,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         AppGraph.init(appContext)
         Feel.sounds = uiSounds
         Feel.haptics = haptics
+        Haptics.init(appContext)
+        Haptics.strength = hapticStrength
         // Demo data raises notifications too, while the app is running.
         viewModelScope.launch {
             alerts.collect { rows ->
@@ -342,8 +368,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             state.map { it.conn }.distinctUntilChanged().collect { now ->
                 val was = last
                 last = now
-                if (was == null || !AppGraph.foreground || !AppGraph.linked) return@collect
-                Sounds.play(
+                if (was == null || !AppGraph.foreground || !(AppGraph.linked || demo)) return@collect
+                Feel.event(
                     when {
                         now == ConnState.NO_PI -> Sfx.LINK_LOST
                         now == ConnState.NO_CAMERA -> Sfx.CAM_LOST
@@ -351,6 +377,45 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         else -> Sfx.CAM_BACK
                     }
                 )
+            }
+        }
+        // While the app is open, the count on the water is felt as it climbs: a light double
+        // pulse at half the limit and a firmer triple at four fifths. The limit itself raises
+        // the alert, which vibrates through its notification. Each step is felt once on the way
+        // up, and is only felt again after the count has fallen well back.
+        viewModelScope.launch {
+            var level = 0
+            state.map { it.smoothed to it.threshold }.distinctUntilChanged().collect { (count, limit) ->
+                if (limit <= 0 || !setupDone) return@collect
+                val pct = count * 100 / limit
+                val up = LEVELS.count { pct >= it }
+                if (up > level) {
+                    if (AppGraph.foreground && up < LEVELS.size) Haptics.play(if (up == 1) Haptics.Buzz.LEVEL_HALF else Haptics.Buzz.LEVEL_HIGH)
+                    level = up
+                } else {
+                    val down = LEVELS.count { pct >= it - 10 }
+                    if (down < level) level = down
+                }
+            }
+        }
+        // The Pi's charger being plugged in or pulled out, felt while the app is open.
+        viewModelScope.launch {
+            var last: Boolean? = null
+            battery.map { if (it.ok) it.onAc else null }.distinctUntilChanged().collect { onAc ->
+                val was = last
+                last = onAc
+                if (was == null || onAc == null || !AppGraph.foreground) return@collect
+                Haptics.play(if (onAc) Haptics.Buzz.CHARGER_ON else Haptics.Buzz.CHARGER_OFF)
+            }
+        }
+        // The demo Pi's low-battery countdown is announced like the real one (AppGraph does it for a real Pi).
+        viewModelScope.launch {
+            var last = ""
+            battery.collect { b ->
+                if (demo && b.shutdownState == "counting" && last != "counting") {
+                    Alerts.countdown(appContext, b.shutdownInS, b.percent, AppGraph.foreground)
+                }
+                last = b.shutdownState
             }
         }
         refreshSystemState()
@@ -443,7 +508,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 true
             } ?: false
             val ok = finished && !outcome.failed
-            Sounds.play(if (ok) Sfx.SAVED else Sfx.DENIED)
+            Feel.event(if (ok) Sfx.SAVED else Sfx.DENIED)
             val flash = Lock(if (ok) LockPhase.OK else LockPhase.FAIL, System.currentTimeMillis(), 1100)
             locks[key] = flash
             showToast(if (ok) message ?: "Done" else "The Pi did not confirm. Nothing was changed.")
@@ -586,6 +651,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Continue after a successful test: start following the real Pi. */
     fun finishSetup(firstTime: Boolean = true) {
         demo = false
+        if (simulating) {
+            simulating = false
+            simSecondPhone = false
+            fake.simulate(false)
+        }
         AppGraph.mute = { repo.mute(it) }
         AppGraph.connect(address)
         active.value = if (AppGraph.mode.value == LinkMode.CLOUD) AppGraph.cloud else pi
@@ -682,6 +752,40 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } else viewModelScope.launch {
             showToast(if (pi.refreshNow()) "Connected" else "Still cannot reach the Pi")
         }
+    }
+
+    // ---------- demo simulation ----------
+
+    fun toggleSimulation() {
+        simulating = !simulating
+        fake.simulate(simulating)
+        showToast(if (simulating) "Simulation on: the demo waits for you" else "Simulation off: the demo runs by itself")
+    }
+
+    fun simCount(n: Int) = fake.simSetCount(n)
+
+    fun simFill() = fake.simSetCount(state.value.threshold)
+
+    fun simConn(conn: ConnState) = fake.demoSetConn(conn)
+
+    fun simBattery(percent: Int) = fake.simSetBattery(percent)
+
+    fun simCharging(on: Boolean) = fake.simSetCharging(on)
+
+    fun simCountdown() {
+        if (battery.value.onAc) return showToast("Unplug the charger first: it stops the countdown")
+        fake.simStartCountdown()
+    }
+
+    fun simScreen(screen: String) = fake.simSetScreen(screen)
+
+    fun simBuzzer(wired: Boolean) = fake.simSetBuzzer(wired)
+
+    fun simPhone() {
+        simSecondPhone = !simSecondPhone
+        fake.simSetSecondPhone(simSecondPhone)
+        // The phone has no sound for another phone joining; a light tap marks it.
+        if (simSecondPhone) Haptics.play(Haptics.Buzz.LINK_UP)
     }
 
     /** Demo only: a long press on the status pill steps through the connection states. */
@@ -1000,10 +1104,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_READ = "hist_read"
         const val LOCK_DELETE = "hist_delete"
         const val DEFAULT_ADDRESS = "192.168.1.101:8080"
+        /** Percent of the limit at which the climbing count is felt; the last is the alert itself. */
+        private val LEVELS = listOf(50, 80, 100)
         private const val KEY_ASKED = "asked_alerts"
         private const val KEY_CLOUD_ONLY = "cloud_only"
         private const val KEY_SOUNDS = "ui_sounds"
         private const val KEY_HAPTICS = "haptics"
+        private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
         private const val KEY_AWAKE = "keep_screen_on"
     }
 }

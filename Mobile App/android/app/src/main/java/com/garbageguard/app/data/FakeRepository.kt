@@ -48,10 +48,10 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     private val _battery = MutableStateFlow(Battery())
     override val battery: StateFlow<Battery> = _battery.asStateFlow()
 
-    /** A pack that runs down for a minute, then charges for a minute. */
+    /** A pack that runs down for three minutes, then charges for three. */
     private fun stepBattery() {
-        val phase = (tick / 60) % 2
-        val f = (tick % 60) / 60f
+        val phase = (tick / 180) % 2
+        val f = (tick % 180) / 180f
         val charging = phase == 1
         val percent = if (charging) (58 + 30 * f).roundToInt() else (88 - 30 * f).roundToInt()
         val volts = 14.2f + 2.4f * percent / 100f
@@ -82,7 +82,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         tick++
         val s = _state.value
         val wave = s.threshold * (0.6 + 0.55 * sin(tick / 14.0))
-        val raw = (wave + Random.nextInt(-2, 3)).roundToInt().coerceAtLeast(0)
+        val raw = if (simulating) simCount else (wave + Random.nextInt(-2, 3)).roundToInt().coerceAtLeast(0)
         recentRaw.addLast(raw)
         if (recentRaw.size > 5) recentRaw.removeFirst()
         val smoothed = recentRaw.sorted()[recentRaw.size / 2]
@@ -98,13 +98,18 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             avgLatencyMs = 67f + Random.nextFloat() * 2f,
             fps = 14.2f + Random.nextFloat() * 0.8f,
             camFps = 14.8f + Random.nextFloat() * 0.3f,
-            viewerApps = 1,
+            viewerApps = if (simSecondPhone) 2 else 1,
             viewers = listOf(
                 Viewer(
                     ip = "192.168.1.23", kind = "app", id = "demo", device = "This phone (demo)",
                     os = "Android", appVersion = "demo", mode = "foreground", connectedSeconds = tick,
                 )
-            ),
+            ) + if (simSecondPhone) listOf(
+                Viewer(
+                    ip = "192.168.1.31", kind = "app", id = "demo2", device = "Second phone (simulated)",
+                    os = "Android", appVersion = "demo", mode = "background", connectedSeconds = tick - simPhoneSince,
+                )
+            ) else emptyList(),
         )
 
         // Mute countdown.
@@ -134,7 +139,124 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             }
         }
         _state.value = next
-        stepBattery()
+        if (simulating) simBattery() else stepBattery()
+    }
+
+    // ---------- simulation: the demo driven by hand ----------
+
+    /**
+     * True while Simulation is on. The slow wave and the battery cycle stop,
+     * and the Simulation card in Settings moves the pretend Pi instead: the
+     * count, the camera and the Pi going away, the battery and its countdown,
+     * the Pi's screen, the buzzer, a second phone. Everything else follows
+     * the same rules as with the wave, so each change raises the same alerts,
+     * sounds and vibrations a real Pi would.
+     */
+    var simulating = false
+        private set
+    private var simCount = 0
+    private var simPercent = 72
+    private var simCharging = false
+    private var simCountdown: Int? = null
+    private var simSecondPhone = false
+    private var simPhoneSince = 0
+
+    fun simulate(on: Boolean) {
+        if (on == simulating) return
+        simulating = on
+        if (on) {
+            simCount = _state.value.smoothed
+            simPercent = _battery.value.percent.takeIf { it > 0 } ?: 72
+            simCharging = _battery.value.onAc
+        } else {
+            // Back to the demo running by itself, as it was before.
+            simCountdown = null
+            simSecondPhone = false
+            shutdownState = "armed"
+            _state.update { s ->
+                s.copy(conn = ConnState.ONLINE, screen = "on", buzzer = s.buzzer?.copy(available = true, note = null))
+            }
+        }
+        recentRaw.clear()
+        step()
+    }
+
+    fun simSetCount(n: Int) {
+        simCount = n.coerceIn(0, 99)
+        recentRaw.clear() // no smoothing lag: the new count shows at once
+        step()
+    }
+
+    fun simSetBattery(percent: Int) {
+        simPercent = percent.coerceIn(0, 100)
+        step()
+    }
+
+    fun simSetCharging(on: Boolean) {
+        simCharging = on
+        step()
+    }
+
+    /** The Pi's own low-battery countdown, as it starts below the shutdown level. */
+    fun simStartCountdown(seconds: Int = 60) {
+        if (simCharging || shutdownState == "powering_off") return
+        // The Pi only counts down below its shutdown level, so the battery drops there first.
+        simPercent = minOf(simPercent, autoShutdownPct)
+        simCountdown = seconds
+        shutdownState = "counting"
+        step()
+    }
+
+    fun simSetScreen(screen: String) {
+        _state.update { it.copy(screen = screen) }
+    }
+
+    fun simSetBuzzer(wired: Boolean) {
+        _state.update { s ->
+            s.copy(buzzer = s.buzzer?.copy(available = wired, note = if (wired) null else "no buzzer answered on GPIO12 (simulated)"))
+        }
+    }
+
+    fun simSetSecondPhone(on: Boolean) {
+        simSecondPhone = on
+        simPhoneSince = tick
+        step()
+    }
+
+    /** The battery as the Simulation card set it, and the countdown running down. */
+    private fun simBattery() {
+        val left = simCountdown
+        if (left != null) {
+            when {
+                // Plugging in the charger stops the countdown, as on the Pi.
+                simCharging -> { simCountdown = null; shutdownState = "armed" }
+                left <= 1 -> { simCountdown = null; powerOff(EventType.LOW_BATTERY_SHUTDOWN) }
+                else -> simCountdown = left - 1
+            }
+        }
+        if (simCharging && shutdownState == "paused") shutdownState = "armed"
+        val percent = simPercent
+        val volts = 14.2f + 2.4f * percent / 100f
+        val amps = if (simCharging) 1.15f else -0.78f
+        val cell = volts / 4f
+        _battery.value = withPower(Battery(
+            ok = true, percent = percent, voltage = volts, current = amps, power = volts * amps,
+            onAc = simCharging, charging = simCharging && percent < 100,
+            minutesLeft = if (simCharging) ((100 - percent) * 2.1f).roundToInt() else (percent * 4.3f).roundToInt(),
+            capacityMah = 5000 * percent / 100,
+            cells = listOf(cell, cell + 0.004f, cell - 0.006f, cell + 0.002f),
+            inputV = if (simCharging) 15.1f else 0f, inputA = if (simCharging) 2.2f else 0f, inputW = if (simCharging) 33.2f else 0f,
+        )).copy(shutdownInS = simCountdown)
+    }
+
+    /** The Pi powering itself off. In Simulation it stays off until the card brings it back. */
+    private fun powerOff(event: EventType) {
+        log(event, _state.value)
+        shutdownState = "powering_off"
+        scope.launch {
+            delay(3000)
+            _state.update { it.copy(conn = ConnState.NO_PI) }
+        }
     }
 
     private fun muted(s: LiveState, seconds: Int, auto: Boolean) = s.copy(
@@ -205,9 +327,22 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
         _battery.update { withPower(it) }
     }
 
-    override suspend fun cancelShutdown(): Boolean = true
+    override suspend fun cancelShutdown(): Boolean {
+        if (shutdownState == "counting") {
+            // Paused until the charger is plugged in, as on the Pi.
+            simCountdown = null
+            shutdownState = "paused"
+            _battery.update { withPower(it).copy(shutdownInS = null) }
+        }
+        return true
+    }
 
     override suspend fun shutdown() {
+        if (simulating) {
+            powerOff(EventType.MANUAL_SHUTDOWN)
+            _battery.update { withPower(it) }
+            return
+        }
         log(EventType.MANUAL_SHUTDOWN, _state.value)
         shutdownState = "powering_off"
         _battery.update { withPower(it) }
@@ -287,6 +422,11 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     fun demoSetConn(conn: ConnState) {
+        // A Pi that powered off is switched on again by bringing it back.
+        if (conn == ConnState.ONLINE && shutdownState == "powering_off") {
+            shutdownState = "armed"
+            _battery.update { withPower(it) }
+        }
         _state.update { it.copy(conn = conn) }
     }
 

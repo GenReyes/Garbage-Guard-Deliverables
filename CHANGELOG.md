@@ -4,6 +4,38 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 11.1: a vibration for every event, Simulation in the demo (2026-10-14)
+
+### App
+
+- Each kind of notification now vibrates in its own rhythm, so an alert can
+  be told apart in a pocket: three long pulses for Limit reached, short then
+  long for a test, a long buzz and two short ones for low battery, and gentle
+  patterns for capture, mute, unmute, auto-mute and shutdown, which used to
+  make no vibration at all. The channels have new ids, because Android fixes a
+  channel's vibration when it is made; the old ones are removed.
+- While the app is open, the same patterns play for routine events and for
+  the low-battery countdown.
+- New patterns of the app's own: Delete and Shut down (a double heavy pulse),
+  the logo (a rising three-step), the app opening (a soft ramp with the
+  chime), Saved (a short double click), Denied (two quick buzzes), the Pi
+  lost and back, the camera lost and back, and the Pi's charger plugged in or
+  pulled out.
+- The count on the water is felt as it climbs: a light double pulse at half
+  the limit and a firmer triple at four fifths, each once on the way up.
+- Settings, Sound and feel: Light, Normal or Strong vibration. It sets the
+  app's own patterns; key clicks keep the phone's touch setting. The app now
+  asks for the `VIBRATE` permission, which Android grants on install.
+- Demo: a Simulation card in Settings. Off, the demo runs by itself as before.
+  On, the automatic wave and battery cycle stop and the card drives the
+  pretend Pi: the count (step, empty, fill to the limit), Test alert and
+  Capture, the Pi and camera online or gone, the battery level and charger,
+  a one-minute low-battery countdown that powers the Pi off, the Pi's screen
+  (on, dim, off), the buzzer missing, and a second phone connecting. Each
+  change raises the same alerts, sounds and vibrations as the real event.
+- The demo's battery now runs down and charges over three minutes each
+  rather than one.
+
 ## App version 11: a sound for every action, clean copies (2026-10-14)
 
 The app side of the Pi's sound plan and clean copies.

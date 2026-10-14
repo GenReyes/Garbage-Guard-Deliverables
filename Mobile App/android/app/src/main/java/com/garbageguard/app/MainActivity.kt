@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import com.garbageguard.app.ui.AppViewModel
 import com.garbageguard.app.notify.AppGraph
 import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Haptics
 import com.garbageguard.app.notify.Sounds
 import com.garbageguard.app.ui.GgApp
 
@@ -38,6 +39,8 @@ class MainActivity : ComponentActivity() {
             Feel.sounds = vm.uiSounds
             Sounds.init(this)
             Sounds.boot()
+            Haptics.init(this)
+            Haptics.play(Haptics.Buzz.BOOT)
         }
     }
 

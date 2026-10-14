@@ -1,5 +1,6 @@
 package com.garbageguard.app.ui.screens
 
+import com.garbageguard.app.notify.Haptics
 import com.garbageguard.app.notify.Sfx
 import com.garbageguard.app.ui.components.LockPhase
 import androidx.compose.foundation.layout.Arrangement
@@ -85,6 +86,8 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             )
         }
 
+        if (vm.demo) SimulationCard(vm, state, battery)
+
         GgCard {
             Hd(GgIcons.Gear, "Detection settings") {
                 SendingTag(vm, "detect", dirty, idle = "UNSAVED")
@@ -151,8 +154,19 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             SettingRow("Button sounds", "Soft clicks on keys, switches and tabs", GgIcons.Signal) {
                 AutoSwitch(vm.uiSounds, vm::toggleUiSounds, label = null, icon = null)
             }
-            SettingRow("Vibration", "A light tick under the finger", GgIcons.Phone) {
+            SettingRow("Vibration", "A tick under the finger, a pattern for each event", GgIcons.Phone) {
                 AutoSwitch(vm.haptics, vm::toggleHaptics, label = null, icon = null)
+            }
+            if (vm.haptics) {
+                Segmented(
+                    Haptics.Strength.entries.map { it.label },
+                    selected = Haptics.Strength.entries.indexOf(vm.hapticStrength),
+                    onSelect = { vm.chooseHapticStrength(Haptics.Strength.entries[it]) },
+                )
+                Hint(
+                    "Sets how hard alerts, warnings and the link to the Pi vibrate. Key clicks follow the phone's own touch setting.",
+                    icon = GgIcons.Phone, wrap = true,
+                )
             }
             SettingRow("Keep screen on", "Stops the phone from dimming", GgIcons.Sun) {
                 AutoSwitch(vm.keepScreenOn, vm::toggleKeepScreenOn, label = null, icon = null)
@@ -448,5 +462,82 @@ internal fun SendingTag(vm: AppViewModel, key: String, changed: Boolean, idle: S
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         Ico(if (phase == LockPhase.WAITING) GgIcons.Refresh else GgIcons.Clock, size = 13.dp, tint = c.warnText)
         T(text, size = 0.74f, weight = FontWeight.Black, color = c.warnText, spacing = 0.05f)
+    }
+}
+
+/**
+ * Demo only. With Simulation off the pretend Pi runs by itself, raising an
+ * alert about every 90 seconds. With it on, this card drives the pretend Pi
+ * by hand, so each situation can be shown on cue: the count climbing to the
+ * limit, the camera or the Pi dropping out, the battery running low and its
+ * countdown, the Pi's screen and buzzer, a second phone joining. Each change
+ * raises the same alerts, sounds and vibrations as the real event.
+ */
+@Composable
+private fun SimulationCard(vm: AppViewModel, state: LiveState, battery: Battery) {
+    GgCard {
+        Hd(GgIcons.Wrench, "Simulation") { Tag("Demo", Tone.WARN) }
+        SettingRow("Simulation", if (vm.simulating) "You drive the pretend Pi" else "The demo runs by itself", GgIcons.Activity) {
+            AutoSwitch(vm.simulating, vm::toggleSimulation, label = null, icon = null)
+        }
+        if (!vm.simulating) {
+            Hint("Turn on to set the count, the camera, the battery and more by hand.", icon = GgIcons.Clock, wrap = true)
+            return@GgCard
+        }
+
+        Field(GgIcons.Bell, "Items on the water") {
+            Stepper(state.raw, "items", onMinus = { vm.simCount(state.raw - 1) }, onPlus = { vm.simCount(state.raw + 1) })
+            Pair2 {
+                GgButton("Empty", { vm.simCount(0) }, Modifier.weight(1f), icon = GgIcons.Eraser)
+                GgButton("Fill to limit", vm::simFill, Modifier.weight(1f), icon = GgIcons.Bell, kind = BtnKind.TEAL)
+            }
+            Hint("Half and four fifths of the limit are felt; the limit raises the alert.", icon = GgIcons.Phone, wrap = true)
+        }
+
+        Field(GgIcons.Shutter, "Events") {
+            Pair2 {
+                GgButton("Test alert", vm::testAlert, Modifier.weight(1f), icon = GgIcons.Bell, lock = "test")
+                GgButton("Capture", vm::capture, Modifier.weight(1f), icon = GgIcons.Shutter, lock = "capture")
+            }
+        }
+
+        Field(GgIcons.Signal, "Pi and camera") {
+            Segmented(
+                listOf("Online", "No camera", "Pi off"),
+                icons = listOf(GgIcons.Signal, GgIcons.Cam, GgIcons.NoLink),
+                selected = ConnState.entries.indexOf(state.conn),
+                onSelect = { vm.simConn(ConnState.entries[it]) },
+            )
+        }
+
+        Field(GgIcons.Battery, "Pi battery") {
+            Stepper(battery.percent, "%", onMinus = { vm.simBattery(battery.percent - 5) }, onPlus = { vm.simBattery(battery.percent + 5) })
+            SettingRow("Charger", if (battery.onAc) "Plugged in" else "On battery", GgIcons.Plug) {
+                AutoSwitch(battery.onAc, { vm.simCharging(!battery.onAc) }, label = null, icon = null)
+            }
+            GgButton(
+                "Start low-battery countdown", vm::simCountdown, Modifier.fillMaxWidth(),
+                icon = GgIcons.Power, kind = BtnKind.INK,
+                enabled = battery.shutdownState != "counting" && battery.shutdownState != "powering_off",
+            )
+            Hint("One minute, then the Pi powers off. Plug in the charger or press Cancel to stop it.", icon = GgIcons.Clock, wrap = true)
+        }
+
+        Field(GgIcons.Sun, "Pi screen") {
+            val screens = listOf("on", "dim", "off")
+            Segmented(
+                listOf("On", "Dim", "Off"),
+                selected = screens.indexOf(state.screen).coerceAtLeast(0),
+                onSelect = { vm.simScreen(screens[it]) },
+            )
+        }
+
+        SettingRow("Buzzer wired", if (state.buzzer?.available != false) "The Pi's buzzer answers" else "Shown as missing", GgIcons.Speaker) {
+            AutoSwitch(state.buzzer?.available != false, { vm.simBuzzer(state.buzzer?.available == false) }, label = null, icon = null)
+        }
+        SettingRow("Second phone", if (vm.simSecondPhone) "Connected to the Pi" else "Not connected", GgIcons.Phone) {
+            AutoSwitch(vm.simSecondPhone, vm::simPhone, label = null, icon = null)
+        }
+        Hint("Each change sounds and vibrates as the real event would.", icon = GgIcons.Ok, wrap = true)
     }
 }

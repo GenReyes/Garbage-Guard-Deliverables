@@ -22,7 +22,16 @@ object Feel {
 
     /** Any control: its own sound and a vibration that fits it. */
     fun play(view: View, sfx: Sfx) {
-        if (haptics) view.performHapticFeedback(hapticFor(sfx))
+        // Warnings, the logo and failures have patterns of their own; other keys use Android's clicks.
+        val buzz = Haptics.forSfx(sfx)
+        if (buzz != null) Haptics.play(buzz)
+        else if (haptics) view.performHapticFeedback(hapticFor(sfx))
+        Sounds.play(sfx)
+    }
+
+    /** A sound and its vibration with no key involved, such as the Pi confirming a change. */
+    fun event(sfx: Sfx) {
+        Haptics.forSfx(sfx)?.let(Haptics::play)
         Sounds.play(sfx)
     }
 
@@ -30,14 +39,12 @@ object Feel {
         val v = Build.VERSION.SDK_INT
         val key = HapticFeedbackConstants.VIRTUAL_KEY
         return when (sfx) {
-            Sfx.CONFIRM, Sfx.SAVED -> if (v >= 30) HapticFeedbackConstants.CONFIRM else key
-            Sfx.DENIED -> if (v >= 30) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS
+            Sfx.CONFIRM -> if (v >= 30) HapticFeedbackConstants.CONFIRM else key
             Sfx.SWITCH_ON -> if (v >= 34) HapticFeedbackConstants.TOGGLE_ON else HapticFeedbackConstants.KEYBOARD_TAP
             Sfx.SWITCH_OFF -> if (v >= 34) HapticFeedbackConstants.TOGGLE_OFF else HapticFeedbackConstants.KEYBOARD_TAP
             Sfx.STEP_UP, Sfx.STEP_DOWN, Sfx.CHOICE, Sfx.POINT, Sfx.POINT_UNDO ->
                 if (v >= 30) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.KEYBOARD_TAP
             Sfx.BACK -> HapticFeedbackConstants.CLOCK_TICK
-            Sfx.DANGER, Sfx.LOGO -> HapticFeedbackConstants.LONG_PRESS
             Sfx.TAB, Sfx.THEME_LIGHT, Sfx.THEME_DARK -> HapticFeedbackConstants.KEYBOARD_TAP
             else -> key
         }

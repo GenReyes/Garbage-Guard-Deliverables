@@ -44,40 +44,42 @@ object Alerts {
         val title: String,
         /** Raised by someone pressing a button, so on-screen it only needs a sound. */
         val routine: Boolean,
+        /** Its vibration, on the channel and while the app is open. */
+        val buzz: Haptics.Buzz,
     )
 
     private val kinds = mapOf(
         EventType.ACCUMULATION to Kind(
-            "gg_limit_v3", "Limit reached", "The accumulation limit was reached. Sounds a buzzer.",
-            R.raw.gg_buzzer, NotificationManager.IMPORTANCE_HIGH, "Accumulation alert", routine = false,
+            "gg_limit_v4", "Limit reached", "The accumulation limit was reached. Sounds a buzzer.",
+            R.raw.gg_buzzer, NotificationManager.IMPORTANCE_HIGH, "Accumulation alert", routine = false, buzz = Haptics.Buzz.ACCUMULATION,
         ),
         EventType.TEST to Kind(
-            "gg_test_v3", "Test alerts", "Someone pressed Test alert.",
-            R.raw.gg_test, NotificationManager.IMPORTANCE_HIGH, "Test alert", routine = false,
+            "gg_test_v4", "Test alerts", "Someone pressed Test alert.",
+            R.raw.gg_test, NotificationManager.IMPORTANCE_HIGH, "Test alert", routine = false, buzz = Haptics.Buzz.TEST,
         ),
         EventType.AUTO_MUTED to Kind(
-            "gg_automute_v3", "Auto-muted alerts", "An alert was raised and auto-mute silenced it.",
-            R.raw.gg_automute, NotificationManager.IMPORTANCE_DEFAULT, "Alert auto-muted", routine = false,
+            "gg_automute_v4", "Auto-muted alerts", "An alert was raised and auto-mute silenced it.",
+            R.raw.gg_automute, NotificationManager.IMPORTANCE_DEFAULT, "Alert auto-muted", routine = false, buzz = Haptics.Buzz.AUTO_MUTED,
         ),
         EventType.MANUAL to Kind(
-            "gg_capture_v3", "Captures", "A snapshot was captured from another screen.",
-            R.raw.gg_capture, NotificationManager.IMPORTANCE_DEFAULT, "Snapshot captured", routine = true,
+            "gg_capture_v4", "Captures", "A snapshot was captured from another screen.",
+            R.raw.gg_capture, NotificationManager.IMPORTANCE_DEFAULT, "Snapshot captured", routine = true, buzz = Haptics.Buzz.CAPTURE,
         ),
         EventType.MUTED to Kind(
-            "gg_mute_v3", "Alert muted", "The alert was muted from another screen.",
-            R.raw.gg_mute, NotificationManager.IMPORTANCE_DEFAULT, "Alert muted", routine = true,
+            "gg_mute_v4", "Alert muted", "The alert was muted from another screen.",
+            R.raw.gg_mute, NotificationManager.IMPORTANCE_DEFAULT, "Alert muted", routine = true, buzz = Haptics.Buzz.MUTED,
         ),
         EventType.UNMUTED to Kind(
-            "gg_unmute_v3", "Alert unmuted", "The mute was lifted.",
-            R.raw.gg_unmute, NotificationManager.IMPORTANCE_DEFAULT, "Alert unmuted", routine = true,
+            "gg_unmute_v4", "Alert unmuted", "The mute was lifted.",
+            R.raw.gg_unmute, NotificationManager.IMPORTANCE_DEFAULT, "Alert unmuted", routine = true, buzz = Haptics.Buzz.UNMUTED,
         ),
         EventType.LOW_BATTERY_SHUTDOWN to Kind(
-            "gg_lowbattery_v1", "Low battery shutdown", "The Pi shut itself down, or is about to, because its battery is low.",
-            R.raw.gg_buzzer, NotificationManager.IMPORTANCE_HIGH, "Pi shut down: battery low", routine = false,
+            "gg_lowbattery_v2", "Low battery shutdown", "The Pi shut itself down, or is about to, because its battery is low.",
+            R.raw.gg_buzzer, NotificationManager.IMPORTANCE_HIGH, "Pi shut down: battery low", routine = false, buzz = Haptics.Buzz.LOW_BATTERY,
         ),
         EventType.MANUAL_SHUTDOWN to Kind(
-            "gg_shutdown_v1", "Pi shut down", "Someone pressed Shut down.",
-            R.raw.gg_mute, NotificationManager.IMPORTANCE_DEFAULT, "Pi shut down", routine = true,
+            "gg_shutdown_v2", "Pi shut down", "Someone pressed Shut down.",
+            R.raw.gg_mute, NotificationManager.IMPORTANCE_DEFAULT, "Pi shut down", routine = true, buzz = Haptics.Buzz.SHUTDOWN,
         ),
     )
 
@@ -86,10 +88,11 @@ object Alerts {
 
     fun ensureChannels(context: Context) {
         Sounds.init(context)
+        Haptics.init(context)
         if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(NotificationManager::class.java)
-        // A channel's sound cannot be changed once made, so the first version's channel is retired.
-        manager.deleteNotificationChannel("gg_alerts")
+        // A channel's sound and vibration cannot be changed once made, so older channels are retired.
+        RETIRED.forEach(manager::deleteNotificationChannel)
         val audio = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -99,7 +102,9 @@ object Alerts {
                 NotificationChannel(kind.channel, kind.channelName, kind.importance).apply {
                     description = kind.about
                     setSound(Uri.parse("android.resource://${context.packageName}/raw/${context.resources.getResourceEntryName(kind.sound)}"), audio)
-                    enableVibration(kind.importance >= NotificationManager.IMPORTANCE_HIGH)
+                    // Every kind vibrates in its own rhythm: alerts long and hard, routine events short.
+                    enableVibration(true)
+                    vibrationPattern = kind.buzz.channelPattern()
                 }
             )
         }
@@ -140,6 +145,7 @@ object Alerts {
             val kind = kinds.getValue(row.event)
             if (kind.routine && foreground) {
                 Sounds.play(kind.sound)
+                Haptics.play(kind.buzz)
             } else {
                 scope.launch {
                     val picture = row.snapshot?.let(snapshotUrl)?.let { fetch(it) }
@@ -207,6 +213,7 @@ object Alerts {
         val kind = kinds.getValue(EventType.LOW_BATTERY_SHUTDOWN)
         if (foreground) {
             Sounds.play(kind.sound)
+            Haptics.play(Haptics.Buzz.COUNTDOWN)
             return
         }
         val manager = NotificationManagerCompat.from(context)
@@ -237,6 +244,12 @@ object Alerts {
     }
 
     private const val COUNTDOWN_ID = 7002
+
+    /** Channels from earlier versions, made before each kind had its own vibration. */
+    private val RETIRED = listOf(
+        "gg_alerts", "gg_limit_v3", "gg_test_v3", "gg_automute_v3", "gg_capture_v3",
+        "gg_mute_v3", "gg_unmute_v3", "gg_lowbattery_v1", "gg_shutdown_v1",
+    )
 
     private suspend fun fetch(url: String): Bitmap? {
         val cloudScheme = com.garbageguard.app.ui.components.RemoteImages.CLOUD
