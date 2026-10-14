@@ -333,18 +333,10 @@ button,input{font:inherit;color:inherit}
 .phn.app::after{content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--teal);
   animation:phnBeat 1.8s ease-out infinite;pointer-events:none}
 @keyframes phnBeat{0%{opacity:.8;transform:scale(.9)}100%{opacity:0;transform:scale(1.35)}}
-.ctl-row #theme{flex:1;min-width:0;white-space:nowrap}
+.ctl-row #theme{flex:1;width:auto}
 .ctl-row #wifiBtn{flex:none;text-decoration:none;color:inherit;padding:5px 9px}
 #wifiBtn[hidden]{display:none}
 
-#theme .ico{width:16px;height:16px}
-#theme .sun{transition:opacity .3s, transform .4s}
-#theme .moon{transition:opacity .3s, transform .4s}
-[data-theme="light"] #theme .moon{opacity:.28;transform:translateX(2px) scale(.8)}
-[data-theme="light"] #theme .sun{opacity:1}
-[data-theme="dark"] #theme .sun{opacity:.28;transform:translateX(-2px) scale(.8)}
-[data-theme="dark"] #theme .moon{opacity:1}
-#theme:hover .ico{animation:spin 5s linear infinite}
 
 /* ---------------- tabs ---------------- */
 .tabs{flex:none;display:flex;gap:8px}
@@ -648,11 +640,6 @@ main{flex:1;min-height:0;display:flex}
 .fk-sw{flex-direction:column;gap:5px;font-size:9.5px;text-align:center}
 .fs-mon .fs-lcdrow{flex:none;min-height:0;height:40px;padding:0;position:relative;z-index:1}
 .fs-mon .lcd{height:36px;font-size:13px}
-#fsTheme .ico{width:16px;height:16px}
-#fsTheme .sun,#fsTheme .moon{transition:opacity .3s, transform .4s}
-[data-theme="light"] #fsTheme .moon{opacity:.28;transform:translateX(2px) scale(.8)}
-[data-theme="dark"] #fsTheme .sun{opacity:.28;transform:translateX(-2px) scale(.8)}
-#fsTheme:hover .ico{animation:spin 5s linear infinite}
 
 .note{flex:none;font-size:11px;color:var(--muted);margin:0;display:flex;
   align-items:center;gap:5px}
@@ -720,16 +707,6 @@ main{flex:1;min-height:0;display:flex}
   font-weight:800;width:104px}
 .tools .sp{flex:1}
 .tools.dates{padding:3px 0 0;border-bottom:0;gap:5px}
-/* One bar of choices: the chosen one is pressed into the bar, the rest stand out. */
-.fbar{display:flex;align-items:stretch;gap:0;background:var(--sunk);
-  border:2px solid var(--edge);border-radius:11px;box-shadow:var(--well);padding:2px;overflow:hidden}
-.fbar button{display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;
-  border:0;border-radius:8px;background:transparent;font:inherit;font-size:11.5px;font-weight:800;
-  color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s, color .15s, box-shadow .15s}
-.fbar button .ico{width:14px;height:14px}
-.fbar button:active{transform:translateY(1px)}
-.fbar button[aria-pressed="true"]{background:var(--teal);color:#fff;box-shadow:var(--hard-sm)}
-.fbar.quick button{font-size:11px;padding:0 8px}
 .scope{font-size:11.5px;font-weight:800;color:var(--muted);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .tablewrap{flex:1;min-height:0;min-width:0;overflow:auto;border:2px solid var(--edge);
@@ -1105,15 +1082,155 @@ a.btn{text-decoration:none}
 .setfoot .hint{margin:0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .setfoot .btn{min-width:140px;justify-content:center}
 
+/* Settings: four even cards that fit one screen at 1024x600, no scrolling.
+   Rows are compact (label beside its switch, or above its stepper bar) and
+   the steppers and choice bars copy the mobile app: one outlined bar, the
+   - and + keys raised at its ends, the value sunk between them. */
+#settings .setwrap{gap:7px;padding:0 4px 2px}
+#settings .setgrid{flex:1;min-height:0;align-items:stretch;gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+#settings .card-pow{padding:8px 10px;gap:6px;min-height:0;overflow:hidden}
+#settings .card-pow .hd{margin-bottom:0}
+#settings .card-pow[hidden]{display:none}
+.c-scr .hd .ico{color:var(--indigo)}
+.c-pow .hd .ico{color:var(--orange)}
+.c-snd .hd .ico{color:#0F7BD4}
+.c-qt .hd .ico{color:var(--purple)}
+#settings .grow{flex:1}
+#settings .prow{margin:0;min-height:30px;gap:10px}
+#settings .prow label,#settings .pfield label{display:flex;align-items:center;gap:6px;min-width:0;
+  font-size:11px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+#settings .prow label .ico,#settings .pfield label .ico{width:13px;height:13px;flex:none;color:var(--muted)}
+#settings .pfield label{margin:0 0 4px;color:var(--muted);font-size:10px}
+#settings .pfield label .ico{width:12px;height:12px}
+#settings .sw.lt{min-height:28px}
+#settings .hint{margin:0;font-size:10px}
+#settings .btn.wide{width:100%}
+#settings .tests{margin:0;gap:6px}
+#settings #vbBox{display:flex;flex-direction:column;gap:6px}
+#settings #vbBox[hidden]{display:none}
+#settings .pair2{display:grid;grid-template-columns:1fr;gap:6px}
+#settings .setfoot{padding:4px 2px 0;position:static}
+#settings .setfoot .btn{min-height:34px}
+.chip{display:inline-flex;align-items:center;gap:4px;flex:none;padding:1px 7px;border-radius:999px;
+  border:2px solid var(--edge);background:var(--ok-tint);font-size:9.5px;font-weight:900;
+  letter-spacing:.06em;color:var(--text)}
+.chip .ico{width:11px!important;height:11px!important;color:var(--ok)!important;animation:none!important}
+.chip.off{background:var(--bad-tint)}
+.chip[hidden]{display:none}
+
+#settings .pfield[hidden],#settings .prow[hidden]{display:none}
+.cells{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.cells span{display:flex;align-items:baseline;justify-content:center;gap:1px;padding:5px 0;
+  border:2px solid var(--edge);border-radius:9px;background:var(--sunk);box-shadow:inset 0 2px 5px rgba(0,0,0,.14)}
+.cells b{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.cells small{font-size:9px;font-weight:800;color:var(--muted)}
+.cells span.lo b{color:#A35A00}
+[data-theme="dark"] .cells span.lo b{color:var(--warn)}
+#settings .pv{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums}
+/* settings switches: a pale sunk track when off, like the app */
+#settings .sw.lt > i{background:var(--sunk);box-shadow:inset 2px 2px 4px var(--shade), inset -1px -1px 3px var(--lite)}
+#settings .sw.lt[aria-checked="true"] > i{background:var(--teal);box-shadow:inset 0 2px 4px rgba(0,0,0,.35), 0 0 8px rgba(23,166,143,.55)}
+
+/* stepper bar */
+.well.stp{display:flex;align-items:stretch;gap:0;padding:0;height:36px;border-radius:12px;overflow:hidden;
+  background:var(--sunk);box-shadow:var(--soft-sm), inset 0 3px 6px rgba(0,0,0,.14)}
+.prow .well.stp{width:150px;padding:0}
+.stp .step{position:relative;z-index:1;width:40px;height:auto;border:0;border-radius:0;flex:none;
+  font-size:19px;font-weight:800;color:var(--text);
+  background:linear-gradient(180deg,var(--lite),var(--raised));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade)}
+.stp .step:first-child{border-right:2px solid var(--edge);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), 5px 0 8px -4px rgba(0,0,0,.35)}
+.stp .step:last-child{border-left:2px solid var(--edge);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), -5px 0 8px -4px rgba(0,0,0,.35)}
+.stp .step:hover{transform:none;filter:brightness(1.03)}
+.stp .step:active{transform:none;background:var(--sunk);box-shadow:inset 3px 3px 7px var(--shade)}
+.stp .step::after{inset:-6px 0}
+#settings .stp input,.stp input{flex:1 1 0;min-width:0;width:0;text-align:center;font-size:16px;font-weight:900;padding:0 0 0 36px;line-height:1;
+  background:transparent}
+.stp .u{width:36px;flex:none;align-self:center;text-align:left;line-height:1;margin:0;padding:0 0 0 2px;font-size:10px;font-weight:800;color:var(--muted)}
+#settings .stp input[data-time]{font-size:14px;text-align:center;padding:0}
+.stp input[data-time] + .u{display:none}
+#settings .card-pow > *{flex-shrink:0}
+#settings .card-pow > .grow{flex-shrink:1}
+/* the clock note replaces the general tip, so the card never overflows */
+#bzQuietNote:not([hidden]) ~ .hint.gen{display:none}
+[data-theme="dark"] .stp{box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] .stp .step{background:linear-gradient(180deg,#4F4841,#3D3832);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35)}
+[data-theme="dark"] .stp .step:first-child{box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 5px 0 8px -4px rgba(0,0,0,.7)}
+[data-theme="dark"] .stp .step:last-child{box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), -5px 0 8px -4px rgba(0,0,0,.7)}
+[data-theme="dark"] .stp .step:active{background:var(--sunk);box-shadow:inset 3px 3px 7px #000}
+
+/* Choice bars, copied from the app: every group of options is one outlined
+   bar, the cells split by ink lines. The chosen cell is raised and lit, the
+   rest stay sunk and muted. Used for the screen saver mode, volume, strength,
+   the History filters and date chips, and the theme switch. */
+body :is(div.seg,.fbar){display:flex;align-items:stretch;gap:0;padding:0;height:34px;
+  border:2px solid var(--edge);border-radius:12px;overflow:hidden;
+  background:var(--sunk);box-shadow:var(--soft-sm), inset 0 3px 6px rgba(0,0,0,.14)}
+body :is(div.seg,.fbar) button{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:5px;
+  min-height:0;margin:0;padding:0 10px;border:0;border-radius:0;background:transparent;box-shadow:none;
+  font:inherit;font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;cursor:pointer;transition:background .15s, color .15s}
+body :is(div.seg,.fbar) button + button{border-left:2px solid var(--edge)}
+body :is(div.seg,.fbar) button .ico{width:14px;height:14px;opacity:.55}
+body :is(div.seg,.fbar) button:active{transform:none;background:rgba(0,0,0,.06)}
+body :is(div.seg,.fbar) button[aria-pressed="true"]{position:relative;z-index:1;color:var(--text);
+  background:linear-gradient(180deg,var(--lite),var(--raised));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -3px 0 var(--shade), 0 0 9px rgba(0,0,0,.3)}
+body :is(div.seg,.fbar) button[aria-pressed="true"] .ico{opacity:1;color:var(--teal)}
+[data-theme="dark"] :is(div.seg,.fbar){box-shadow:var(--soft-sm), inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] :is(div.seg,.fbar) button[aria-pressed="true"]{background:linear-gradient(180deg,#4F4841,#3D3832);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35), 0 0 9px rgba(0,0,0,.7)}
+body .fbar{flex:none}
+body div.seg button{flex:1 1 0;min-width:0}
+body .fbar.quick button{padding:0 9px}
+/* Theme switch: icon only sun | moon bar. The raised thumb slides to the
+   chosen side and the icon plays its entrance (sun spins up, moon swings in). */
+.tsw{position:relative;display:flex;flex:none;width:86px;height:36px;padding:0;
+  border:2px solid var(--edge);border-radius:12px;overflow:hidden;background:var(--sunk);
+  box-shadow:inset 0 3px 7px rgba(0,0,0,.16)}
+.tsw::before{content:"";position:absolute;top:0;bottom:0;left:0;width:50%;
+  background:linear-gradient(180deg,var(--lite),var(--raised));
+  box-shadow:0 0 0 2px var(--edge), inset 0 -3px 0 rgba(0,0,0,.08);
+  transition:transform .45s cubic-bezier(.34,1.5,.64,1)}
+[data-theme="dark"] .tsw{box-shadow:inset 0 3px 7px rgba(0,0,0,.45)}
+[data-theme="dark"] .tsw::before{transform:translateX(100%);
+  background:linear-gradient(180deg,#4F4841,#3D3832);
+  box-shadow:0 0 0 2px var(--edge), inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.35)}
+.tsw button{position:relative;z-index:1;flex:1 1 0;min-width:0;display:grid;place-items:center;
+  margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;cursor:pointer;color:var(--muted)}
+.tsw svg{width:21px;height:21px;overflow:visible;display:block;
+  transition:opacity .3s, transform .45s cubic-bezier(.34,1.5,.64,1), color .3s}
+.tsw button[aria-pressed="false"] svg{opacity:.4;transform:scale(.78)}
+.tsw .rays,.tsw .star{transform-box:fill-box;transform-origin:center}
+.tsw .t-sun[aria-pressed="true"]{color:#E39400}
+.tsw .t-sun[aria-pressed="true"] svg{filter:drop-shadow(0 0 4px rgba(240,170,20,.55));
+  animation:tswSun .8s cubic-bezier(.34,1.5,.64,1)}
+.tsw .t-sun[aria-pressed="true"] circle{fill:currentColor}
+.tsw .t-sun[aria-pressed="true"] .rays{animation:tswRays .8s cubic-bezier(.34,1.5,.64,1)}
+.tsw .t-moon[aria-pressed="true"]{color:#B4A6FF}
+.tsw .t-moon[aria-pressed="true"] svg{filter:drop-shadow(0 0 5px rgba(170,150,255,.6));
+  animation:tswMoon .8s cubic-bezier(.34,1.5,.64,1)}
+.tsw .t-moon[aria-pressed="true"] .mn{fill:currentColor}
+.tsw .t-moon[aria-pressed="true"] .star{animation:tswStar 2.6s ease-in-out .5s infinite}
+.tsw .t-moon[aria-pressed="false"] .star{opacity:0}
+.tsw:hover .t-sun[aria-pressed="true"] .rays{animation:tswSpin 5s linear infinite}
+.tsw:hover .t-moon[aria-pressed="true"] svg{animation:tswRock 2s ease-in-out infinite}
+.tsw button:active svg{transform:scale(.86)}
+@keyframes tswSun{0%{transform:rotate(-180deg) scale(.4)}100%{transform:none}}
+@keyframes tswRays{0%{transform:scale(.3);opacity:0}60%{opacity:1}100%{transform:none}}
+@keyframes tswMoon{0%{transform:rotate(-70deg) scale(.4)}100%{transform:none}}
+@keyframes tswStar{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.4) rotate(45deg);opacity:.35}}
+@keyframes tswSpin{to{transform:rotate(360deg)}}
+@keyframes tswRock{0%,100%{transform:rotate(0)}50%{transform:rotate(-14deg)}}
+@media (prefers-reduced-motion:reduce){.tsw *, .tsw::before{animation:none!important;transition:none!important}}
+
 /* power card, screen saver layer, shutdown banner */
 .card-pow{flex:none}
 .card-pow .hd .ico{color:var(--orange)}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.seg button{min-height:34px;border:2px solid var(--edge);border-radius:10px;font:inherit;font-size:12px;
-  font-weight:900;cursor:pointer;color:var(--text);background:linear-gradient(162deg,var(--lite),var(--raised));
-  box-shadow:var(--soft-sm)}
-.seg button:active{box-shadow:var(--press)}
-.seg button[aria-pressed="true"]{background:var(--teal);color:#fff;box-shadow:var(--press)}
 .sw.lt{color:var(--text);padding:0}
 .sw.lt[aria-checked="true"]{color:var(--text)}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px}
@@ -1312,13 +1429,12 @@ a.btn{text-decoration:none}
         <i id="phnC"><svg><use href="#i-cloudidle"/></svg></i></button>
     </div>
     <div class="ctl-row">
-      <button class="btn sm" id="theme" type="button">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
-            <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
-          <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
-        </svg><span id="themeLbl">Dark</span></button>
+      <div class="tsw" id="theme" role="group" aria-label="Appearance">
+        <button type="button" class="t-sun" data-t="light" aria-pressed="true" aria-label="Light mode" title="Light mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.3"/><g class="rays"><path d="M12 1.6v2.6M12 19.8v2.6M1.6 12h2.6M19.8 12h2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></g></svg></button>
+        <button type="button" class="t-moon" data-t="dark" aria-pressed="false" aria-label="Dark mode" title="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mn" d="M20.5 14.6A8.5 8.5 0 1 1 9.4 3.5a6.6 6.6 0 0 0 11.1 11.1z"/><path class="star" d="M18.2 2.4v3.6M16.4 4.2h3.6"/></svg></button>
+      </div>
       <a class="btn sm" id="wifiBtn" href="/wifi" hidden title="Wi-Fi setup" aria-label="Wi-Fi setup">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.6a9 9 0 0 1 12.4 0M9 16.2a4.4 4.4 0 0 1 6 0"/><circle cx="12" cy="19.4" r=".9" fill="currentColor"/></svg></a>
@@ -1395,7 +1511,7 @@ a.btn{text-decoration:none}
         <div class="hd"><svg class="ico"><use href="#i-gear"/></svg><h2>Detection settings</h2></div>
         <div class="field">
           <label for="conf"><svg class="ico"><use href="#i-eye"/></svg>Detection confidence</label>
-          <div class="well">
+          <div class="well stp">
             <button class="step" type="button" data-for="conf" data-d="-5" aria-label="Lower confidence">−</button>
             <input id="conf" type="number" min="5" max="95" step="5" inputmode="numeric">
             <span class="u">%</span>
@@ -1405,7 +1521,7 @@ a.btn{text-decoration:none}
         </div>
         <div class="field">
           <label for="thresh"><svg class="ico"><use href="#i-bell"/></svg>Accumulation limit</label>
-          <div class="well">
+          <div class="well stp">
             <button class="step" type="button" data-for="thresh" data-d="-1" aria-label="Lower limit">−</button>
             <input id="thresh" type="number" min="1" max="200" step="1" inputmode="numeric">
             <span class="u">items</span>
@@ -1498,122 +1614,122 @@ a.btn{text-decoration:none}
   <section class="page" id="settings" role="tabpanel" aria-labelledby="tabSettings">
     <div class="setwrap">
     <div class="setgrid">
-      <section class="card card-pow" id="scrCard">
+      <section class="card card-pow c-scr" id="scrCard">
         <div class="hd"><svg class="ico"><use href="#i-sunmoon"/></svg><h2>Screen saver</h2></div>
         <div class="seg" id="scrMode" role="group" aria-label="Screen saver mode">
           <button type="button" data-mode="off" aria-pressed="false">Off</button>
           <button type="button" data-mode="dim" aria-pressed="false">Dim</button>
           <button type="button" data-mode="never" aria-pressed="false">Never</button>
         </div>
-        <div class="prow"><label for="scrMin">Turn off after</label>
-          <div class="well">
+        <div class="pfield"><label for="scrMin"><svg class="ico"><use href="#i-clock"/></svg>Turn off after</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrMin" data-d="-1" aria-label="Less time">−</button>
-            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric">
-            <span class="u">min</span>
+            <input id="scrMin" type="number" min="1" max="60" step="1" inputmode="numeric"><span class="u">min</span>
             <button class="step" type="button" data-for="scrMin" data-d="1" aria-label="More time">+</button>
           </div></div>
-        <div class="prow"><label for="scrBat">On battery</label>
-          <div class="well">
+        <div class="pfield"><label for="scrBat"><svg class="ico"><use href="#i-batt"/></svg>On battery</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrBat" data-d="-30" aria-label="Less time on battery">−</button>
-            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric">
-            <span class="u">sec</span>
+            <input id="scrBat" type="number" min="30" max="3600" step="30" inputmode="numeric"><span class="u">sec</span>
             <button class="step" type="button" data-for="scrBat" data-d="30" aria-label="More time on battery">+</button>
           </div></div>
-        <div class="prow" id="scrDimRow"><label for="scrDim">Dim level</label>
-          <div class="well">
+        <div class="pfield" id="scrDimRow"><label for="scrDim"><svg class="ico"><use href="#i-sunmoon"/></svg>Dim level</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="scrDim" data-d="-5" aria-label="Darker">−</button>
-            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
+            <input id="scrDim" type="number" min="5" max="50" step="5" inputmode="numeric"><span class="u">%</span>
             <button class="step" type="button" data-for="scrDim" data-d="5" aria-label="Brighter">+</button>
           </div></div>
-        <div class="prow"><label>Wake on alert</label>
+        <div class="prow"><label><svg class="ico"><use href="#i-bell"/></svg>Wake on alert</label>
           <button class="sw lt" id="scrWake" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <button class="btn" id="scrSleep" type="button" style="width:100%;margin-top:8px"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
-        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          Tap to wake. The first tap only wakes.</p>
-        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg>
-          <span></span></p>
+        <button class="btn sm wide" id="scrSleep" type="button"><svg class="ico"><use href="#i-sunmoon"/></svg>Sleep now</button>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>Tap to wake. The first tap only wakes.</p>
+        <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
-      <section class="card card-pow" id="powCard">
-        <div class="hd"><svg class="ico"><use href="#i-batt"/></svg><h2>Power</h2></div>
-        <div class="sub"><svg class="ico"><use href="#i-bolt"/></svg>Low battery</div>
-        <div class="prow"><label>Auto shutdown</label>
+      <section class="card card-pow c-pow" id="powCard">
+        <div class="hd"><svg class="ico"><use href="#i-power"/></svg><h2>Power</h2>
+          <span class="chip" id="powChip" hidden><svg class="ico"><use href="#i-batt"/></svg><span></span></span></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg>Auto shutdown</label>
           <button class="sw lt" id="shutSw" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <div class="prow"><label for="shutPct">Shut down at</label>
-          <div class="well">
+        <div class="pfield"><label for="shutPct"><svg class="ico"><use href="#i-gauge"/></svg>Shut down at</label>
+          <div class="well stp">
             <button class="step" type="button" data-for="shutPct" data-d="-5" aria-label="Lower">−</button>
-            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric">
-            <span class="u">%</span>
+            <input id="shutPct" type="number" min="10" max="50" step="5" inputmode="numeric"><span class="u">%</span>
             <button class="step" type="button" data-for="shutPct" data-d="5" aria-label="Higher">+</button>
           </div></div>
-        <div class="sub"><svg class="ico"><use href="#i-power"/></svg>Now</div>
-        <button class="btn bad" id="pwrOff" type="button" style="width:100%;margin-top:4px"><svg class="ico"><use href="#i-power"/></svg>Shut down</button>
+        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>Shuts down cleanly when the battery drops this low.</p>
+        <div class="pfield" id="cellBox" hidden><label><svg class="ico"><use href="#i-batt"/></svg>Cells (4 × 21700)</label>
+          <div class="cells" id="cells"></div></div>
+        <div class="prow" id="packRow" hidden><label><svg class="ico"><use href="#i-clock"/></svg><span id="packLbl">Time left</span></label>
+          <b class="pv" id="packVal">–</b></div>
+        <span class="grow"></span>
+        <button class="btn danger wide" id="pwrOff" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down now</button>
+        <p class="hint"><svg class="ico"><use href="#i-warn"/></svg>Start the Pi again with the UPS HAT switch.</p>
       </section>
-      <section class="card card-pow" id="sndCard" style="grid-column:1/-1" hidden>
-        <div class="hd"><svg class="ico"><use href="#i-bell"/></svg><h2>Sound</h2></div>
-        <div class="sndgrid">
-          <div class="sndcol">
-            <div class="prow"><label>Buzzer</label>
-              <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="seg" id="bzVol" role="group" aria-label="Volume">
-              <button type="button" data-vol="low" aria-pressed="false">Low</button>
-              <button type="button" data-vol="medium" aria-pressed="false">Medium</button>
-              <button type="button" data-vol="high" aria-pressed="false">High</button>
-            </div>
-            <div class="prow"><label>Alerts</label>
-              <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow"><label>Countdown and shutdown</label>
-              <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow"><label>Button sounds</label>
-              <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
-            <div id="vbBox">
-              <div class="prow"><label>Vibration</label>
-                <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
-              <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
-                <button type="button" data-str="low" aria-pressed="false">Low</button>
-                <button type="button" data-str="medium" aria-pressed="false">Medium</button>
-                <button type="button" data-str="high" aria-pressed="false">High</button>
-              </div>
-            </div>
-          </div>
-          <div class="sndcol">
-            <div class="prow"><label>Repeat alarm</label>
-              <button class="sw lt" id="bzRep" type="button" role="switch" aria-checked="true"><i></i></button></div>
-            <div class="prow" id="bzRepRow"><label for="bzRepS">Repeat every</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzRepS" data-d="-10" aria-label="Shorter">−</button>
-                <input id="bzRepS" type="number" min="10" max="300" step="10" inputmode="numeric">
-                <span class="u">sec</span>
-                <button class="step" type="button" data-for="bzRepS" data-d="10" aria-label="Longer">+</button>
-              </div></div>
-            <div class="prow"><label>Quiet hours</label>
-              <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
-            <div class="prow" id="bzFromRow"><label for="bzFrom">From</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
-                <input id="bzFrom" type="text" data-time="1" readonly>
-                <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
-              </div></div>
-            <div class="prow" id="bzToRow"><label for="bzTo">Until</label>
-              <div class="well">
-                <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
-                <input id="bzTo" type="text" data-time="1" readonly>
-                <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
-              </div></div>
-            <div class="tests">
-              <button class="btn" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test alarm</button>
-              <button class="btn" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bell"/></svg>Test tune</button>
-            </div>
-            <div class="tests" id="vbTests">
-              <button class="btn" id="vbTest" type="button"><svg class="ico"><use href="#i-act"/></svg>Test vibration</button>
-            </div>
-          </div>
+      <section class="card card-pow c-snd" id="sndCard" hidden>
+        <div class="hd"><svg class="ico"><use href="#i-bellon"/></svg><h2>Buzzer</h2>
+          <span class="chip" id="bzChip"><span>ON</span></span></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-bellon"/></svg>Buzzer</label>
+          <button class="sw lt" id="bzOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="seg" id="bzVol" role="group" aria-label="Volume">
+          <button type="button" data-vol="low" aria-pressed="false">Low</button>
+          <button type="button" data-vol="medium" aria-pressed="false">Medium</button>
+          <button type="button" data-vol="high" aria-pressed="false">High</button>
+        </div>
+        <div class="prow"><label><svg class="ico"><use href="#i-bell"/></svg>Alerts</label>
+          <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg>Low-battery beeps</label>
+          <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-act"/></svg>Button sounds</label>
+          <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-refresh"/></svg>Repeat alarm</label>
+          <button class="sw lt" id="bzRep" type="button" role="switch" aria-checked="true"><i></i></button></div>
+        <div class="pfield" id="bzRepRow"><label for="bzRepS"><svg class="ico"><use href="#i-clock"/></svg>Repeat every</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzRepS" data-d="-10" aria-label="Shorter">−</button>
+            <input id="bzRepS" type="number" min="10" max="300" step="10" inputmode="numeric"><span class="u">sec</span>
+            <button class="step" type="button" data-for="bzRepS" data-d="10" aria-label="Longer">+</button>
+          </div></div>
+        <span class="grow"></span>
+        <div class="tests">
+          <button class="btn sm" id="bzTestAlarm" type="button"><svg class="ico"><use href="#i-bell"/></svg>Alarm</button>
+          <button class="btn sm" id="bzTestTune" type="button"><svg class="ico"><use href="#i-bellon"/></svg>Tune</button>
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
-        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+      </section>
+      <section class="card card-pow c-qt" id="quietCard" hidden>
+        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet and vibration</h2></div>
+        <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
+          <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
+        <div class="pair2" id="bzQuietRows">
+        <div class="pfield" id="bzFromRow"><label for="bzFrom"><svg class="ico"><use href="#i-sunmoon"/></svg>From</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzFrom" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        <div class="pfield" id="bzToRow"><label for="bzTo"><svg class="ico"><use href="#i-sunmoon"/></svg>Until</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzTo" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        </div>
         <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
-        <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>
-          Quiet hours silence the buzzer and the vibration. Tests use the saved volume and strength.</p>
+        <div id="vbBox">
+        <div class="prow"><label><svg class="ico"><use href="#i-phone"/></svg>Vibration</label>
+          <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
+          <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
+            <button type="button" data-str="low" aria-pressed="false">Low</button>
+            <button type="button" data-str="medium" aria-pressed="false">Medium</button>
+            <button type="button" data-str="high" aria-pressed="false">High</button>
+          </div>
+        </div>
+        <span class="grow"></span>
+        <div class="tests" id="vbTests">
+          <button class="btn sm" id="vbTest" type="button"><svg class="ico"><use href="#i-phone"/></svg>Test vibration</button>
+        </div>
+        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence buzzer and motor. Tests use the saved settings.</p>
       </section>
     </div>
       <div class="setfoot">
@@ -1648,13 +1764,12 @@ a.btn{text-decoration:none}
     <span class="sp"></span>
     <span class="fs-state" id="fsState">
       <svg class="ico"><use href="#i-ok"/></svg><span id="fsStateTxt">Normal</span></span>
-    <button class="btn sm" id="fsTheme" type="button" aria-label="Switch theme">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <g class="sun"><circle cx="8.4" cy="12" r="3.3"/>
-          <path d="M8.4 5.4v1.3M8.4 17.3v1.3M1.8 12h1.3M13.7 12h1.3M3.7 7.3l.9.9M12.2 15.8l.9.9M12.5 8.2l.9-.9M3.7 16.7l.9-.9"/></g>
-        <g class="moon"><path d="M21.8 14.6a5.4 5.4 0 0 1-6.9-6.9 5.6 5.6 0 1 0 6.9 6.9z"/></g>
-      </svg><span id="fsThemeLbl">Dark</span></button>
+    <div class="tsw" id="fsTheme" role="group" aria-label="Appearance">
+      <button type="button" class="t-sun" data-t="light" aria-pressed="true" aria-label="Light mode" title="Light mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.3"/><g class="rays"><path d="M12 1.6v2.6M12 19.8v2.6M1.6 12h2.6M19.8 12h2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></g></svg></button>
+      <button type="button" class="t-moon" data-t="dark" aria-pressed="false" aria-label="Dark mode" title="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="mn" d="M20.5 14.6A8.5 8.5 0 1 1 9.4 3.5a6.6 6.6 0 0 0 11.1 11.1z"/><path class="star" d="M18.2 2.4v3.6M16.4 4.2h3.6"/></svg></button>
+    </div>
     <button class="fsbtn out fs-exit" id="fsClose" type="button"
             aria-label="Exit fullscreen" title="Exit fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M3.5 9.5h6v-6"/><path class="c tr" d="M20.5 9.5h-6v-6"/><path class="c br" d="M14.5 20.5v-6h6"/><path class="c bl" d="M9.5 20.5v-6h-6"/></svg></button>
   </div>
@@ -1833,11 +1948,14 @@ function toast(m, icon){
 
 function applyTheme(mode){
   document.documentElement.dataset.theme = mode;
-  $("themeLbl").textContent = $("fsThemeLbl").textContent = mode==="dark" ? "Light" : "Dark";
+  document.querySelectorAll(".tsw button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.t === mode)));
   try{ localStorage.setItem("gg-theme", mode); }catch(e){}
 }
-$("theme").onclick = $("fsTheme").onclick = () =>
-  applyTheme(document.documentElement.dataset.theme==="dark" ? "light" : "dark");
+document.querySelectorAll(".tsw").forEach(sw => sw.addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if(b) applyTheme(b.dataset.t);
+}));
 try{ applyTheme(localStorage.getItem("gg-theme")||"light"); }catch(e){ applyTheme("light"); }
 
 const TABS = {monitor:"tabMonitor", history:"tabHistory", settings:"tabSettings"};
@@ -2334,8 +2452,11 @@ $("quick").addEventListener("click", e => {
   if(q === "any"){ $("dFrom").value = ""; $("dTo").value = ""; }
   else if(q === "today"){ $("dFrom").value = now; $("dTo").value = now; }
   else {
-    const back = new Date(now + "T00:00:00");
-    back.setDate(back.getDate() - (Number(q) - 1));
+    // Count back in whole UTC days. Going through local midnight and
+    // toISOString() slipped a day east of UTC (the Pi is UTC+8), so the range
+    // came out as 8 or 31 days and the 7 days / 30 days chip never lit up.
+    const back = new Date(now + "T00:00:00Z");
+    back.setUTCDate(back.getUTCDate() - (Number(q) - 1));
     $("dFrom").value = back.toISOString().slice(0,10);
     $("dTo").value = now;
   }
@@ -2844,7 +2965,7 @@ function pickVol(v){
 let buzzUi = false;
 function fillBuzzer(s){
   const card = $("sndCard");
-  card.hidden = s.buzzer_on == null;
+  card.hidden = $("quietCard").hidden = s.buzzer_on == null;
   if(card.hidden) return;
   buzzUi = !!s.buzzer_ui && !!s.buzzer_available;
   const note = $("bzNote");
@@ -2869,6 +2990,9 @@ function fillBuzzer(s){
   showBuzzRows();
 }
 function showBuzzRows(){
+  const chip = $("bzChip"), on = swOn($("bzOn"));
+  chip.classList.toggle("off", !on);
+  chip.querySelector("span").textContent = on ? "ON" : "OFF";
   $("bzRepRow").style.display = swOn($("bzRep")) ? "" : "none";
   const q = swOn($("bzQuiet")) ? "" : "none";
   $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
@@ -2925,6 +3049,26 @@ $("scrSleep").onclick = async () => { await post("/api/screen", {action: "sleep"
 let pwrEnd = 0, pwrFloor = false;
 function paintPower(b){
   fillShutdown(b);
+  const pc = $("powChip");
+  pc.hidden = !(b && b.ok);
+  if(b && b.ok){
+    const p = Math.round(b.percent);
+    pc.querySelector("span").textContent = (b.on_ac ? "AC · " : "BATTERY ") + p + "%";
+    pc.classList.toggle("off", !b.on_ac && p <= 20);
+  }
+  const cells = b && b.ok && Array.isArray(b.cells_v) ? b.cells_v : null;
+  $("cellBox").hidden = !cells;
+  if(cells){
+    const lo = Math.min(...cells);
+    $("cells").innerHTML = cells.map(v =>
+      `<span class="${v === lo && Math.max(...cells) - lo > 0.05 ? "lo" : ""}"><b>${v.toFixed(2)}</b><small>V</small></span>`).join("");
+  }
+  const m = b && b.ok ? b.minutes_left : null;
+  $("packRow").hidden = m == null;
+  if(m != null){
+    $("packLbl").textContent = b.charging ? "Full in" : "Time left";
+    $("packVal").textContent = m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`;
+  }
   const counting = !!b && b.shutdown_state === "counting" && b.shutdown_in_s != null;
   if(counting){
     pwrEnd = Date.now() + b.shutdown_in_s * 1000;
