@@ -4,6 +4,18 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 11.2: clean copies in the demo (2026-10-14)
+
+### App
+
+- Demo: the snapshot viewer offers the Annotated / Clean switch, as on the
+  Pi's dashboard. Demo pictures are drawn on the phone, so the clean copy is
+  the same scene without the boxes. It used to say the clean copy was on the
+  Pi's Wi-Fi.
+- Demo: new snapshots get a clean copy as the Clean copies bar asks (every
+  snapshot, Capture only, or none), and the bar's picture count grows with
+  them.
+
 ## App version 11.1: a vibration for every event, Simulation in the demo (2026-10-14)
 
 ### App

@@ -138,7 +138,8 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
                 next = next.copy(muted = false, muteLeft = 0, muteTotal = 0, autoMuted = false)
             }
         }
-        _state.value = next
+        // log() may have counted a new clean copy while this step was being built.
+        _state.value = next.copy(clean = _state.value.clean)
         if (simulating) simBattery() else stepBattery()
     }
 
@@ -268,6 +269,11 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
 
     private fun log(event: EventType, s: LiveState, snapshot: Boolean = false) {
         val now = LocalDateTime.now()
+        // A clean copy too, as the Clean copies bar asks: every snapshot, Capture only, or none.
+        val cleanMode = s.clean?.mode ?: "off"
+        val keepClean = snapshot && (cleanMode == "all" || (cleanMode == "manual" && event == EventType.MANUAL))
+        val name = "fake_${now.format(DateTimeFormatter.ofPattern("HHmmss"))}.jpg"
+        if (keepClean) _state.update { st -> st.copy(clean = st.clean?.let { it.copy(count = it.count + 1, bytes = it.bytes + 61_000) }) }
         val row = AlertRow(
             id = nextId++,
             timestamp = now.format(fmt),
@@ -277,7 +283,8 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             peakConfidence = if (snapshot) 0.80f + Random.nextFloat() * 0.15f else null,
             thresholdUsed = s.threshold,
             read = false,
-            snapshot = if (snapshot) "fake_${now.format(DateTimeFormatter.ofPattern("HHmmss"))}.jpg" else null,
+            snapshot = if (snapshot) name else null,
+            clean = if (keepClean) name else null,
         )
         _alerts.update { listOf(row) + it }
     }

@@ -142,7 +142,7 @@ fun OverlayHost(
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, vm.visibleRows(alerts).size, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
-            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), vm.cleanUrl(row.clean), { vm.overlay = Overlay.Delete(row.id) }, close)
+            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), vm.cleanUrl(row.clean), { vm.overlay = Overlay.Delete(row.id) }, close, drawn = vm.demo)
         }
         Overlay.ClearArea -> GgSheet(close) {
             SheetTitle("Clear monitored area?")
@@ -531,7 +531,11 @@ private fun SheetTextIn(text: String, modifier: Modifier) {
 
 /** .viewer, the snapshot with its numbers. */
 @Composable
-private fun SnapshotViewer(row: AlertRow, imageUrl: String?, cleanUrl: String?, onDelete: () -> Unit, close: () -> Unit) {
+private fun SnapshotViewer(
+    row: AlertRow, imageUrl: String?, cleanUrl: String?, onDelete: () -> Unit, close: () -> Unit,
+    /** Demo data: the picture is drawn on the phone, so its clean copy is too (the same scene without boxes). */
+    drawn: Boolean = false,
+) {
     // Annotated is the snapshot as saved, boxes and outline drawn in; Clean is the camera picture alone.
     var clean by rememberSaveable(row.id) { mutableStateOf(false) }
     val image = rememberSnapshot(if (clean && cleanUrl != null) cleanUrl else imageUrl)
@@ -570,7 +574,7 @@ private fun SnapshotViewer(row: AlertRow, imageUrl: String?, cleanUrl: String?, 
             EventPill(row.event)
             Box(Modifier.weight(1f)) {
                 when {
-                    cleanUrl != null -> Segmented(
+                    cleanUrl != null || (drawn && row.hasClean) -> Segmented(
                         listOf("Annotated", "Clean"), selected = if (clean) 1 else 0,
                         onSelect = { clean = it == 1 },
                     )
