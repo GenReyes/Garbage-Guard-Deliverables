@@ -264,7 +264,6 @@ class Buzzer:
         self.playing = None
         self.next_repeat = None
         self.started = False
-        self.also = []
 
     # ---------- settings ----------
     def configure(self, on=None, volume=None, alerts=None, countdown=None, ui=None,
@@ -321,11 +320,6 @@ class Buzzer:
                 "ui": s["buzzer_ui"], "events": True}.get(group, False)
 
     def play(self, name, force=False):
-        for other in self.also:
-            try:
-                other(name, force)
-            except Exception as e:
-                print(f"[{self.LABEL}] {e}", flush=True)
         spec = self.TABLE.get(name)
         if spec is None:
             return False

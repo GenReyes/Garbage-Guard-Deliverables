@@ -1,5 +1,7 @@
 # Pi buzzer and vibration plan
 
+> **Update (2026-10-17):** the vibration motor was tried and dropped because it was too weak. Everything in this plan about the motor (the module, GPIO13, `gg_vibe.py`, `/api/vibe`, the `vibe` commands and the dashboard rows) is no longer in the code. The buzzer parts still apply. The phone's own vibration in the app is a different thing and is unchanged.
+
 Status: **plan only**. Nothing here is built. It is written so that most of it
 can be coded and tested without the Pi, and the hardware part is checked on
 the bench afterwards.

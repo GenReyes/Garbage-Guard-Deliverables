@@ -7,7 +7,6 @@ import urllib.request
 import gg_buzzer
 import gg_power
 import gg_screen
-import gg_vibe
 import gg_web as w
 
 DALVIK = "Dalvik/2.1.0 (Linux; U; Android 14; SM-A546E Build/UP1A.231005.007)"
@@ -100,12 +99,9 @@ class ApiTests(unittest.TestCase):
                                     spawn=lambda f: f())
         self.sounds = gg_buzzer.FakeBackend()
         self.buzzer = gg_buzzer.Buzzer(self.engine.settings, backend=self.sounds)
-        self.motor = gg_buzzer.FakeBackend()
-        self.vibe = gg_vibe.Vibe(self.engine.settings, backend=self.motor)
-        self.buzzer.also.append(self.vibe.play)
         self.server = w.QuietServer(("127.0.0.1", 0), w.make_handler(
             self.engine, net=object(), ups=ups, screen=self.screen, power=self.power,
-            buzzer=self.buzzer, vibe=self.vibe))
+            buzzer=self.buzzer))
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
         self.addCleanup(self.server.shutdown)
@@ -141,25 +137,6 @@ class ApiTests(unittest.TestCase):
         code, res = self.call("/api/buzzer/test", {"sound": "test"})
         self.assertEqual((code, res["error"], res["message"]), (409, "unavailable", "no pin"))
 
-    def test_state_and_settings_for_the_vibration_motor(self):
-        code, st = self.call("/api/state")
-        self.assertEqual((st["vibe_on"], st["vibe_strength"], st["vibe_available"]), (True, "medium", True))
-        code, res = self.call("/api/vibe", {"on": False, "strength": "high"})
-        self.assertEqual((res["ok"], res["vibe_on"], res["vibe_strength"]), (True, False, "high"))
-
-    def test_vibration_test_and_the_buzzer_test_both_shake(self):
-        self.assertEqual(self.call("/api/vibe/test", {"pattern": "nope"})[0], 400)
-        self.assertEqual(self.call("/api/vibe/test", {})[0], 200)
-        self.vibe.drain()
-        self.assertEqual(len([e for e in self.motor.events if e[0] == "tone"]), 2)
-        self.motor.events.clear()
-        self.call("/api/buzzer/test", {"sound": "accumulation"})
-        self.vibe.drain()
-        self.assertEqual(len([e for e in self.motor.events if e[0] == "tone"]), 3)
-        self.motor.available, self.motor.note = False, "no pwm"
-        code, res = self.call("/api/vibe/test", {})
-        self.assertEqual((code, res["error"], res["message"]), (409, "unavailable", "no pwm"))
-
     def test_button_sound_endpoint(self):
         self.call("/api/buzzer", {"ui": True})
         self.buzzer.drain()
@@ -184,7 +161,7 @@ class ApiTests(unittest.TestCase):
         net = Net()
         server = w.QuietServer(("127.0.0.1", 0), w.make_handler(
             self.engine, net=net, ups=FakeUps(), screen=self.screen, power=self.power,
-            buzzer=self.buzzer, vibe=self.vibe))
+            buzzer=self.buzzer))
         threading.Thread(target=server.serve_forever, daemon=True).start()
         self.addCleanup(server.shutdown)
         base = self.base

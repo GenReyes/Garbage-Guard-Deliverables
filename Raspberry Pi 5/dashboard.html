@@ -1113,8 +1113,6 @@ a.btn{text-decoration:none}
 #settings .hint{margin:0;font-size:10px}
 #settings .btn.wide{width:100%}
 #settings .tests{margin:0;gap:6px}
-#settings #vbBox{display:flex;flex-direction:column;gap:6px}
-#settings #vbBox[hidden]{display:none}
 #settings .pair2{display:grid;grid-template-columns:1fr;gap:6px}
 #settings .setfoot{padding:4px 2px 0;position:static}
 #settings .setfoot .btn{min-height:34px}
@@ -1714,7 +1712,7 @@ body .fbar.quick button{padding:0 9px}
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
       <section class="card card-pow c-qt wait" id="quietCard">
-        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet and vibration</h2></div>
+        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
         <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
         <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
           <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
@@ -1733,21 +1731,8 @@ body .fbar.quick button{padding:0 9px}
           </div></div>
         </div>
         <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
-        <div id="vbBox">
-        <div class="prow"><label><svg class="ico"><use href="#i-phone"/></svg>Vibration</label>
-          <button class="sw lt" id="vbOn" type="button" role="switch" aria-checked="true"><i></i></button></div>
-          <div class="seg" id="vbStr" role="group" aria-label="Vibration strength">
-            <button type="button" data-str="low" aria-pressed="false">Low</button>
-            <button type="button" data-str="medium" aria-pressed="false">Medium</button>
-            <button type="button" data-str="high" aria-pressed="false">High</button>
-          </div>
-        </div>
         <span class="grow"></span>
-        <div class="tests" id="vbTests">
-          <button class="btn sm" id="vbTest" type="button"><svg class="ico"><use href="#i-phone"/></svg>Test vibration</button>
-        </div>
-        <p class="hint bad" id="vbNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
-        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence buzzer and motor. Tests use the saved settings.</p>
+        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence the buzzer. Tests use the saved settings.</p>
       </section>
     </div>
       <div class="setfoot">
@@ -3026,9 +3011,6 @@ function stepTime(el, d){
   setTime(el, pad2(Math.floor(n / 60)) + ":" + pad2(n % 60));
 }
 const swOn = el => el.getAttribute("aria-checked") === "true";
-function pickStr(v){
-  document.querySelectorAll("#vbStr button").forEach(b => b.setAttribute("aria-pressed", b.dataset.str === v ? "true" : "false"));
-}
 function pickVol(v){
   document.querySelectorAll("#bzVol button").forEach(b => b.setAttribute("aria-pressed", b.dataset.vol === v ? "true" : "false"));
 }
@@ -3041,11 +3023,6 @@ function fillBuzzer(s){
   const note = $("bzNote");
   note.hidden = s.buzzer_available !== false;
   if(!note.hidden) note.querySelector("span").textContent = "The buzzer is not available: " + (s.buzzer_note || "no reason given") + ".";
-  const hasVibe = s.vibe_on != null;
-  $("vbBox").hidden = !hasVibe; $("vbTests").hidden = !hasVibe;
-  const vn = $("vbNote");
-  vn.hidden = !hasVibe || s.vibe_available !== false;
-  if(!vn.hidden) vn.querySelector("span").textContent = "The vibration motor is not available: " + (s.vibe_note || "no reason given") + ".";
   const q = $("bzQuietNote");
   const qText = s.quiet_note || (s.quiet_now ? "Quiet hours are on now, so the buzzer is silent." : "");
   q.hidden = !qText;
@@ -3056,7 +3033,6 @@ function fillBuzzer(s){
   setSw($("bzUi"), s.buzzer_ui); setSw($("bzRep"), s.buzzer_repeat);
   $("bzRepS").value = s.buzzer_repeat_s; setSw($("bzQuiet"), s.quiet_on);
   setTime($("bzFrom"), s.quiet_from); setTime($("bzTo"), s.quiet_to);
-  setSw($("vbOn"), s.vibe_on); pickStr(s.vibe_strength);
   showBuzzRows();
 }
 function setBuzzWait(wait){
@@ -3073,12 +3049,7 @@ function showBuzzRows(){
   $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
 }
 document.querySelectorAll("#bzVol button").forEach(b => b.addEventListener("click", () => pickVol(b.dataset.vol)));
-document.querySelectorAll("#vbStr button").forEach(b => b.addEventListener("click", () => pickStr(b.dataset.str)));
-$("vbTest").onclick = async () => {
-  const j = await post("/api/vibe/test", {});
-  if(!j.ok) toast(j.message || "The vibration motor could not run", "i-warn");
-};
-["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet", "vbOn"].forEach(id =>
+["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet"].forEach(id =>
   $(id).addEventListener("click", () => { setSw($(id), !swOn($(id))); showBuzzRows(); }));
 async function buzzTest(sound){
   const j = await post("/api/buzzer/test", {sound});
@@ -3125,10 +3096,6 @@ $("pwrSave").onclick = async () => {
       countdown: swOn($("bzCount")), ui: swOn($("bzUi")), repeat: swOn($("bzRep")),
       repeat_s: Number($("bzRepS").value), quiet_on: swOn($("bzQuiet")),
       quiet_from: $("bzFrom").dataset.hm, quiet_to: $("bzTo").dataset.hm});
-  }
-  if(!$("sndCard").classList.contains("wait") && !$("vbBox").hidden){
-    const str = (document.querySelector("#vbStr [aria-pressed=true]") || {dataset: {}}).dataset.str;
-    await post("/api/vibe", {on: swOn($("vbOn")), strength: str});
   }
   pwrDirty = false; toast("Settings saved", "i-save"); refresh(); pollBattery();
 };

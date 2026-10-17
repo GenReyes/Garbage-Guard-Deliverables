@@ -118,9 +118,6 @@ STATE = {
     "quiet_on": False,
     "quiet_from": "22:00",
     "quiet_to": "06:00",
-    # Pi vibration motor (Raspberry Pi 5/gg_vibe.py).
-    "vibe_on": True,
-    "vibe_strength": "medium",
     # Clean copies of snapshots (Raspberry Pi 5/gg_clean.py).
     "clean_mode": "all",
 }
@@ -162,10 +159,6 @@ def buzzer_fields():
         "clean_mode": STATE["clean_mode"],
         "clean_count": cleans,
         "clean_bytes": cleans * 60000,
-        "vibe_on": STATE["vibe_on"],
-        "vibe_strength": STATE["vibe_strength"],
-        "vibe_available": not os.environ.get("GG_MOCK_NOVIBE"),
-        "vibe_note": "no hardware PWM found; add the pwm-2chan overlay to config.txt" if os.environ.get("GG_MOCK_NOVIBE") else None,
         "buzzer_available": not nobuzz,
         "buzzer_note": "the lgpio library is not installed" if nobuzz else None,
         "quiet_now": quiet,
@@ -637,23 +630,6 @@ class Handler(BaseHTTPRequestHandler):
             STATE["clean_mode"] = data["mode"]
             f = buzzer_fields()
             return self._json({"ok": True, **{k: f[k] for k in ("clean_mode", "clean_count", "clean_bytes")}})
-
-        if path == "/api/vibe":
-            if data.get("on") is not None:
-                STATE["vibe_on"] = bool(data["on"])
-            if data.get("strength") in ("low", "medium", "high"):
-                STATE["vibe_strength"] = data["strength"]
-            return self._json({"ok": True, **{k: v for k, v in buzzer_fields().items() if k.startswith("vibe_")}})
-
-        if path == "/api/vibe/test":
-            if data.get("pattern", "test") not in ("accumulation", "shutdown_low", "countdown", "test",
-                                                    "auto_muted", "shutdown_manual", "manual"):
-                return self._json_status(400, {"ok": False, "error": "bad_pattern"})
-            if os.environ.get("GG_MOCK_NOVIBE"):
-                return self._json_status(409, {"ok": False, "error": "unavailable",
-                                               "message": "no hardware PWM found; add the pwm-2chan overlay to config.txt"})
-            print("[VIBE] would vibrate", flush=True)
-            return self._json({"ok": True})
 
         if path == "/api/buzzer/ui":
             if self.client_address[0] not in ("127.0.0.1", "::1"):

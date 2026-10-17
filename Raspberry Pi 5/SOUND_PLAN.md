@@ -195,7 +195,7 @@ Before treating a silent button as a bug, check these four conditions, because e
 | `scrSleep` | `sleep` (new) | Falling and slower than `minimize`, so turning the screen off is not mistaken for minimizing. |
 | `vOpen` | `open` | |
 
-The sun and moon, tab, stepper, switch and choice-bar buttons are untagged but already get the right sound from the fallbacks in `uiSound()`. The buzzer and vibration test buttons play their own sounds.
+The sun and moon, tab, stepper, switch and choice-bar buttons are untagged but already get the right sound from the fallbacks in `uiSound()`. The buzzer test buttons play their own sounds.
 
 ### Wi-Fi page
 

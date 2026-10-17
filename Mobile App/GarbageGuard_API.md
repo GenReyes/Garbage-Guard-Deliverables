@@ -477,28 +477,6 @@ Firebase this is the `clean` command; the history rows carry `has_clean`, but
 the clean pictures themselves are never uploaded, so they can only be opened on
 the Pi's own Wi-Fi.
 
-### `POST /api/vibe`
-
-The Pi's vibration motor: `{"on": true, "strength": "low"|"medium"|"high"}`,
-both optional. Reply: `{"ok": true}` plus the fields below, which are also in
-`GET /api/state`.
-
-| Field | Meaning |
-|---|---|
-| `vibe_on` | Master switch for the motor. Independent of the buzzer's switches. |
-| `vibe_strength` | `low`, `medium` or `high`. |
-| `vibe_available` | `false` when the motor's output could not be started. |
-| `vibe_note` | Why, to show as a warning. `null` otherwise. |
-
-The motor pulses along with the buzzer's alarm, its repeat, the low-battery
-countdown, the shutdown tunes, tests, auto-mute and captures. It obeys the same
-quiet hours and the same mute. `POST /api/buzzer/test` (`accumulation`)
-therefore also shakes it. `POST /api/vibe/test` with `{"pattern": "test"}` (that
-is the default, other patterns are `accumulation`, `shutdown_low`, `countdown`,
-`auto_muted`, `shutdown_manual`, `manual`) shakes it alone, `400 bad_pattern` for
-anything else and `409 unavailable` with `message` when it cannot run. Over
-Firebase these are the `vibe` and `vibe_test` commands.
-
 ### `POST /api/alerts/read`
 
 ```json
@@ -747,7 +725,7 @@ On local Wi-Fi the app calls: `/api/state`, `/frame.jpg`,
 `/api/alerts/read`, `/api/alerts/delete`, `/api/battery`,
 `/api/camera/reconnect`, `/api/restart`, `/api/net/details`,
 `/api/screen_saver`, `/api/screen`, `/api/auto_shutdown`, `/api/shutdown`,
-`/api/buzzer`, `/api/buzzer/test`, `/api/vibe`, `/api/vibe/test` and
+`/api/buzzer`, `/api/buzzer/test` and
 `/api/client/bye`. It sends all six `X-GG-*` headers on these calls. It does
 not use `/stream.mjpg`, `/api/window`, `/api/net/ipv4` or the Wi-Fi setup
 endpoints.

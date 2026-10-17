@@ -29,14 +29,11 @@ as the dashboard, in this order:
 | Repeat every | `buzzer_repeat_s` | 10 to 300 seconds, steps of 10. Shown only while Repeat is on. |
 | Quiet hours | `quiet_on` | |
 | From, Until | `quiet_from`, `quiet_to` | `HH:MM` on the Pi's clock. Show them in 12-hour time ("10:00 PM"), step 30 minutes. Shown only while Quiet hours is on. |
-| Vibration switch | `vibe_on` | `POST /api/vibe` (`on`). Independent of the buzzer switches; shown with its own controls. |
-| Vibration strength | `vibe_strength` | `low`, `medium`, `high`. |
-| Test vibration | `POST /api/vibe/test` `{}` | Shakes the motor alone. |
 | Test alarm | `POST /api/buzzer/test` `{"sound": "accumulation"}` | |
 | Test tune | `POST /api/buzzer/test` `{"sound": "test"}` | |
 
 Save the same way as the Screen saver card: one Save sends one
-`POST /api/buzzer` with every buzzer field (and one `POST /api/vibe` for the vibration pair) (all are optional and clamped by the Pi).
+`POST /api/buzzer` with every buzzer field (all are optional and clamped by the Pi).
 The test buttons use the volume the Pi has saved, so say that in a hint.
 
 ## 2. Things the card must show
@@ -47,8 +44,8 @@ The test buttons use the volume the Pi has saved, so say that in a hint.
 - `quiet_now` is `true`: a line "Quiet hours are on now, so the buzzer is silent."
 - `quiet_note` is not `null`: show it. It means the Pi's clock is not
   synchronised, so quiet hours are not being applied.
-- `vibe_available` is `false`: the same kind of red line with `vibe_note`, and
-  Test vibration disabled. Hide the vibration rows if `vibe_on` is missing.
+- The Pi no longer has a vibration motor (dropped 2026-10-17). A Pi sends no
+  `vibe_*` fields, so the app hides its Pi vibration rows when `vibe_on` is missing.
 - Old Pi software has none of these fields. If `buzzer_on` is missing, hide the
   card.
 
@@ -73,7 +70,6 @@ The test buttons use the volume the Pi has saved, so say that in a hint.
 python3 gg_mock_server.py                          # normal
 GG_MOCK_NOBUZZER=1 python3 gg_mock_server.py       # buzzer cannot start
 GG_MOCK_CLOCK_OFF=1 python3 gg_mock_server.py      # clock not synchronised
-GG_MOCK_NOVIBE=1 python3 gg_mock_server.py         # vibration motor cannot start
 ```
 
 The mock keeps the settings, applies the same limits as the Pi, works out

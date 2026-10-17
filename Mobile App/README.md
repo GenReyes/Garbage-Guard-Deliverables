@@ -34,8 +34,7 @@ few seconds.
   area (drawn on the live picture), light and dark theme, network details,
   connected phones, and restarting Garbage-Guard on the Pi.
 - **Pi battery:** the UPS HAT readout in the header, with full details on tap.
-- **Pi buzzer:** the buzzer's switch, volume, alarm repeat and quiet hours, the
-  vibration motor's switch and strength, and Test keys for each.
+- **Pi buzzer:** the buzzer's switch, volume, alarm repeat and quiet hours, and Test keys.
 - **Pi power:** the Pi's screen saver, waking or sleeping its screen from the
   phone, the low-battery auto shutdown with a countdown banner and Cancel,
   and a Shut down button. To try the countdown with no Pi, run the mock

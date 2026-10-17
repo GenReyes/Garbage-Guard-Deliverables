@@ -50,8 +50,6 @@ COMMANDS = {
     "shutdown": "/api/shutdown",
     "buzzer": "/api/buzzer",
     "buzzer_test": "/api/buzzer/test",
-    "vibe": "/api/vibe",
-    "vibe_test": "/api/vibe/test",
     "clean": "/api/clean",
 }
 
@@ -63,7 +61,6 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
               "buzzer_on", "buzzer_volume", "buzzer_alerts", "buzzer_countdown", "buzzer_ui",
               "buzzer_repeat", "buzzer_repeat_s", "quiet_on", "quiet_from", "quiet_to",
               "buzzer_available", "buzzer_note", "quiet_now", "quiet_note",
-              "vibe_on", "vibe_strength", "vibe_available", "vibe_note",
               "clean_mode", "clean_count", "clean_bytes")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
