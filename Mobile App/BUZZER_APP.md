@@ -44,8 +44,6 @@ The test buttons use the volume the Pi has saved, so say that in a hint.
 - `quiet_now` is `true`: a line "Quiet hours are on now, so the buzzer is silent."
 - `quiet_note` is not `null`: show it. It means the Pi's clock is not
   synchronised, so quiet hours are not being applied.
-- The Pi no longer has a vibration motor (dropped 2026-10-17). A Pi sends no
-  `vibe_*` fields, so the app hides its Pi vibration rows when `vibe_on` is missing.
 - Old Pi software has none of these fields. If `buzzer_on` is missing, hide the
   card.
 

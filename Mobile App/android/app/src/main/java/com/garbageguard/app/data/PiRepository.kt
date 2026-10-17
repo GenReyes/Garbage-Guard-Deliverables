@@ -346,17 +346,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         pollState()
     }
 
-    override suspend fun setVibe(on: Boolean?, strength: String?) {
-        val body = JSONObject()
-        if (on != null) body.put("on", on)
-        if (strength != null) body.put("strength", strength)
-        post("/api/vibe", body)
-        pollState()
-    }
-
     override suspend fun testBuzzer(sound: String) = post("/api/buzzer/test", JSONObject().put("sound", sound))
-
-    override suspend fun testVibe() = post("/api/vibe/test", JSONObject())
 
     override suspend fun setClean(mode: String) {
         post("/api/clean", JSONObject().put("mode", mode))
@@ -398,10 +388,6 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             note = note("buzzer_note", b.note),
             quietNow = flag("quiet_now", b.quietNow),
             quietNote = note("quiet_note", b.quietNote),
-            vibeOn = if (o.has("vibe_on") && !o.isNull("vibe_on")) o.optBoolean("vibe_on") else b.vibeOn,
-            vibeStrength = word("vibe_strength", b.vibeStrength),
-            vibeAvailable = flag("vibe_available", b.vibeAvailable),
-            vibeNote = note("vibe_note", b.vibeNote),
         )
     }
 

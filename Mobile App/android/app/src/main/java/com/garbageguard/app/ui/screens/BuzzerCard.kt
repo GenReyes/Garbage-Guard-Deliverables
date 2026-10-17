@@ -65,7 +65,7 @@ private fun shiftTime(hhmm: String, minutes: Int): String {
 }
 
 /**
- * The Pi's buzzer and vibration motor, the phone's twin of the dashboard's
+ * The Pi's buzzer, the phone's twin of the dashboard's
  * Sound card. It is named "Pi buzzer" so nobody takes it for the phone's
  * own sounds. Changes are kept on the phone until Save, which sends only
  * what changed, in one command. Left out on a Pi that has no buzzer fields.
@@ -164,25 +164,6 @@ fun BuzzerCard(vm: AppViewModel, state: LiveState) {
             }
         }
 
-        // The vibration motor has its own switch, apart from the buzzer's.
-        if (b.vibeOn != null) {
-            val vibe = flag("vibe_on", b.vibeOn)
-            if (!b.vibeAvailable) Warning("The vibration motor is not available: ${b.vibeNote ?: "no reason given"}")
-            SettingRow("Pi vibration", "The motor in the Pi's case shakes on an alert", GgIcons.Phone) {
-                AutoSwitch(vibe, { vm.editBuzzer("vibe_on", !vibe, b.vibeOn) }, label = null, icon = null)
-            }
-            if (vibe) {
-                Field(GgIcons.Gauge, "Vibration strength") {
-                    Segmented(
-                        listOf("Low", "Medium", "High"),
-                        selected = LEVELS.indexOf(word("vibe_strength", b.vibeStrength)).coerceAtLeast(0),
-                        lock = "buzzer",
-                        onSelect = { vm.editBuzzer("vibe_strength", LEVELS[it], b.vibeStrength) },
-                    )
-                }
-            }
-        }
-
         GgButton("Save", vm::saveBuzzer, Modifier.fillMaxWidth(), icon = GgIcons.Save, kind = BtnKind.INK, enabled = dirty && reachable, lock = "buzzer")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GgButton(
@@ -195,17 +176,7 @@ fun BuzzerCard(vm: AppViewModel, state: LiveState) {
             )
         }
         PiSoundPicker(vm, enabled = reachable && b.available)
-        if (b.vibeOn != null) {
-            GgButton(
-                "Test vibration", vm::testVibe, Modifier.fillMaxWidth(), icon = GgIcons.Phone,
-                enabled = reachable && b.vibeAvailable && !vm.remote, lock = "vibe_test",
-            )
-        }
-        Hint(
-            if (vm.remote && b.vibeOn != null) "Tests use the saved volume. Test vibration needs the Pi's Wi-Fi."
-            else "Tests use the volume saved on the Pi, so save first.",
-            icon = GgIcons.Ok,
-        )
+        Hint("Tests use the volume saved on the Pi, so save first.", icon = GgIcons.Ok)
     }
 }
 

@@ -32,7 +32,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     private val _state = MutableStateFlow(
         LiveState(
             screenMode = "off",
-            buzzer = Buzzer(vibeOn = true),
+            buzzer = Buzzer(),
             clean = CleanCopies(mode = "all", count = 19, bytes = 19L * 61_000),
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
@@ -390,13 +390,6 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     override fun cleanUrl(name: String): String? = snapshotUrl(name)
-
-    override suspend fun setVibe(on: Boolean?, strength: String?) {
-        _state.update { s ->
-            val b = s.buzzer ?: return@update s
-            s.copy(buzzer = b.copy(vibeOn = on ?: b.vibeOn, vibeStrength = strength ?: b.vibeStrength))
-        }
-    }
 
     override suspend fun restart() {
         _state.update { it.copy(conn = ConnState.NO_PI) }

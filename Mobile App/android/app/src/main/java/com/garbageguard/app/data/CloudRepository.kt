@@ -601,13 +601,13 @@ class CloudRepository(
 
     /**
      * Folds a command's answer into the last state. The Pi answers a buzzer
-     * or vibration command with the new settings, so the screen can show them
+     * command with the new settings, so the screen can show them
      * without reading the state node again. False when the answer had none.
      */
     private fun applyBuzzer(result: JSONObject?): Boolean {
         val base = lastState ?: return false
         val old = base.buzzer ?: return false
-        if (result == null || !(result.has("buzzer_on") || result.has("vibe_on"))) return false
+        if (result == null || !result.has("buzzer_on")) return false
         lastState = base.copy(buzzer = parser.parseBuzzer(result, old))
         countDown()
         return true
@@ -617,22 +617,9 @@ class CloudRepository(
         if (!applyBuzzer(command("buzzer", JSONObject(changes)))) pollState()
     }
 
-    override suspend fun setVibe(on: Boolean?, strength: String?) {
-        val args = JSONObject()
-        if (on != null) args.put("on", on)
-        if (strength != null) args.put("strength", strength)
-        if (!applyBuzzer(command("vibe", args))) pollState()
-    }
-
     /** Nothing changes on the Pi, so nothing is read back afterwards. */
     override suspend fun testBuzzer(sound: String) {
         command("buzzer_test", JSONObject().put("sound", sound))
-    }
-
-    /** The Pi has no Firebase command for this one. */
-    override suspend fun testVibe() {
-        onNotice("Test vibration only works on the Pi's own Wi-Fi.")
-        commandFailed()
     }
 
     override suspend fun setClean(mode: String) {

@@ -4,6 +4,19 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## App version 12: Pi vibration removed (2026-10-17)
+
+### App
+
+- The Pi buzzer card no longer has the Pi vibration switch, strength bar or
+  Test vibration key, in real use or in the demo.
+- The app no longer calls `/api/vibe` or `/api/vibe/test`, or sends the `vibe`
+  Firebase command, and no longer reads `vibe_*` fields from the state.
+- Save on the buzzer card sends one `POST /api/buzzer` (or one `buzzer`
+  command) with the changed fields.
+- The phone's own vibration (alerts, key clicks, Light/Normal/Strong) is
+  unchanged.
+
 ## Pi: vibration motor removed (2026-10-17)
 
 The motor module was too weak to be worth keeping, so the code for it is gone.
@@ -19,11 +32,6 @@ The motor module was too weak to be worth keeping, so the code for it is gone.
 - The buzzer no longer has the `also` hook that fed the motor.
 - Update the Pi as usual (clone, copy, reboot). Unplug the module from GPIO13
   (pin 33), 3.3 V (pin 1) and ground (pin 39).
-
-### App
-
-- No change needed. The Pi buzzer card already hides its vibration rows when
-  the Pi sends no `vibe_on`. The phone's own vibration is unchanged.
 
 ## App version 11.2: clean copies in the demo (2026-10-14)
 
