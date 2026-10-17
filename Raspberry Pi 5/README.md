@@ -258,7 +258,7 @@ runs it owns the pin, so stop it before running `buzzer_bench.py gpio`; the
 automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
-`/boot/firmware/config.txt`). The buzzer, its alarm repeat, quiet hours, the Sound card and the Shut down button have been tried on the Pi 5. A vibration motor was tried and dropped (too weak), so there is no motor code.
+`/boot/firmware/config.txt`). The buzzer, its alarm repeat, quiet hours, the Sound card and the Shut down button have been tried on the Pi 5.
 The button sounds, boot chime and Wi-Fi/saved sounds from Brian's sound plan (`SOUND_PLAN.md`) are built and tested in software but have not yet been listened to on the Pi; retune any that sound too faint at Low volume with `buzzer_bench.py`.
 
 **"Power supply is not capable of supplying 5V at 5A" pop-up.** The UPS HAT

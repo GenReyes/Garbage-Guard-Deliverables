@@ -580,16 +580,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (value == saved) buzzerEdits.remove(key) else buzzerEdits[key] = value
     }
 
-    /** One command for the buzzer and one for the vibration motor, each only if it changed, with only the changed fields. */
+    /** One buzzer command carrying only the changed fields. */
     fun saveBuzzer() {
         val edits = buzzerEdits.toMap()
         if (edits.isEmpty()) return
-        val buzz = edits.filterKeys { !it.startsWith("vibe_") }
-        val vibeOn = edits["vibe_on"] as? Boolean
-        val strength = edits["vibe_strength"] as? String
         launchAction("Buzzer settings saved", key = LOCK_BUZZER) {
-            if (buzz.isNotEmpty()) repo.setBuzzer(buzz)
-            if (vibeOn != null || strength != null) repo.setVibe(vibeOn, strength)
+            repo.setBuzzer(edits)
             buzzerEdits.clear()
         }
     }
@@ -614,8 +610,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     ) { repo.setClean(mode) }
 
     fun cleanUrl(name: String?): String? = name?.let { repo.cleanUrl(it) }
-
-    fun testVibe() = launchAction("The Pi vibrated", key = LOCK_VIBE_TEST) { repo.testVibe() }
 
     /** Called by the Screen saver card after it changes one of its drafts. */
     fun screenSaverChanged() = arm(LOCK_SAVER, ::sendScreenSaver)
@@ -1092,7 +1086,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_SAVER = "screen_saver"
         const val LOCK_BUZZER = "buzzer"
         const val LOCK_BUZZ_TEST = "buzzer_test"
-        const val LOCK_VIBE_TEST = "vibe_test"
         const val LOCK_CLEAN = "clean"
         const val LOCK_WAKE_ALERT = "wake_alert"
         const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"

@@ -59,7 +59,7 @@ data class LiveState(
     val screenNote: String? = null,
     /** Clean copies of snapshots, for labelling. Null on an older Pi without them. */
     val clean: CleanCopies? = null,
-    /** The Pi's buzzer and vibration motor. Null on a Pi that has neither. */
+    /** The Pi's buzzer. Null on a Pi without one. */
     val buzzer: Buzzer? = null,
 )
 
@@ -228,7 +228,7 @@ data class CloudUsage(
 
 /**
  * The Pi's buzzer settings and what it reports about itself, from the
- * buzzer_*, quiet_* and vibe_* fields of GET /api/state.
+ * buzzer_* and quiet_* fields of GET /api/state.
  */
 data class Buzzer(
     val on: Boolean = true,
@@ -250,9 +250,4 @@ data class Buzzer(
     val quietNow: Boolean = false,
     /** Set when the Pi's clock is not synchronised, so quiet hours are not applied. */
     val quietNote: String? = null,
-    /** The vibration motor. Null on a Pi without one. */
-    val vibeOn: Boolean? = null,
-    val vibeStrength: String = "medium",
-    val vibeAvailable: Boolean = true,
-    val vibeNote: String? = null,
 )

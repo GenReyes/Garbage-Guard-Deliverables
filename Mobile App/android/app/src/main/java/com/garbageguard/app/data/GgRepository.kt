@@ -108,14 +108,8 @@ interface GgRepository {
     /** POST /api/buzzer with only the fields that changed, under the API's own names ("on", "volume", "quiet_from" ...). */
     suspend fun setBuzzer(changes: Map<String, Any>) {}
 
-    /** POST /api/vibe. Either value may be null to leave it as it is. */
-    suspend fun setVibe(on: Boolean?, strength: String?) {}
-
     /** POST /api/buzzer/test {"sound": "accumulation"} or "test". */
     suspend fun testBuzzer(sound: String) {}
-
-    /** POST /api/vibe/test. */
-    suspend fun testVibe() {}
 
     /** POST /api/clean {"mode": "off"|"manual"|"all"}. */
     suspend fun setClean(mode: String) {}

@@ -1,6 +1,4 @@
-# Pi buzzer and vibration plan
-
-> **Update (2026-10-17):** the vibration motor was tried and dropped because it was too weak. Everything in this plan about the motor (the module, GPIO13, `gg_vibe.py`, `/api/vibe`, the `vibe` commands and the dashboard rows) is no longer in the code. The buzzer parts still apply. The phone's own vibration in the app is a different thing and is unchanged.
+# Pi buzzer plan
 
 Status: **plan only**. Nothing here is built. It is written so that most of it
 can be coded and tested without the Pi, and the hardware part is checked on
@@ -9,12 +7,10 @@ the bench afterwards.
 ## 1. What it is
 
 A passive buzzer on the Pi 5 that plays a short, different sound for each kind
-of event, matching what the Android app already does. A vibration motor
-(driven by PWM) can share the same module later. One switch group in the
+of event, matching what the Android app already does. One switch group in the
 dashboard's Power card, and the same switches in the app.
 
-The parts are an **MH-FMD buzzer module** and a **PWM vibration motor module**
-(VCC, GND and IN pins, 3 to 5 V). See section 5 for what that means for the
+The part is an **MH-FMD buzzer module**. See section 5 for what that means for the
 wiring, and for the one thing to check before anything else.
 
 A **passive** buzzer has no oscillator of its own. It makes a sound only when
@@ -92,7 +88,7 @@ while a higher one is playing is dropped, not queued, so sounds never pile up.
   re-arm value. Auto-mute, if armed, stops it after its own time (15 minutes
   now). Repeat can be switched off, so the alarm plays once.
 - **Quiet hours.** An optional daily window, with a start and an end time, that
-  silences the buzzer and the vibration motor. The phone notification and the
+  silences the buzzer. The phone notification and the
   dashboard banner still appear, and History still records everything. Wrapping
   past midnight (22:00 to 06:00) works. There is no exception: the 5% floor
   warning is silent too, and the dashboard banner and the phone are what warn
@@ -124,28 +120,20 @@ high when silent, and a passive module still plays tones from PWM either way.
 If it beeps while the Pi is booting (the pin floats before the program runs),
 add a 10 k resistor from IN to 3.3 V.
 
-**Vibration motor module.** VCC, GND, IN. It also has its own driver, so IN
-connects straight to a PWM pin and no transistor or diode is needed. PWM duty
-sets the strength. At 5 V it can draw around 100 mA, which the Pi's 5 V pin can
-supply, but check how it behaves when the battery is low.
+**Pins.** One PWM pin is needed:
 
-**Pins.** Only two PWM pins are needed, one signal pin per module, and the two
-3.3 V pins are more than enough for power:
+| Wire | Buzzer module |
+|---|---|
+| IN (signal) | GPIO12, physical pin 32 |
+| VCC | 3.3 V, pin 17 |
+| GND | pin 34 (next to 32) |
 
-| Wire | Buzzer module | Vibration motor module |
-|---|---|---|
-| IN (signal) | GPIO12, physical pin 32 | GPIO13, physical pin 33 |
-| VCC | 3.3 V, pin 17 | 3.3 V, pin 1 |
-| GND | pin 34 (next to 32 and 33) | pin 39 or any ground |
-
-GPIO12 and GPIO13 are the two channels of the same PWM block, so one
-`pwm-2chan` overlay covers both (confirm on the bench). Keep GPIO2 and GPIO3
+GPIO12 is a channel of the PWM block that the `pwm-2chan` overlay sets up. Keep GPIO2 and GPIO3
 (physical pins 3 and 5) free: the UPS HAT's battery readings use I2C.
 
 Why 3.3 V and not 5 V for the buzzer: a low level trigger module powered from
 5 V can fail to switch off when the Pi's 3.3 V signal is high, so it buzzes
-constantly. At 3.3 V it behaves. The motor module can move to 5 V (pin 2 or 4)
-later if its vibration is too weak, once its input logic is known.
+constantly. At 3.3 V it behaves.
 
 The header is reachable: a photo of the Pi shows the NVMe HAT passing the full
 40-pin header through, with long pins standing clear above it, so female jumper
@@ -173,8 +161,6 @@ be installed into it (or the environment made with system packages visible).
   `fields()`, `start()`. A player thread takes sounds from a small queue and
   applies the priority rule. Sequences are a table at the top of the file.
 - **Backends:** `GpioBackend`, `SysfsPwmBackend`, `FakeBackend` for tests.
-- **A vibration class** with the same shape: pulses by pattern and strength.
-  Same module, second output.
 - **Hooks:**
   - `Engine.on_alert` (already exists, called when the limit is reached and the
     alert is not muted) also plays `accumulation`.
@@ -188,22 +174,20 @@ be installed into it (or the environment made with system packages visible).
   `buzzer_volume` (low, medium, high), `buzzer_alerts` (true),
   `buzzer_countdown` (true), `buzzer_ui` (false), `buzzer_repeat` (true),
   `buzzer_repeat_s` (30, allowed 10 to 300), `quiet_on` (false),
-  `quiet_from` ("22:00"), `quiet_to` ("06:00"), `vibe_on` (true),
-  `vibe_strength` (low, medium, high).
+  `quiet_from` ("22:00"), `quiet_to` ("06:00").
   Volume is the PWM duty cycle: 50% is loudest, and lower duty is quieter.
 - **State fields:** the same settings, plus `buzzer_available`, `buzzer_note`
   and `quiet_now` (true while quiet hours are silencing it).
 - **API:**
   - `POST /api/buzzer` `{on, volume, alerts, countdown, ui, repeat, repeat_s,
-    quiet_on, quiet_from, quiet_to}`, `POST /api/vibe` `{on, strength}`:
-    settings, clamped like the others. Times must be `HH:MM`, anything else is
+    quiet_on, quiet_from, quiet_to}`: settings, clamped like the others. Times must be `HH:MM`, anything else is
     ignored.
   - `POST /api/buzzer/test` `{"sound": "accumulation"}`: plays one sound so the
     person setting it up can hear it.
   - `POST /api/buzzer/ui` `{"sound": "tap"|"switch"}`: for the touchscreen's
     own button sounds. Loopback only, like `/api/screen/touch`.
-- **Firebase commands:** `buzzer`, `vibe`, `buzzer_test`, so the phone can turn
-  the Pi's sound off remotely. The commands table in `FIREBASE.md` gets three
+- **Firebase commands:** `buzzer`, `buzzer_test`, so the phone can turn
+  the Pi's sound off remotely. The commands table in `FIREBASE.md` gets two
   rows.
 
 ## 7. Dashboard and app
@@ -211,10 +195,10 @@ be installed into it (or the environment made with system packages visible).
 **Dashboard: a third tab, Settings.** The Monitor tab keeps only what an
 operator adjusts while watching: Detection settings and Monitored area. The
 Power card moves to Settings, where it is split in two so each fits without
-scrolling, and the new Sound and vibration card joins it:
+scrolling, and the new Sound card joins it:
 - **Screen** (saver mode, timers, dim, wake on alert, Sleep now)
 - **Power** (auto shutdown and its threshold, Shut down)
-- **Sound and vibration** (below)
+- **Sound** (below)
 - **Clock** (below)
 
 At 1024 by 600 the Monitor side column has 409 px of room, and the two cards
@@ -228,15 +212,15 @@ device is set to. The fullscreen view's clock follows. If the Pi reports its
 clock is not synchronised, the pill turns amber with "Clock not synced", and
 quiet hours are not applied. New state field: `clock_synced`.
 
-**Sound and vibration card.** A master switch, a Low / Medium / High volume bar,
+**Sound card.** A master switch, a Low / Medium / High volume bar,
 switches for Alerts, Countdown and Button sounds, a Repeat switch with its
 interval, Quiet hours with a start and an end time (steppers like the other
-numbers, not a pop-up clock, which is awkward on a touchscreen), the vibration
-switch and strength, and **Test** buttons that play the alarm and a short vibration. A
+numbers, not a pop-up clock, which is awkward on a touchscreen), and **Test**
+buttons that play the alarm and a test tune. A
 warning line when the buzzer is unavailable. Touchscreen taps send `tap` and
 `switch` to `/api/buzzer/ui` only when Button sounds is on.
 
-**App (Brian).** A "Pi buzzer and vibration" card in Settings with the same
+**App (Brian).** A "Pi buzzer" card in Settings with the same
 controls, over the local API and the Firebase commands. Labelled clearly, so it
 is not confused with the existing phone sound and vibration switches, which
 stay local to the phone. Hide the card if `buzzer_available` is missing from
@@ -245,8 +229,7 @@ be built without the Pi.
 
 ## 8. Order of work
 
-0. **Done:** the vibration code (`gg_vibe.py`), its API and the dashboard rows,
-   on the fake backend; wiring and tuning wait for the bench. Also done: the Settings tab and the Philippine-time clock with `clock_synced`
+0. **Done:** the Settings tab and the Philippine-time clock with `clock_synced`
    (`gg_clock.py`).
 1. **Done except the dashboard card:** `gg_buzzer.py`, hooks, API, Firebase
    commands and tests. **No Pi needed.** Write `gg_buzzer.py` with the fake backend and unit tests
@@ -260,25 +243,21 @@ be built without the Pi.
    table.
 3. **Integrate and tune.** Play every sound from the Test buttons, adjust by ear
    in the enclosure (it will sound different inside the case).
-4. **Vibration motor.** Wire it with the transistor and diode. Settle its
-   patterns and strengths.
-5. **App side.** Brian builds the Settings card against the mock server, then
+4. **App side.** Brian builds the Settings card against the mock server, then
    the real Pi.
 
 ## 9. Decisions and what is still open
 
 Decided with Gen:
-- The MH-FMD is a **passive** buzzer module. A PWM vibration motor module with
-  VCC, GND and IN pins, 3 to 5 V.
+- The MH-FMD is a **passive** buzzer module.
 - The buzzer will be inside the case, which has a hole for the sound.
 - The alarm repeats until muted from the phone or the dashboard, and the repeat
   can be switched off and its interval changed.
 - Quiet hours exist, with a start and an end time the user sets. Nothing sounds
   during them, including the low battery warning.
 - The Pi's time zone is Manila, and the dashboard shows Philippine time.
-- The motor pulses with the alarm and the shutdown tune.
 - The touchscreen's button sounds exist but are off unless switched on.
-- A third Settings tab holds Power, Sound and vibration and Clock; Monitor keeps
+- A third Settings tab holds Power, Sound and Clock; Monitor keeps
   Detection settings and Monitored area and no longer scrolls.
 
 - The alarm repeat interval defaults to 30 seconds.
