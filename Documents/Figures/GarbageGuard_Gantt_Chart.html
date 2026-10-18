@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Garbage-Guard Gantt Chart</title>
+<style>
+@page { size: 8.5in 11in; margin: 0 }
+:root {
+  --base:#DED4C8; --base2:#E9E1D6; --raised:#EFE8DE; --sunk:#D0C4B5;
+  --edge:#16130F; --text:#16130F; --muted:#6A6054; --lite:#FFFFFF;
+  --grid:#C3B6A6; --shade:#A28F78; --teal:#128C84; --bad:#D92D20;
+  --n:32; --labw:224px;
+}
+* { box-sizing:border-box; margin:0 }
+html,body { background:var(--base) }
+body { font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif;
+  color:var(--text); width:816px; padding:30px 30px 22px;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact }
+.eyebrow { font-size:10.5px; font-weight:600; letter-spacing:.1em;
+  color:var(--muted); text-transform:uppercase }
+h1 { margin-top:8px; font-size:27px; font-weight:800; letter-spacing:-.02em; line-height:1.05 }
+.sub { margin-top:3px; font-size:12.5px; font-weight:500; color:var(--muted) }
+.legend { margin-top:12px; display:grid; grid-template-columns:86px 1fr; row-gap:6px; font-size:11px }
+.legend .k { font-weight:700; letter-spacing:.09em; color:var(--muted); font-size:9.5px; padding-top:2px }
+.legend .v { display:flex; flex-wrap:wrap; gap:5px 13px }
+.li { display:inline-flex; align-items:center; gap:6px; font-weight:500 }
+.sw { width:13px; height:13px; border-radius:3px; border:2px solid var(--edge);
+  display:inline-block; box-shadow:1.5px 1.5px 0 var(--edge) }
+.panel { margin-top:14px; background:var(--base2); border:2.5px solid var(--edge);
+  border-radius:12px; box-shadow:5px 5px 0 var(--edge); padding:11px 12px 12px 13px }
+.hdr { display:grid; grid-template-columns:var(--labw) 1fr; align-items:end }
+.hdr .th { font-size:9px; font-weight:700; letter-spacing:.09em;
+  color:var(--muted); padding-bottom:7px }
+.months { position:relative; height:17px }
+.months span { position:absolute; top:0; font-size:9px; font-weight:700;
+  letter-spacing:.09em; color:var(--muted); border-left:2px solid var(--edge);
+  padding-left:4px; line-height:15px }
+.days { display:grid; grid-template-columns:repeat(var(--n),1fr);
+  border-bottom:2.5px solid var(--edge); padding-bottom:3px }
+.day { text-align:center }
+.day b { display:block; font-size:8px; font-weight:600; color:var(--muted) }
+.body { position:relative }
+.cols { position:absolute; top:0; bottom:0; left:var(--labw); right:0;
+  display:grid; grid-template-columns:repeat(var(--n),1fr) }
+.col { border-right:1px solid var(--grid) }
+.col.q { background:var(--sunk) }
+.deadline { position:absolute; top:0; bottom:-4px; right:0; width:3.5px; background:var(--bad) }
+.band { position:relative; margin:7px 0 2px; background:var(--c); color:var(--lite);
+  border:2px solid var(--edge); border-radius:7px; box-shadow:3px 3px 0 var(--edge);
+  font-size:11px; font-weight:800; letter-spacing:.03em; padding:3px 9px }
+.row { position:relative; display:grid; grid-template-columns:var(--labw) 1fr;
+  border-bottom:1px solid var(--grid); min-height:30px; align-items:center }
+.lab { padding:4px 8px 4px 0; line-height:1.18 }
+.tn { font-size:10.5px; font-weight:700 }
+.ts { font-size:8.5px; color:var(--muted); font-weight:500 }
+.track { display:grid; grid-template-columns:repeat(var(--n),1fr); align-items:center }
+.bar { grid-row:1; height:17px; background:var(--bd); border:2px solid var(--edge);
+  border-radius:5px; box-shadow:2px 2px 0 var(--edge); margin:0 1px;
+  display:flex; align-items:center; justify-content:center }
+.bar i { font-style:normal; font-size:7.5px; font-weight:800; color:var(--lite);
+  letter-spacing:.03em }
+.foot { display:flex; justify-content:space-between; align-items:center; margin-top:9px }
+.note { font-size:9.5px; color:var(--muted) }
+.tag { background:var(--bad); color:var(--lite); font-size:11px; font-weight:800;
+  border:2px solid var(--edge); border-radius:6px; box-shadow:2.5px 2.5px 0 var(--edge);
+  padding:2px 9px }
+</style></head><body>
+<div class="eyebrow">Capstone Study · TUP Manila · BET-CpET · Group Garbage-Guard</div>
+<h1>Garbage-Guard Gantt Chart</h1>
+<div class="sub">Adapted V-Model schedule, 6 April to 13 November 2026 (32 weeks)</div>
+<div class="legend">
+<div class="k">PHASE</div><div class="v">
+<span class="li"><i class="sw" style="background:#128C84"></i>Verification</span>
+<span class="li"><i class="sw" style="background:#B7791F"></i>Prototyping</span>
+<span class="li"><i class="sw" style="background:#2F9E44"></i>Validation</span>
+<span class="li"><i class="sw" style="background:#D92D20"></i>Documentation</span></div>
+<div class="k">SHADING</div><div class="v">
+<span class="li"><i class="sw" style="background:var(--sunk);box-shadow:none;border:1px solid #b8ada2"></i>Alternating month</span>
+<span class="li"><i class="sw" style="background:var(--bad);box-shadow:none;border:none;width:4px;border-radius:0"></i>13 November deadline</span></div>
+</div>
+<div class="panel">
+<div class="hdr"><div class="th">TASK AND MEMBERS</div><div>
+<div class="months"><span style="left:calc(100% * 0 / 32); width:calc(100% * 4 / 32)">APR 2026</span><span style="left:calc(100% * 4 / 32); width:calc(100% * 4 / 32)">MAY</span><span style="left:calc(100% * 8 / 32); width:calc(100% * 5 / 32)">JUN</span><span style="left:calc(100% * 13 / 32); width:calc(100% * 4 / 32)">JUL</span><span style="left:calc(100% * 17 / 32); width:calc(100% * 5 / 32)">AUG</span><span style="left:calc(100% * 22 / 32); width:calc(100% * 4 / 32)">SEP</span><span style="left:calc(100% * 26 / 32); width:calc(100% * 4 / 32)">OCT</span><span style="left:calc(100% * 30 / 32); width:calc(100% * 2 / 32)">NOV</span></div>
+<div class="days"><div class="day q"><b>6</b></div><div class="day q"><b>13</b></div><div class="day q"><b>20</b></div><div class="day q"><b>27</b></div><div class="day"><b>4</b></div><div class="day"><b>11</b></div><div class="day"><b>18</b></div><div class="day"><b>25</b></div><div class="day q"><b>1</b></div><div class="day q"><b>8</b></div><div class="day q"><b>15</b></div><div class="day q"><b>22</b></div><div class="day q"><b>29</b></div><div class="day"><b>6</b></div><div class="day"><b>13</b></div><div class="day"><b>20</b></div><div class="day"><b>27</b></div><div class="day q"><b>3</b></div><div class="day q"><b>10</b></div><div class="day q"><b>17</b></div><div class="day q"><b>24</b></div><div class="day q"><b>31</b></div><div class="day"><b>7</b></div><div class="day"><b>14</b></div><div class="day"><b>21</b></div><div class="day"><b>28</b></div><div class="day q"><b>5</b></div><div class="day q"><b>12</b></div><div class="day q"><b>19</b></div><div class="day q"><b>26</b></div><div class="day"><b>2</b></div><div class="day"><b>9</b></div></div></div></div>
+<div class="body">
+<div class="cols"><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col q"></div><div class="col"></div><div class="col"></div><div class="deadline"></div></div>
+<div class="band" style="--c:#128C84">1. VERIFICATION PHASE (Left Side of V)</div><div class="row"><div class="lab"><div class="tn">Requirement Gathering and Consultation</div><div class="ts">Celeste, Reyes · with Prof. Macalisang</div></div><div class="track"><div class="bar" style="--bd:#128C84;grid-column:1 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">System Design (Hardware Layout)</div><div class="ts">Banogbanog, Pepito</div></div><div class="track"><div class="bar" style="--bd:#4757B8;grid-column:3 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Software Design (AI, UI and Database)</div><div class="ts">Celeste, Reyes</div></div><div class="track"><div class="bar" style="--bd:#4757B8;grid-column:4 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Chapters I to III Writing and Revisions</div><div class="ts">All members</div></div><div class="track"><div class="bar" style="--bd:#7B3FB5;grid-column:1 / span 12"><i>12w</i></div></div></div><div class="band" style="--c:#B7791F">2. PROTOTYPING AND DEVELOPMENT (Vertex of V)</div><div class="row"><div class="lab"><div class="tn">Dataset Collection and Annotation</div><div class="ts">Gunayan, Pepito · creek and web images</div></div><div class="track"><div class="bar" style="--bd:#B7791F;grid-column:6 / span 6"><i>6w</i></div></div></div><div class="row"><div class="lab"><div class="tn">YOLO26n Training and NCNN Export</div><div class="ts">Celeste · v1 to v7 iterations</div></div><div class="track"><div class="bar" style="--bd:#B7791F;grid-column:9 / span 8"><i>8w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Raspberry Pi 5 Integration</div><div class="ts">Celeste · detection, ROI, tracking, counter</div></div><div class="track"><div class="bar" style="--bd:#E8590C;grid-column:13 / span 8"><i>8w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Touchscreen Dashboard Development</div><div class="ts">Reyes, Celeste</div></div><div class="track"><div class="bar" style="--bd:#E8590C;grid-column:16 / span 7"><i>7w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Android Application Development</div><div class="ts">Celeste · v1 to v12</div></div><div class="track"><div class="bar" style="--bd:#E8590C;grid-column:19 / span 7"><i>7w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Enclosure Fabrication and Assembly</div><div class="ts">Banogbanog, Pepito</div></div><div class="track"><div class="bar" style="--bd:#B7791F;grid-column:21 / span 4"><i>4w</i></div></div></div><div class="band" style="--c:#2F9E44">3. VALIDATION PHASE (Right Side of V)</div><div class="row"><div class="lab"><div class="tn">Unit Testing (Controlled Environment)</div><div class="ts">Gunayan · model on the 20% held-out set</div></div><div class="track"><div class="bar" style="--bd:#2F9E44;grid-column:24 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">System Testing (Integrated System)</div><div class="ts">All members</div></div><div class="track"><div class="bar" style="--bd:#2F9E44;grid-column:26 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Creek Field Deployment and Calibration</div><div class="ts">All members · one week on site</div></div><div class="track"><div class="bar" style="--bd:#0F7BD4;grid-column:28 / span 2"><i>2w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Acceptance Testing (Developer and End User)</div><div class="ts">All members · demonstration and survey</div></div><div class="track"><div class="bar" style="--bd:#0F7BD4;grid-column:29 / span 2"><i>2w</i></div></div></div><div class="band" style="--c:#D92D20">4. DOCUMENTATION AND DEFENSE</div><div class="row"><div class="lab"><div class="tn">Chapters IV and V Writing</div><div class="ts">All members</div></div><div class="track"><div class="bar" style="--bd:#7B3FB5;grid-column:29 / span 3"><i>3w</i></div></div></div><div class="row"><div class="lab"><div class="tn">Final Manuscript and Defense</div><div class="ts">All members · due 13 November</div></div><div class="track"><div class="bar" style="--bd:#D92D20;grid-column:31 / span 2"><i>2w</i></div></div></div>
+</div>
+<div class="foot"><div class="note">Each column is one week, labelled by the date of its Monday.</div>
+<div class="tag">Defense · 13 Nov 2026</div></div>
+</div>
+</body></html>
