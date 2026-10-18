@@ -37,6 +37,8 @@ entry is being replaced with a dated source for the same material.
 | Figure 9's discussion opens "The patent at Figure 8..." | 2.2, Figure 9 |
 | Stray tab inside the Gryech et al. entry ("I&#9;Internet") | References |
 | "Li1, F. H." in the Al Noman et al. entry | References |
+| Ella et al. title reads "solid waste management the economic growth"; the word "to" is missing. The Chapter 2 heading has it right, so only the list entry is wrong | References |
+| Ella et al. entry drops the comma after each surname ("Ella D. M., Lim D. M., Lu B.") | References |
 
 ---
 

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Garbage-Guard Conceptual Framework</title>
+<style>
+@page { size:1100px auto; margin:0 }
+*{margin:0;box-sizing:border-box}
+html,body{background:#DED4C8}
+body{width:1100px;padding:34px;color:#16130F;
+ font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.grid{display:grid;grid-template-columns:repeat(3,329px);gap:22px;align-items:stretch;
+ position:relative}
+.col{display:flex;flex-direction:column}
+.hd{background:var(--c);color:#FFFFFF;border:2.5px solid #16130F;border-radius:9px;
+ box-shadow:4px 4px 0 #16130F;font-size:14px;font-weight:800;letter-spacing:.14em;
+ text-align:center;padding:6px 0;margin-bottom:13px}
+.bd{background:#E9E1D6;border:2.5px solid #16130F;border-radius:11px;
+ box-shadow:5px 5px 0 #16130F;padding:11px 12px;flex:1}
+.item{padding:7px 0;border-bottom:1px solid #C3B6A6}
+.item:last-child{border-bottom:none;padding-bottom:2px}
+.item:first-child{padding-top:2px}
+.it{font-size:12px;font-weight:700;line-height:1.25}
+.id{font-size:10.5px;font-weight:500;color:#6A6054;line-height:1.35;margin-top:2px}
+.arrow{position:absolute;top:13px;width:22px;display:flex;align-items:center;
+ justify-content:center}
+.arrow svg{display:block}
+.fb{margin-top:18px;background:#E9E1D6;border:2.5px solid #16130F;border-radius:11px;
+ box-shadow:5px 5px 0 #16130F;padding:9px 14px;display:flex;align-items:center;gap:11px}
+.fbk{font-size:10px;font-weight:800;letter-spacing:.13em;color:#6A6054;white-space:nowrap}
+.fbv{font-size:11px;font-weight:500;line-height:1.4}
+</style></head><body>
+<div class="grid">
+<div class="col"><div class="hd" style="--c:#128C84">INPUT</div><div class="bd"><div class="item"><div class="it">Creek video feed</div><div class="id">PoE CCTV camera trained on the water surface, 24 hours a day</div></div><div class="item"><div class="it">Annotated dataset</div><div class="id">dataset_v7: bottles, bags and food containers, split 70/10/20</div></div><div class="item"><div class="it">Operator settings</div><div class="id">Region of interest, accumulation threshold and alert preferences</div></div></div></div><div class="col"><div class="hd" style="--c:#B7791F">PROCESS</div><div class="bd"><div class="item"><div class="it">Detection</div><div class="id">YOLO26n, exported to NCNN, classifies each frame on the Raspberry Pi 5</div></div><div class="item"><div class="it">Region filtering and tracking</div><div class="id">Detections outside the drawn water area are discarded; ByteTrack holds one identity per item so nothing is counted twice</div></div><div class="item"><div class="it">Accumulation counting</div><div class="id">Tracked items are tallied against the threshold, by default 20</div></div><div class="item"><div class="it">Logging and alerting</div><div class="id">Events and snapshots are written to SQLite and synchronised to Firebase</div></div></div></div><div class="col"><div class="hd" style="--c:#2F9E44">OUTPUT</div><div class="bd"><div class="item"><div class="it">Live annotated feed</div><div class="id">Bounding boxes, labels and the running count on the touchscreen dashboard</div></div><div class="item"><div class="it">Accumulation alert</div><div class="id">On-screen warning, buzzer and a push notification to the Android application</div></div><div class="item"><div class="it">Detection history</div><div class="id">Searchable log with a saved snapshot for every recorded event</div></div></div></div>
+<div class="arrow" style="left:329px">
+<svg width="22" height="20" viewBox="0 0 22 20"><path d="M1,10 L19,10"
+ stroke="#16130F" stroke-width="3"/><path d="M13,4 L21,10 L13,16"
+ fill="#16130F"/></svg></div>
+<div class="arrow" style="left:680px">
+<svg width="22" height="20" viewBox="0 0 22 20"><path d="M1,10 L19,10"
+ stroke="#16130F" stroke-width="3"/><path d="M13,4 L21,10 L13,16"
+ fill="#16130F"/></svg></div>
+</div>
+<div class="fb"><div class="fbk">FEEDBACK</div><div class="fbv">Evaluation against ISO/IEC 25010:2023 — functional suitability, performance efficiency and usability — feeds back into retraining, threshold calibration and interface refinement.</div></div>
+</body></html>
