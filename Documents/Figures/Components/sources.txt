@@ -1,0 +1,8 @@
+filename | page title | seller | page URL | image URL | date accessed
+UPS_HAT_E.jpg | UPS HAT (E) | Waveshare | https://www.waveshare.com/ups-hat-e.htm | https://www.waveshare.com/media/catalog/product/cache/1/image/560x560/9df78eab33525d08d6e5fb8d27136e95/u/p/ups-hat-e-3.jpg | 2026-10-19
+PCIe_M2_Adapter.jpg | PCIe TO 2-CH M.2 HAT+ | Waveshare | https://www.waveshare.com/PCIe-TO-2-CH-M.2-HAT-Plus.htm | https://www.waveshare.com/media/catalog/product/cache/1/image/560x560/9df78eab33525d08d6e5fb8d27136e95/p/c/pcie-to-2-ch-m.2-hat-plus-1_2.jpg | 2026-10-19
+KingSpec_SSD.jpg | KingSpec M.2 NVMe SSD 2242 series | KingSpec | https://www.kingspec.com/product/m2-nvme-ssd-in-series.html | https://www.kingspec.com/uploads/image/66a31524b428c.jpg | 2026-10-19
+RaspberryPi5.jpg | The Pi Hut | https://thepihut.com/products/raspberry-pi-5 | http://thepihut.com/cdn/shop/files/raspberry-pi-5-raspberry-pi-40958498898115.jpg?v=1695819922&width=2048 | 2026-10-19
+ActiveCooler.jpg | The Pi Hut | https://thepihut.com/products/active-cooler-for-raspberry-pi-5 | http://thepihut.com/cdn/shop/files/active-cooler-for-raspberry-pi-5-raspberry-pi-sc1148-40958504632515.jpg?v=1695820090&width=2048 | 2026-10-19
+HWI-B140H.jpg | Multi-Line | https://www.multi-line.com.ph/product/hwi-b140h/ | https://www.multi-line.com.ph/wp-content/uploads/2025/03/HV-HWI-B140H.png | 2026-10-19
+SanDisk_HighEndurance.jpg | JB Hi-Fi | https://jbhifi.com.au/products/sandisk-high-endurance-microsdxc-64gb-memory-card | http://www.jbhifi.com.au/cdn/shop/products/642362-Product-0-I-637522764546793790_1024x1024.jpg | 2026-10-19

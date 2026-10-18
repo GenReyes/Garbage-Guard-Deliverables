@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+	<title>A computer vision-based lane detection technique using gradient threshold and hue-lightness-saturation value for an autonomous vehicle | Noman | International Journal of Electrical and Computer Engineering (IJECE)</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="A computer vision-based lane detection technique using gradient threshold and hue-lightness-saturation value for an autonomous vehicle" />
+			<meta name="keywords" content="Autonomous vehicles; Computer vision; Lane detection; Perspective transformation; Sliding window searching; Thresholding" />
+	
+	<link rel="icon" href="https://ijece.iaescore.com/public/journals/1/journalFavicon_en_US.png" type="image/png" />
+	<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/" />
+
+	<meta name="DC.Contributor.Sponsor" xml:lang="en" content="National Key R&amp;D Project (2017YFB0102400), Beijing Institute of Technology, Beijing, China."/>
+	<meta name="DC.Creator.PersonalName" content="Md. Abdullah Al Noman"/>
+	<meta name="DC.Creator.PersonalName" content="Zhai LI"/>
+	<meta name="DC.Creator.PersonalName" content="Firas Husham Almukhtar"/>
+	<meta name="DC.Creator.PersonalName" content="Md. Faishal Rahaman"/>
+	<meta name="DC.Creator.PersonalName" content="Batyrkhan Omarov"/>
+	<meta name="DC.Creator.PersonalName" content="Samrat Ray"/>
+	<meta name="DC.Creator.PersonalName" content="Shahajan Miah"/>
+	<meta name="DC.Creator.PersonalName" content="Chengping Wang"/>
+	<meta name="DC.Date.created" scheme="ISO8601" content="2023-02-01"/>
+	<meta name="DC.Date.dateSubmitted" scheme="ISO8601" content="2022-01-10"/>
+	<meta name="DC.Date.issued" scheme="ISO8601" content="2023-02-01"/>
+	<meta name="DC.Date.modified" scheme="ISO8601" content="2022-10-23"/>
+	<meta name="DC.Description" xml:lang="en" content=" Automatic lane detection for driver assistance is a significant component in developing advanced driver assistance systems and high-level application frameworks since it contributes to driver and pedestrian safety on roads and highways. However, due to several limitations that lane detection systems must rectify, such as the uncertainties of lane patterns, perspective consequences, limited visibility of lane lines, dark spots, complex background, illuminance, and light reflections, it remains a challenging task. The proposed method employs vision-based technologies to determine the lane boundary lines. We devised a system for correctly identifying lane lines on a homogeneous road surface. Lane line detection relies heavily on the gradient and hue lightness saturation (HLS) thresholding which detects the lane line in binary images. The lanes are shown, and a sliding window searching method is used to estimate the color lane. The proposed system achieved 96% accuracy in detecting lane lines on the different roads, and its performance was assessed using data from several road image databases under various illumination circumstances. "/>
+	<meta name="DC.Format" scheme="IMT" content="application/pdf"/>
+	<meta name="DC.Identifier" content="27007"/>
+	<meta name="DC.Identifier.pageNumber" content="347-357"/>
+							<meta name="DC.Identifier.DOI" content="10.11591/ijece.v13i1.pp347-357"/>
+		<meta name="DC.Identifier.URI" content="https://ijece.iaescore.com/index.php/IJECE/article/view/27007"/>
+	<meta name="DC.Language" scheme="ISO639-1" content="en"/>
+	<meta name="DC.Rights" content="Copyright (c) 2022 Md. Abdullah Al Noman, Zhai LI, Firas Husham Almukhtar, Md. Faishal Rahaman, Batyrkhan Omarov, Samrat Ray, Shahajan Miah, Chengping Wang" />
+	<meta name="DC.Rights" content="http://creativecommons.org/licenses/by-sa/4.0"/>
+	<meta name="DC.Source" content="International Journal of Electrical and Computer Engineering (IJECE)"/>
+	<meta name="DC.Source.ISSN" content="2722-2578"/>
+	<meta name="DC.Source.Issue" content="1"/>	<meta name="DC.Source.URI" content="https://ijece.iaescore.com/index.php/IJECE"/>
+	<meta name="DC.Source.Volume" content="13"/>						<meta name="DC.Subject" xml:lang="en" content="Autonomous vehicles"/>
+								<meta name="DC.Subject" xml:lang="en" content="Computer vision"/>
+								<meta name="DC.Subject" xml:lang="en" content="Lane detection"/>
+								<meta name="DC.Subject" xml:lang="en" content="Perspective transformation"/>
+								<meta name="DC.Subject" xml:lang="en" content="Sliding window searching"/>
+								<meta name="DC.Subject" xml:lang="en" content="Thresholding"/>
+				<meta name="DC.Title" content="A computer vision-based lane detection technique using gradient threshold and hue-lightness-saturation value for an autonomous vehicle"/>
+		<meta name="DC.Type" content="Text.Serial.Journal"/>
+	<meta name="DC.Type.articleType" content="Digital Signal, Image and Video Processing"/>
+		<meta name="gs_meta_revision" content="1.1" />
+	<meta name="citation_journal_title" content="International Journal of Electrical and Computer Engineering (IJECE)"/>
+	<meta name="citation_issn" content="2722-2578"/>
+        <meta name="citation_author" content="Md. Abdullah Al Noman"/>
+        <meta name="citation_author_institution" content="Beijing Institute of Technology"/>
+        <meta name="citation_author" content="Zhai LI"/>
+        <meta name="citation_author_institution" content="Beijing Institute of Technology"/>
+        <meta name="citation_author" content="Firas Husham Almukhtar"/>
+        <meta name="citation_author_institution" content="Imam Ja&#039;afar Al-Sadiq University"/>
+        <meta name="citation_author" content="Md. Faishal Rahaman"/>
+        <meta name="citation_author_institution" content="Beijing Institute of Technology"/>
+        <meta name="citation_author" content="Batyrkhan Omarov"/>
+        <meta name="citation_author_institution" content="Al-Farabi Kazakh National University"/>
+        <meta name="citation_author" content="Samrat Ray"/>
+        <meta name="citation_author_institution" content="Sunstone Calcutta Institute of Engineering and Management"/>
+        <meta name="citation_author" content="Shahajan Miah"/>
+        <meta name="citation_author_institution" content="Bangladesh University of Business and Technology"/>
+        <meta name="citation_author" content="Chengping Wang"/>
+        <meta name="citation_author_institution" content="Beijing Institute of Technology"/>
+<meta name="citation_title" content="A computer vision-based lane detection technique using gradient threshold and hue-lightness-saturation value for an autonomous vehicle"/>
+
+	<meta name="citation_date" content="2023/02/01"/>
+
+	<meta name="citation_volume" content="13"/>
+	<meta name="citation_issue" content="1"/>
+
+			<meta name="citation_firstpage" content="347"/>
+				<meta name="citation_lastpage" content="357"/>
+								<meta name="citation_doi" content="10.11591/ijece.v13i1.pp347-357"/>
+		<meta name="citation_abstract_html_url" content="https://ijece.iaescore.com/index.php/IJECE/article/view/27007"/>
+	<meta name="citation_language" content="en"/>
+						<meta name="citation_keywords" xml:lang="en" content="Autonomous vehicles"/>
+								<meta name="citation_keywords" xml:lang="en" content="Computer vision"/>
+								<meta name="citation_keywords" xml:lang="en" content="Lane detection"/>
+								<meta name="citation_keywords" xml:lang="en" content="Perspective transformation"/>
+								<meta name="citation_keywords" xml:lang="en" content="Sliding window searching"/>
+								<meta name="citation_keywords" xml:lang="en" content="Thresholding"/>
+									<meta name="citation_pdf_url" content="https://ijece.iaescore.com/index.php/IJECE/article/download/27007/16201"/>
+				
+
+	<link rel="stylesheet" href="https://ijece.iaescore.com/lib/pkp/styles/pkp.css" type="text/css" />
+	<link rel="stylesheet" href="https://ijece.iaescore.com/lib/pkp/styles/common.css" type="text/css" />
+	<link rel="stylesheet" href="https://ijece.iaescore.com/styles/common.css" type="text/css" />
+	<link rel="stylesheet" href="https://ijece.iaescore.com/styles/compiled.css" type="text/css" />
+	<link rel="stylesheet" href="https://ijece.iaescore.com/styles/articleView.css" type="text/css" />
+			<link rel="stylesheet" href="https://ijece.iaescore.com/lib/pkp/styles/rtEmbedded.css" type="text/css" />
+	
+	
+	
+	<link rel="stylesheet" href="https://ijece.iaescore.com/styles/sidebar.css" type="text/css" />		<link rel="stylesheet" href="https://ijece.iaescore.com/styles/rightSidebar.css" type="text/css" />	
+			<link rel="stylesheet" href="https://ijece.iaescore.com/public/site/sitestyle.css" type="text/css" />
+			<link rel="stylesheet" href="https://ijece.iaescore.com/public/journals/1/journalStyleSheet.css" type="text/css" />
+			<link rel="stylesheet" href="https://ijece.iaescore.com/plugins/generic/pln/css/pln.css" type="text/css" />
+			<link rel="stylesheet" href="https://ijece.iaescore.com/plugins/blocks/languageToggle/styles/languageToggle.css" type="text/css" />
+	
+	<!-- Base Jquery -->
+	<script type="text/javascript" src="//www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		// Provide a local fallback if the CDN cannot be reached
+		if (typeof google == 'undefined') {
+			document.write(unescape("%3Cscript src='https://ijece.iaescore.com/lib/pkp/js/lib/jquery/jquery.min.js' type='text/javascript'%3E%3C/script%3E"));
+			document.write(unescape("%3Cscript src='https://ijece.iaescore.com/lib/pkp/js/lib/jquery/plugins/jqueryUi.min.js' type='text/javascript'%3E%3C/script%3E"));
+		} else {
+			google.load("jquery", "1.4.4");
+			google.load("jqueryui", "1.8.6");
+		}
+	</script>
+	
+	<!-- Compiled scripts -->
+			
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/lib/jquery/plugins/jquery.tag-it.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/lib/jquery/plugins/jquery.cookie.js"></script>
+
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/functions/fontController.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/functions/general.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/functions/jqueryValidatorI18n.js"></script>
+
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/classes/Helper.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/classes/ObjectProxy.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/classes/Handler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/classes/linkAction/LinkActionRequest.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/classes/features/Feature.js"></script>
+
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/SiteHandler.js"></script><!-- Included only for namespace definition -->
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/UrlInDivHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/AutocompleteHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/ExtrasOnDemandHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/form/FormHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/form/AjaxFormHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/form/ClientFormHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/grid/GridHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/controllers/linkAction/LinkActionHandler.js"></script>
+
+<script type="text/javascript" src="https://ijece.iaescore.com/js/pages/search/SearchFormHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/js/statistics/ReportGeneratorFormHandler.js"></script>
+<script type="text/javascript" src="https://ijece.iaescore.com/plugins/generic/lucene/js/LuceneAutocompleteHandler.js"></script>
+
+<script type="text/javascript" src="https://ijece.iaescore.com/lib/pkp/js/lib/jquery/plugins/jquery.pkp.js"></script>	
+	
+	<script type="text/javascript" src="https://ijece.iaescore.com/js/relatedItems.js"></script>
+	<script type="text/javascript" src="https://ijece.iaescore.com/js/inlinePdf.js"></script>
+	<script type="text/javascript" src="https://ijece.iaescore.com/js/pdfobject.js"></script>
+
+</head>
+<body id="pkp-common-openJournalSystems">
+
+<div id="container">
+
+<div id="header">
+<div id="headerTitle">
+<h1>
+	<img src="https://ijece.iaescore.com/public/journals/1/pageHeaderTitleImage_en_US.png" width="889" height="98" alt="Page Header" />
+</h1>
+</div>
+</div>
+
+<div id="body">
+
+	<div id="sidebar">
+							<div id="rightSidebar">
+				<div class="block" id="sidebarUser">
+			<span class="blockTitle">User</span>
+	
+						<form method="post" action="https://ijece.iaescore.com/index.php/IJECE/login/signIn">
+				<table>
+					<tr>
+						<td><label for="sidebar-username">Username</label></td>
+						<td><input type="text" id="sidebar-username" name="username" value="" size="12" maxlength="32" class="textField" /></td>
+					</tr>
+					<tr>
+						<td><label for="sidebar-password">Password</label></td>
+						<td><input type="password" id="sidebar-password" name="password" value="" size="12" class="textField" /></td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="checkbox" id="remember" name="remember" value="1" /> <label for="remember">Remember me</label></td>
+					</tr>
+					<tr>
+						<td colspan="2"><input type="submit" value="Login" class="button" /></td>
+					</tr>
+				</table>
+			</form>
+			</div><div class="block custom" id="customblock-Citation-Analysis">
+	<p><span class="blockTitle">Citation Analysis</span></p>
+<ul>
+<li><a title="Share IJECE papers at Academia.edu" href="https://independent.academia.edu/JournalIJECE" target="_blank">Academia.edu</a></li>
+<li><a title="Citation Analysis on Dimensions" href="https://app.dimensions.ai/discover/publication?or_facet_source_title=jour.1290521" target="_blank">Dimensions</a></li>
+<li><a title="Citedness on Google Scholar" href="http://scholar.google.com/citations?user=tUzllxsAAAAJ&amp;hl=en" target="_blank">Google Scholar</a></li>
+<li><a title="IJECE on Scimagojr" href="https://www.scimagojr.com/journalsearch.php?q=21100373959&amp;tip=sid&amp;clean=0" target="_blank">Scimagojr</a></li>
+<li><a title="IJECE is indexed by Scholar Metrics" href="http://scholar.google.com/citations?hl=en&amp;view_op=list_hcore&amp;venue=ThxXm8gN4yMJ.2013" target="_blank">Scholar Metrics</a></li>
+<li><a title="Scilit citation analysis" href="https://www.scilit.net/sources/29379" target="_blank">Scilit</a></li>
+<li><a title="IJECE on Scinapse" href="https://scinapse.io/journals/2764532672" target="_blank">Scinapse</a></li>
+</ul>
+<p>&nbsp;</p>
+</div>	<div class="block custom" id="customblock-Quick-Links">
+	<p><span class="blockTitle">Quick Links</span></p>
+<ul>
+<li><a title="Editors" href="/index.php/IJECE/about/editorialTeam" target="_blank">Editorial Boards</a></li>
+<li><a title="Indexing" href="/index.php/IJECE/about/editorialPolicies#custom-1" target="_blank">Abstracting and Indexing</a></li>
+<li><a title="IJECE Focus and Scope" href="/index.php/IJECE/about/editorialPolicies#focusAndScope" target="_blank">Focus and Scope</a></li>
+<li><a title="IJECE Template and Author Guideline" href="/index.php/IJECE/about/submissions#authorGuidelines" target="_blank">Author Guideline</a></li>
+<li><strong><a title="Online Paper Submission via EDAS" href="/index.php/IJECE/pages/view/submit" target="_blank">Online Submission</a></strong></li>
+<li><strong><a title="Peer Review Process" href="/index.php/IJECE/about/editorialPolicies#peerReviewProcess" target="_blank">Peer Review Process</a></strong></li>
+<li><strong><a title="Author Fees" href="/index.php/IJECE/about/submissions#authorFees" target="_blank">Publication Fee</a></strong></li>
+<li><a title="Ethics" href="/index.php/IJECE/about/editorialPolicies#custom-0" target="_blank">Publication Ethics</a></li>
+<li><a title="Best Indonesia Journal 2018" href="/index.php/IJECE/pages/view/bestjournal" target="_blank">The Best Journal</a></li>
+<li><a title="Contact us" href="/index.php/IJECE/about/contact">Contact Us</a></li>
+<li><strong><a title="Apply as Reviewer" href="http://reviewer.iaes.or.id/ijece/">Apply as Reviewer</a></strong></li>
+<li><a title="Generative AI Policies" href="https://iaesprime.com/index.php/ehs/pages/view/ai" target="_blank">Generative AI Policies<br /></a></li>
+<li><!-- Default Statcounter code for IJECE
+https://ijece.iaescore.com/index.php/IJECE -->
+<script type="text/javascript">// <![CDATA[
+var sc_project=13183915; 
+var sc_invisible=1; 
+var sc_security="7652c417";
+// ]]></script>
+<script type="text/javascript" src="https://www.statcounter.com/counter/counter.js"></script>
+<noscript>&amp;lt;div class="statcounter"&amp;gt;&amp;lt;a title="Web Analytics" href="https://statcounter.com/" target="_blank"&amp;gt;&amp;lt;img class="statcounter" src="https://c.statcounter.com/13183915/0/7652c417/1/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade"&amp;gt;&amp;lt;/a&amp;gt;&amp;lt;/div&amp;gt;</noscript><!-- End of Statcounter Code --> <a title="Visitor Statistics" href="https://statcounter.com/p13183915/?guest=1" target="_blank">Visitor Statistics</a></li>
+</ul>
+<p><span class="blockTitle"><br /></span></p>
+</div>	
+<div class="block" id="sidebarNavigation">
+	<span class="blockTitle">Journal Content</span>
+
+	<form id="simpleSearchForm" action="https://ijece.iaescore.com/index.php/IJECE/search/search">
+		<table id="simpleSearchInput">
+			<tr>
+				<td>
+													<label for="simpleQuery">Search <br />
+					<input type="text" id="simpleQuery" name="simpleQuery" size="15" maxlength="255" value="" class="textField" /></label>
+								</td>
+			</tr>
+			<tr>
+				<td><label for="searchField">
+				Search Scope
+				<br />
+				<select id="searchField" name="searchField" size="1" class="selectMenu">
+					<option label="All" value="query">All</option>
+<option label="Authors" value="authors">Authors</option>
+<option label="Title" value="title">Title</option>
+<option label="Abstract" value="abstract">Abstract</option>
+<option label="Index terms" value="indexTerms">Index terms</option>
+<option label="Full Text" value="galleyFullText">Full Text</option>
+
+				</select></label>
+				</td>
+			</tr>
+			<tr>
+				<td><input type="submit" value="Search" class="button" /></td>
+			</tr>
+		</table>
+	</form>
+
+	<br />
+
+		<span class="blockSubtitle">Browse</span>
+	<ul>
+		<li><a href="https://ijece.iaescore.com/index.php/IJECE/issue/archive">By Issue</a></li>
+		<li><a href="https://ijece.iaescore.com/index.php/IJECE/search/authors">By Author</a></li>
+		<li><a href="https://ijece.iaescore.com/index.php/IJECE/search/titles">By Title</a></li>
+		
+			</ul>
+	</div>
+
+
+<div class="block" id="sidebarRTArticleTools">
+
+	<span class="blockTitle">Article Tools</span>
+						<div class="articleToolItem">
+			<img src="https://ijece.iaescore.com/plugins/blocks/readingTools/icons/citeArticle.png" class="articleToolIcon" alt=""/> <a href="javascript:openRTWindow('https://ijece.iaescore.com/index.php/IJECE/rt/captureCite/27007/0');">How to cite item</a><br />
+		</div>
+							</div>
+
+			</div>
+			</div>
+
+<div id="main">
+
+<div id="navbar">
+	<ul class="menu">
+		<li id="home"><a href="https://ijece.iaescore.com/index.php/IJECE/index">Home</a></li>
+		<li id="about"><a href="https://ijece.iaescore.com/index.php/IJECE/about">About</a></li>
+
+					<li id="login"><a href="https://ijece.iaescore.com/index.php/IJECE/login">Login</a></li>
+							<li id="register"><a href="https://ijece.iaescore.com/index.php/IJECE/user/register">Register</a></li>
+												<li id="search"><a href="https://ijece.iaescore.com/index.php/IJECE/search">Search</a></li>
+		
+					<li id="current"><a href="https://ijece.iaescore.com/index.php/IJECE/issue/current">Current</a></li>
+			<li id="archives"><a href="https://ijece.iaescore.com/index.php/IJECE/issue/archive">Archives</a></li>
+		
+					<li id="announcements"><a href="https://ijece.iaescore.com/index.php/IJECE/announcement">Announcements</a></li>
+				
+
+								</ul>
+</div>
+<div id="breadcrumb">
+	<a href="https://ijece.iaescore.com/index.php/IJECE/index" target="_parent">Home</a> &gt;
+	<a href="https://ijece.iaescore.com/index.php/IJECE/issue/view/580" target="_parent">Vol 13, No 1</a> &gt;	<a href="https://ijece.iaescore.com/index.php/IJECE/article/view/27007/0" class="current" target="_parent">Noman</a>
+</div>
+
+<div id="content">
+
+
+	<div id="topBar">
+					</div>
+		
+	<div id="articleTitle"><h3>A computer vision-based lane detection technique using gradient threshold and hue-lightness-saturation value for an autonomous vehicle</h3></div>
+	<div id="authorString"><em>Md. Abdullah Al Noman, Zhai LI, Firas Husham Almukhtar, Md. Faishal Rahaman, Batyrkhan Omarov, Samrat Ray, Shahajan Miah, Chengping Wang</em></div>
+	<br />
+			<div id="articleAbstract">
+		<h4>Abstract</h4>
+		<br />
+		<div>Automatic lane detection for driver assistance is a significant component in developing advanced driver assistance systems and high-level application frameworks since it contributes to driver and pedestrian safety on roads and highways. However, due to several limitations that lane detection systems must rectify, such as the uncertainties of lane patterns, perspective consequences, limited visibility of lane lines, dark spots, complex background, illuminance, and light reflections, it remains a challenging task. The proposed method employs vision-based technologies to determine the lane boundary lines. We devised a system for correctly identifying lane lines on a homogeneous road surface. Lane line detection relies heavily on the gradient and hue lightness saturation (HLS) thresholding which detects the lane line in binary images. The lanes are shown, and a sliding window searching method is used to estimate the color lane. The proposed system achieved 96% accuracy in detecting lane lines on the different roads, and its performance was assessed using data from several road image databases under various illumination circumstances.</div>
+		<br />
+		</div>
+	
+			<div id="articleSubject">
+		<h4>Keywords</h4>
+		<br />
+		<div>Autonomous vehicles; Computer vision; Lane detection; Perspective transformation; Sliding window searching; Thresholding</div>
+		<br />
+		</div>
+	
+				
+			<div id="articleFullText">
+		<h4>Full Text:</h4>
+									<a href="https://ijece.iaescore.com/index.php/IJECE/article/view/27007/16201" class="file" target="_parent">PDF</a>
+														</div>
+	
+	
+							<br />
+		<br />
+		DOI: <a id="pub-id::doi" href="http://doi.org/10.11591/ijece.v13i1.pp347-357">http://doi.org/10.11591/ijece.v13i1.pp347-357</a>																				
+
+
+
+
+
+			<br/><br/>
+		Copyright (c) 2022 Md. Abdullah Al Noman, Zhai LI, Firas Husham Almukhtar, Md. Faishal Rahaman, Batyrkhan Omarov, Samrat Ray, Shahajan Miah, Chengping Wang
+		
+<span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_id=https%3A%2F%2Fijece.iaescore.com%2Findex.php%2FIJECE%2Farticle%2Fview%2F27007&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.genre=article&amp;rft.title=International+Journal+of+Electrical+and+Computer+Engineering+%28IJECE%29&amp;rft.jtitle=International+Journal+of+Electrical+and+Computer+Engineering+%28IJECE%29&amp;rft.atitle=A+computer+vision-based+lane+detection+technique+using+gradient+threshold+and+hue-lightness-saturation+value+for+an+autonomous+vehicle&amp;rft.artnum=27007&amp;rft.stitle=IJECE&amp;rft.volume=13&amp;rft.issue=1&amp;rft.aulast=Noman&amp;rft.aufirst=Md.+Abdullah&amp;rft.auinit=Al&amp;rft.date=2023-02-01&amp;rft.au=Md.+Abdullah+Al+Noman&amp;rft.au=Zhai+LI&amp;rft.au=Firas+Husham+Almukhtar&amp;rft.au=Md.+Faishal+Rahaman&amp;rft.au=Batyrkhan+Omarov&amp;rft.au=Samrat+Ray&amp;rft.au=Shahajan+Miah&amp;rft.au=Chengping+Wang&amp;rft_id=info%3Adoi%2F10.11591%2Fijece.v13i1.pp347-357&amp;rft.pages=347-357&amp;rft.issn=2088-8708&amp;rft.eissn=2722-2578"></span>
+
+<br /><br />
+<div class="ijece-license">
+
+  <p class="ijece-license-badge">
+    <a
+      href="https://creativecommons.org/licenses/by-sa/4.0/"
+      rel="license"
+      title="Creative Commons Attribution-ShareAlike 4.0 International License"
+    >
+      <img
+        src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
+        alt="Creative Commons Attribution-ShareAlike 4.0 International License"
+        width="88"
+        height="31"
+        loading="lazy"
+        decoding="async"
+      >
+    </a>
+  </p>
+
+  <p>
+    This work is licensed under a
+    <a
+      href="https://creativecommons.org/licenses/by-sa/4.0/"
+      rel="license"
+      title="Creative Commons Attribution-ShareAlike 4.0 International License"
+    >
+      Creative Commons Attribution-ShareAlike 4.0 International License
+    </a>.
+  </p>
+
+  <p>
+    <strong>
+      <a
+        href="/index.php/IJECE/index"
+        title="International Journal of Electrical and Computer Engineering (IJECE)"
+      >
+        International Journal of Electrical and Computer Engineering (IJECE)
+      </a>
+    </strong>
+    <br>
+    <a
+      href="https://portal.issn.org/resource/ISSN/2088-8708"
+      title="p-ISSN 2088-8708"
+      target="_blank"
+      rel="noopener noreferrer"
+    >p-ISSN 2088-8708</a>,
+    <a
+      href="https://portal.issn.org/resource/ISSN/2722-2578"
+      title="e-ISSN 2722-2578"
+      target="_blank"
+      rel="noopener noreferrer"
+    >e-ISSN 2722-2578</a>
+  </p>
+
+  <p>
+    This journal is published by the
+    <a
+      href="https://iaes.or.id/"
+      title="Institute of Advanced Engineering and Science (IAES)"
+      target="_blank"
+      rel="noopener noreferrer"
+    >Institute of Advanced Engineering and Science (IAES)</a>.
+  </p>
+
+</div>
+
+<style>
+  .ijece-license {
+    line-height: 1.6;
+  }
+
+  .ijece-license-badge {
+    margin: 0 0 0.5rem;
+  }
+
+  .ijece-license-badge img {
+    display: inline-block;
+    width: 88px;
+    height: 31px;
+  }
+
+  .ijece-license p {
+    margin: 0 0 1rem;
+  }
+
+  .ijece-license a {
+    text-decoration: underline;
+  }
+
+  .ijece-license a:hover,
+  .ijece-license a:focus {
+    text-decoration: none;
+  }
+</style>
+</div><!-- content -->
+</div><!-- main -->
+</div><!-- body -->
+
+
+
+</div> <!-- container -->
+</body>
+</html>

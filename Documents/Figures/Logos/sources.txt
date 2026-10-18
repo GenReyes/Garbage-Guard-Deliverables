@@ -1,0 +1,9 @@
+filename | Wikimedia Commons file | licence | page | date accessed
+Python.png | Python-logo-notext.svg | Public domain | https://commons.wikimedia.org/wiki/File:Python-logo-notext.svg | 2026-10-19
+SQLite.png | SQLite370.svg | Public domain | https://commons.wikimedia.org/wiki/File:SQLite370.svg | 2026-10-19
+Firebase.png | Firebase Logo.svg | Public domain | https://commons.wikimedia.org/wiki/File:Firebase_Logo.svg | 2026-10-19
+Android.png | Android logo 2023 (stacked).svg | Public domain | https://commons.wikimedia.org/wiki/File:Android_logo_2023_(stacked).svg | 2026-10-19
+Kotlin.png | Kotlin Icon.svg | Public domain | https://commons.wikimedia.org/wiki/File:Kotlin_icon_(2016-2021).svg | 2026-10-19
+OpenCV.png | OpenCV Logo with text svg version.svg | Public domain | https://commons.wikimedia.org/wiki/File:OpenCV_Logo_with_text_svg_version.svg | 2026-10-19
+Ultralytics.png | Ultralytics logotype | Ultralytics open-source project asset (AGPL-3.0 repository) | https://github.com/ultralytics/assets | 2026-10-19
+NCNN.png | ncnn project mark | Tencent ncnn, BSD-3-Clause repository | https://github.com/Tencent/ncnn | 2026-10-19

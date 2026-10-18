@@ -46,7 +46,7 @@ entry is being replaced with a dated source for the same material.
 
 | Figure | Problem |
 |---|---|
-| 11, System Architecture | The board pictured is a Raspberry Pi 3, not the Pi 5 that is actually used. The model is labelled "Yolov26". Storage is shown as SQLite alone. The buzzer, the Firebase sync, the Android application, the PoE injector and the UPS HAT are all absent. The creek photographs carry a stock-library watermark. |
+| 11, System Architecture | The board pictured is a Raspberry Pi 3, not the Pi 5 that is actually used. The model is labelled "Yolov26". Storage is shown as SQLite alone. The buzzer, the Firebase sync, the Android application, the step-up converter and the UPS HAT are all absent. The creek photographs carry a stock-library watermark. |
 | 12, Block Diagram | YOLO appears twice in sequence as two separate stages, which is not what the pipeline does. "Waste Categories & Accumulation Count" has an unclosed bracket. The ROI filter and the tracker are missing. |
 | 13, Flowchart | Storage sits only on the "threshold not reached" branch, so on the reading of the diagram an alerting event is never written to the database. The ROI test, the tracker that stops an item being counted twice, the buzzer and the push to the app are all missing. |
 | 15, Gantt Chart | Ran April to July. Replaced. |
@@ -74,7 +74,8 @@ what `Revision Plan.md` item 2.9 asks for.
 
 ### Components named in 1.2 System Design but missing from the manuscript
 
-Buzzer, PoE injector, Android application, Firebase. The vibration motor that
+Buzzer, the 5 V to 12 V step-up converter that powers the camera, Android
+application, Firebase. The vibration motor that
 appears in older drafts was removed from the build on 17 October 2026 and should
 not reappear.
 
