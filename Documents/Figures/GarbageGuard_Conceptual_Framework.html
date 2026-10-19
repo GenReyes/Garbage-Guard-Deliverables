@@ -1,43 +1,28 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Garbage-Guard Conceptual Framework</title>
 <style>
-@page { size:1100px auto; margin:0 }
+@page { size:1024px 724px; margin:0 }
 *{margin:0;box-sizing:border-box}
 html,body{background:#DED4C8}
-body{width:1100px;padding:34px;color:#16130F;
- font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif;
- -webkit-print-color-adjust:exact;print-color-adjust:exact}
-.grid{display:grid;grid-template-columns:repeat(3,329px);gap:22px;align-items:stretch;
- position:relative}
-.col{display:flex;flex-direction:column}
-.hd{background:var(--c);color:#FFFFFF;border:2.5px solid #16130F;border-radius:9px;
- box-shadow:4px 4px 0 #16130F;font-size:14px;font-weight:800;letter-spacing:.14em;
- text-align:center;padding:6px 0;margin-bottom:13px}
-.bd{background:#E9E1D6;border:2.5px solid #16130F;border-radius:11px;
- box-shadow:5px 5px 0 #16130F;padding:11px 12px;flex:1}
-.item{padding:7px 0;border-bottom:1px solid #C3B6A6}
-.item:last-child{border-bottom:none;padding-bottom:2px}
-.item:first-child{padding-top:2px}
-.it{font-size:12px;font-weight:700;line-height:1.25}
-.id{font-size:10.5px;font-weight:500;color:#6A6054;line-height:1.35;margin-top:2px}
-.arrow{position:absolute;top:13px;width:22px;display:flex;align-items:center;
- justify-content:center}
-.arrow svg{display:block}
-.fb{margin-top:18px;background:#E9E1D6;border:2.5px solid #16130F;border-radius:11px;
- box-shadow:5px 5px 0 #16130F;padding:9px 14px;display:flex;align-items:center;gap:11px}
-.fbk{font-size:10px;font-weight:800;letter-spacing:.13em;color:#6A6054;white-space:nowrap}
-.fbv{font-size:11px;font-weight:500;line-height:1.4}
+body{width:1024px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+.ct{font-size:19px} .cs{font-size:16px} .hd{font-size:20px;letter-spacing:.12em}
+.ti{font-size:19px} .tw{font-size:17px} .al{font-size:16px}
 </style></head><body>
-<div class="grid">
-<div class="col"><div class="hd" style="--c:#128C84">INPUT</div><div class="bd"><div class="item"><div class="it">Creek video feed</div><div class="id">IP camera fixed above the water surface, powered from the UPS HAT</div></div><div class="item"><div class="it">Annotated dataset</div><div class="id">dataset_v7: bottles, bags and food containers, split 70/10/20</div></div><div class="item"><div class="it">Operator settings</div><div class="id">Region of interest, accumulation threshold and alert preferences</div></div></div></div><div class="col"><div class="hd" style="--c:#B7791F">PROCESS</div><div class="bd"><div class="item"><div class="it">Detection</div><div class="id">YOLO26n, exported to NCNN, classifies each frame on the Raspberry Pi 5</div></div><div class="item"><div class="it">Tracking and region filtering</div><div class="id">ByteTrack keeps one identity per item so its box and label stay steady; detections outside the drawn water area are discarded</div></div><div class="item"><div class="it">Accumulation counting</div><div class="id">Items inside the area are counted each frame, smoothed over 15 frames and compared with the threshold, by default 20</div></div><div class="item"><div class="it">Logging and alerting</div><div class="id">Alerts, captures and their snapshots are written to SQLite and synchronised to Firebase</div></div></div></div><div class="col"><div class="hd" style="--c:#2F9E44">OUTPUT</div><div class="bd"><div class="item"><div class="it">Live annotated feed</div><div class="id">Bounding boxes, labels and the running count on the touchscreen dashboard</div></div><div class="item"><div class="it">Accumulation alert</div><div class="id">On-screen warning, buzzer and a push notification to the Android application</div></div><div class="item"><div class="it">Detection history</div><div class="id">Searchable log with a saved snapshot for every recorded event</div></div></div></div>
-<div class="arrow" style="left:329px">
-<svg width="22" height="20" viewBox="0 0 22 20"><path d="M1,10 L19,10"
- stroke="#16130F" stroke-width="3"/><path d="M13,4 L21,10 L13,16"
- fill="#16130F"/></svg></div>
-<div class="arrow" style="left:680px">
-<svg width="22" height="20" viewBox="0 0 22 20"><path d="M1,10 L19,10"
- stroke="#16130F" stroke-width="3"/><path d="M13,4 L21,10 L13,16"
- fill="#16130F"/></svg></div>
-</div>
-<div class="fb"><div class="fbk">FEEDBACK</div><div class="fbv">Evaluation against ISO/IEC 25010:2023, covering functional suitability, performance efficiency and usability, feeds back into retraining, threshold calibration and interface refinement.</div></div>
-</body></html>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 724" width="1024" height="724">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5"
+ markerHeight="6.5" orient="auto-start-reverse">
+<path d="M0,1 L9,5 L0,9 z" fill="#16130F"/></marker></defs>
+<style>
+text { font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif }
+.ct { font-size:13px; font-weight:800; fill:#16130F }
+.cs { font-size:10px; font-weight:500; fill:#6A6054 }
+.hd { font-size:12.5px; font-weight:800; fill:#FFFFFF; letter-spacing:.13em }
+.al { font-size:9.5px; font-weight:700; fill:#6A6054; letter-spacing:.03em }
+.ti { font-size:11px; font-weight:800; fill:#16130F }
+.tw { font-size:10px; font-weight:500; fill:#6A6054 }
+.lg { font-size:10px; font-weight:600; fill:#6A6054 }
+</style>
+<rect width="1024" height="724" fill="#DED4C8"/>
+<rect x="32" y="28" width="280" height="44" rx="8" fill="#16130F"/><rect x="28" y="24" width="280" height="44" rx="8" fill="#128C84" stroke="#16130F" stroke-width="2.5"/><text x="168.0" y="51.0" class="hd" text-anchor="middle">INPUT</text><rect x="32" y="86" width="280" height="478" rx="12" fill="#16130F"/><rect x="28" y="82" width="280" height="478" rx="12" fill="#E9E1D6" stroke="#16130F" stroke-width="2.5"/><rect x="42" y="96" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="42" y="96" width="8" height="143.33333333333334" rx="4" fill="#128C84"/><text x="64" y="165.66666666666669" class="ti" text-anchor="start">Live camera feed</text><text x="64" y="189.66666666666669" class="tw" text-anchor="start">Creek surface video</text><rect x="42" y="249.33333333333334" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="42" y="249.33333333333334" width="8" height="143.33333333333334" rx="4" fill="#128C84"/><text x="64" y="319.0" class="ti" text-anchor="start">Annotated dataset</text><text x="64" y="343.0" class="tw" text-anchor="start">Bottle, bag, container</text><rect x="42" y="402.6666666666667" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="42" y="402.6666666666667" width="8" height="143.33333333333334" rx="4" fill="#128C84"/><text x="64" y="472.33333333333337" class="ti" text-anchor="start">Operator settings</text><text x="64" y="496.33333333333337" class="tw" text-anchor="start">Area and threshold</text><rect x="376" y="28" width="280" height="44" rx="8" fill="#16130F"/><rect x="372" y="24" width="280" height="44" rx="8" fill="#B7791F" stroke="#16130F" stroke-width="2.5"/><text x="512.0" y="51.0" class="hd" text-anchor="middle">PROCESS</text><rect x="376" y="86" width="280" height="478" rx="12" fill="#16130F"/><rect x="372" y="82" width="280" height="478" rx="12" fill="#E9E1D6" stroke="#16130F" stroke-width="2.5"/><rect x="386" y="96" width="252" height="82" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="386" y="96" width="8" height="82" rx="4" fill="#B7791F"/><text x="408" y="135.0" class="ti" text-anchor="start">1  Detection</text><text x="408" y="159.0" class="tw" text-anchor="start">YOLO26n on the Pi 5</text><rect x="386" y="188" width="252" height="82" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="386" y="188" width="8" height="82" rx="4" fill="#B7791F"/><text x="408" y="227.0" class="ti" text-anchor="start">2  Region filter</text><text x="408" y="251.0" class="tw" text-anchor="start">Skips non-water items</text><rect x="386" y="280" width="252" height="82" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="386" y="280" width="8" height="82" rx="4" fill="#B7791F"/><text x="408" y="319.0" class="ti" text-anchor="start">3  Tracking</text><text x="408" y="343.0" class="tw" text-anchor="start">One ID per item</text><rect x="386" y="372" width="252" height="82" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="386" y="372" width="8" height="82" rx="4" fill="#B7791F"/><text x="408" y="411.0" class="ti" text-anchor="start">4  Counting</text><text x="408" y="435.0" class="tw" text-anchor="start">Count vs threshold</text><rect x="386" y="464" width="252" height="82" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="386" y="464" width="8" height="82" rx="4" fill="#B7791F"/><text x="408" y="503.0" class="ti" text-anchor="start">5  Logging</text><text x="408" y="527.0" class="tw" text-anchor="start">SQLite and snapshot</text><rect x="720" y="28" width="280" height="44" rx="8" fill="#16130F"/><rect x="716" y="24" width="280" height="44" rx="8" fill="#2F9E44" stroke="#16130F" stroke-width="2.5"/><text x="856.0" y="51.0" class="hd" text-anchor="middle">OUTPUT</text><rect x="720" y="86" width="280" height="478" rx="12" fill="#16130F"/><rect x="716" y="82" width="280" height="478" rx="12" fill="#E9E1D6" stroke="#16130F" stroke-width="2.5"/><rect x="730" y="96" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="730" y="96" width="8" height="143.33333333333334" rx="4" fill="#2F9E44"/><text x="752" y="165.66666666666669" class="ti" text-anchor="start">Live annotated feed</text><text x="752" y="189.66666666666669" class="tw" text-anchor="start">Boxes, labels, count</text><rect x="730" y="249.33333333333334" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="730" y="249.33333333333334" width="8" height="143.33333333333334" rx="4" fill="#2F9E44"/><text x="752" y="319.0" class="ti" text-anchor="start">Accumulation alert</text><text x="752" y="343.0" class="tw" text-anchor="start">Screen, buzzer, app</text><rect x="730" y="402.6666666666667" width="252" height="143.33333333333334" rx="8" fill="#EFE8DE" stroke="#16130F" stroke-width="2"/><rect x="730" y="402.6666666666667" width="8" height="143.33333333333334" rx="4" fill="#2F9E44"/><text x="752" y="472.33333333333337" class="ti" text-anchor="start">Detection history</text><text x="752" y="496.33333333333337" class="tw" text-anchor="start">With saved snapshots</text><line x1="314" y1="321.0" x2="364" y2="321.0" stroke="#16130F" stroke-width="6" marker-end="url(#ah)"/><line x1="658" y1="321.0" x2="708" y2="321.0" stroke="#16130F" stroke-width="6" marker-end="url(#ah)"/><rect x="32" y="642" width="968" height="62" rx="12" fill="#16130F"/><rect x="28" y="638" width="968" height="62" rx="12" fill="#E9E1D6" stroke="#16130F" stroke-width="2.5"/><text x="512.0" y="664" class="ct" text-anchor="middle">FEEDBACK</text><text x="512.0" y="688" class="cs" text-anchor="middle">Test results return to retraining and recalibration</text><line x1="856.0" y1="566" x2="856.0" y2="632" stroke="#16130F" stroke-width="5" stroke-dasharray="7 5" marker-end="url(#ah)"/><text x="870.0" y="606" class="al" text-anchor="start">results</text><line x1="512.0" y1="634" x2="512.0" y2="568" stroke="#16130F" stroke-width="5" stroke-dasharray="7 5" marker-end="url(#ah)"/><text x="526.0" y="606" class="al" text-anchor="start">refines the process</text><line x1="168.0" y1="634" x2="168.0" y2="568" stroke="#16130F" stroke-width="5" stroke-dasharray="7 5" marker-end="url(#ah)"/><text x="182.0" y="606" class="al" text-anchor="start">refines the inputs</text>
+</svg></body></html>
