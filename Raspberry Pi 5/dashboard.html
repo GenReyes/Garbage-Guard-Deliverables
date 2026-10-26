@@ -1102,6 +1102,16 @@ a.btn{text-decoration:none}
 .c-pow .hd .ico{color:var(--orange)}
 .c-snd .hd .ico{color:#0F7BD4}
 .c-qt .hd .ico{color:var(--purple)}
+.c-cam .hd .ico{color:var(--teal)}
+/* the fourth column holds two short cards, Quiet hours above Camera stream */
+#settings .setcol{display:flex;flex-direction:column;gap:14px;min-height:0;min-width:0}
+#settings .setcol > .card-pow{flex:1 1 auto}
+#settings .setcol .c-qt .hint.gen{display:none}
+#settings .setcol .c-qt .pair2{grid-template-columns:1fr 1fr}
+#settings .setcol .c-qt .pair2{gap:5px}
+#settings .setcol .c-qt .stp .step{width:22px;font-size:16px}
+#settings .setcol .c-qt .stp input[data-time]{font-size:11px;letter-spacing:-.02em;padding:0}
+#settings .setcol .c-cam div.seg{height:30px}
 #settings .grow{flex:1}
 #settings .prow{margin:0;min-height:30px;gap:10px}
 #settings .prow label,#settings .pfield label{display:flex;align-items:center;gap:6px;min-width:0;
@@ -1711,6 +1721,7 @@ body .fbar.quick button{padding:0 9px}
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
+      <div class="setcol">
       <section class="card card-pow c-qt wait" id="quietCard">
         <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
         <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
@@ -1734,6 +1745,24 @@ body .fbar.quick button{padding:0 9px}
         <span class="grow"></span>
         <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence the buzzer. Tests use the saved settings.</p>
       </section>
+      <section class="card card-pow c-cam wait" id="camCard">
+        <div class="hd"><svg class="ico"><use href="#i-cam"/></svg><h2>Camera stream</h2>
+          <span class="chip" id="camChip"><span>–</span></span></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
+        <div class="seg" id="camStream" role="group" aria-label="Camera stream">
+          <button type="button" data-stream="main" aria-pressed="false" title="Sharp picture, finds smaller items">Main</button>
+          <button type="button" data-stream="sub" aria-pressed="false" title="Light 640×360 picture, the old setting">Sub</button>
+        </div>
+        <div class="pfield"><label><svg class="ico"><use href="#i-target"/></svg>Detection size</label>
+          <div class="seg" id="camSize" role="group" aria-label="Detection size">
+            <button type="button" data-size="640" aria-pressed="false" title="Fastest">640</button>
+            <button type="button" data-size="960" aria-pressed="false" title="Balanced, the default">960</button>
+            <button type="button" data-size="1280" aria-pressed="false" title="Smallest items, slowest">1280</button>
+          </div></div>
+        <p class="hint" id="camNow"><svg class="ico"><use href="#i-signal"/></svg><span>–</span></p>
+        <p class="hint bad" id="camNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+      </section>
+      </div>
     </div>
       <div class="setfoot">
         <span class="hint"><svg class="ico"><use href="#i-ok"/></svg>Changes apply when you press Save.</span>
@@ -2957,6 +2986,7 @@ function hideTop(el){ try{ if(el.hidePopover && el.matches(":popover-open")) el.
 function paintScreen(s){
   fillPower(s);
   fillBuzzer(s);
+  fillView(s);
   fillClean(s);
   if(!KIOSK || waking) return;
   const sv = $("saver");
@@ -3109,8 +3139,38 @@ $("pwrSave").onclick = async () => {
       repeat_s: Number($("bzRepS").value), quiet_on: swOn($("bzQuiet")),
       quiet_from: $("bzFrom").dataset.hm, quiet_to: $("bzTo").dataset.hm});
   }
+  if(!$("camCard").classList.contains("wait")){
+    const st = (document.querySelector("#camStream [aria-pressed=true]") || {dataset: {}}).dataset.stream;
+    const sz = (document.querySelector("#camSize [aria-pressed=true]") || {dataset: {}}).dataset.size;
+    const cur = last || {};
+    if(st && sz && (st !== (cur.stream_wanted || cur.stream) || Number(sz) !== cur.detect_size))
+      await post("/api/view", {stream: st, detect_size: Number(sz)});
+  }
   pwrDirty = false; toast("Settings saved", "i-save"); refresh(); pollBattery();
 };
+function pickView(attr, v){
+  document.querySelectorAll(`#cam${attr === "stream" ? "Stream" : "Size"} button`).forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset[attr] === String(v) ? "true" : "false"));
+}
+function fillView(s){
+  const card = $("camCard");
+  card.classList.toggle("wait", s.stream == null);
+  if(s.stream == null) return;
+  const chip = $("camChip");
+  chip.querySelector("span").textContent = s.stream === "main" ? "MAIN" : "SUB";
+  chip.classList.toggle("off", !!s.stream_note);
+  $("camNow").querySelector("span").textContent = s.frame_size
+    ? `Now ${s.frame_size.replace("x", "×")}, ${s.detect_box ? "area only" : "whole picture"}`
+    : "Waiting for the camera";
+  const note = $("camNote");
+  note.hidden = !s.stream_note;
+  note.querySelector("span").textContent = s.stream_note || "";
+  if(pwrDirty) return;
+  pickView("stream", s.stream_wanted || s.stream);
+  pickView("size", s.detect_size);
+}
+document.querySelectorAll("#camStream button").forEach(b => b.addEventListener("click", () => pickView("stream", b.dataset.stream)));
+document.querySelectorAll("#camSize button").forEach(b => b.addEventListener("click", () => pickView("size", b.dataset.size)));
 $("scrSleep").onclick = async () => { await post("/api/screen", {action: "sleep"}); refresh(); };
 
 let pwrEnd = 0, pwrFloor = false;

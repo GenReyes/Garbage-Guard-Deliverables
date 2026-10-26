@@ -4,6 +4,19 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi dashboard: Camera stream card (2026-10-26)
+
+### Pi
+
+- Settings has a Camera stream card under Quiet hours: Main or Sub stream,
+  and the detection size (640, 960 or 1280). Changes apply with the Save
+  button like the other cards. Switching the stream reconnects the camera
+  for a few seconds.
+- The card shows what is in use now (for example "Now 1280×720, area only")
+  and a warning if the Pi fell back to the sub-stream on its own.
+- Quiet hours' From and Until now sit side by side to make room.
+- The phone app does not have this card yet; it can send the `view` command.
+
 ## Pi: sharper detection from the main stream, full History (2026-10-26)
 
 ### Pi
