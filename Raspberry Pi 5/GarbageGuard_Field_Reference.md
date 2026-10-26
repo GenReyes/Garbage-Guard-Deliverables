@@ -248,7 +248,7 @@ alert data.
 | `401 Unauthorized` in terminal | Wrong camera password | Check `~/gg/camera.txt` |
 | `No module named 'cv2'` | Environment not active | `source ~/gg-env/bin/activate` |
 | `can't open file` | Wrong folder | `cd ~/gg` first |
-| Video lags behind reality | Camera frame rate too high | Set sub-stream to 15 fps in the camera's Video/Audio page |
+| Video lags behind reality | Main stream too large or too fast for the Pi to decode | Main stream at 1280x720, 15 fps, H.264 (not H.264+), I-frame 15. Judge the delay on the touchscreen, not over a screen share |
 | Nothing detected | Confidence too high, or view unlike training data | Model expects trash on water seen from above. Indoor tests are not representative. |
 | Bridge/bank counted as garbage | No ROI set | Draw the ROI over the water only |
 | Nothing opens at power on | Desktop auto login is off, or autostart not installed | `sudo raspi-config`, System Options, Boot / Auto Login, Desktop Autologin. Then run `./install_autostart.sh`. Check `~/gg/gg.log` |

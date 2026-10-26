@@ -25,7 +25,10 @@ in `pi/`. Entries before version 7 are summarised from the commit history.
   and the 5-second refresh only downloads the list again when something has
   changed (`/api/alerts?limit=0&sig=...`).
 - Camera setup needed once: in the camera's Video/Audio page, set the
-  **Main Stream** to 1920x1080, H.264, 15 fps.
+  **Main Stream** to 1280x720, H.264 (not H.264+), 15 fps, I-frame
+  interval 15. At 1920x1080 the Pi could not decode the stream fast enough
+  and the picture ran 6 to 7 seconds behind; at 1280x720 it is about 1 second
+  behind on the touchscreen, with a median of about 190 ms per frame.
 
 ## App version 12: Pi vibration removed (2026-10-17)
 
