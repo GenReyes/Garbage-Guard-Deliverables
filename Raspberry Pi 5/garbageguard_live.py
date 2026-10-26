@@ -35,6 +35,7 @@ import gg_power
 import gg_screen
 import gg_touch
 import gg_ups
+import gg_view
 import gg_web
 from gg_snapcard import add_card
 
@@ -45,7 +46,6 @@ if CAMERA_FILE.is_file():
     if line:
         SOURCE = line
 MODEL_PATH = "garbageguard_v7_best_ncnn_model"
-IMGSZ = 640
 
 SMOOTH_WINDOW = 15
 ALERT_COOLDOWN_SEC = 60
@@ -61,7 +61,7 @@ SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
                     "auto_mute": False, "auto_mute_s": 900,
                     **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS,
-                    **gg_clean.DEFAULTS}
+                    **gg_clean.DEFAULTS, **gg_view.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -132,25 +132,33 @@ def save_settings(s):
         pass
 
 
+def ink_scale(frame):
+    return max(1.0, frame.shape[1] / 640.0)
+
+
 def draw_roi(frame, roi_pixels):
     if roi_pixels is None:
         return
     overlay = frame.copy()
     cv2.fillPoly(overlay, [roi_pixels], (148, 158, 31))
     cv2.addWeighted(overlay, 0.15, frame, 0.85, 0, dst=frame)
-    cv2.polylines(frame, [roi_pixels], True, (148, 158, 31), 2)
+    cv2.polylines(frame, [roi_pixels], True, (148, 158, 31),
+                  max(2, round(2 * ink_scale(frame))))
 
 
 def draw_detection(frame, box, label, color, inside):
+    k = ink_scale(frame)
     x1, y1, x2, y2 = [int(v) for v in box]
     if not inside:
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (120, 120, 120), 1)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (120, 120, 120), max(1, round(k)))
         return
-    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-    cv2.rectangle(frame, (x1, y1 - th - 6), (x1 + tw + 4, y1), color, -1)
-    cv2.putText(frame, label, (x1 + 2, y1 - 4),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), color, max(2, round(2 * k)))
+    size, weight = 0.45 * k, max(1, round(k))
+    (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, size, weight)
+    pad = round(3 * k)
+    cv2.rectangle(frame, (x1, y1 - th - 2 * pad), (x1 + tw + 2 * pad, y1), color, -1)
+    cv2.putText(frame, label, (x1 + pad, y1 - pad),
+                cv2.FONT_HERSHEY_SIMPLEX, size, (0, 0, 0), weight, cv2.LINE_AA)
 
 
 class FrameReader:
@@ -230,9 +238,28 @@ class FrameReader:
         self.stop_flag.set()
 
 
+def jpg_names(folder):
+    try:
+        with os.scandir(folder) as it:
+            return {e.name for e in it if e.name.lower().endswith(".jpg")}
+    except OSError:
+        return set()
+
+
+def reset_tracker(model):
+    for t in getattr(getattr(model, "predictor", None), "trackers", None) or []:
+        try:
+            t.reset()
+        except Exception:
+            pass
+
+
 class Engine:
     def __init__(self, source, model_path, settings):
         self.source = source
+        self.view = gg_view.StreamChoice(source, settings.get("stream", "main"))
+        self.frame_size = None
+        self.det_box = None
         self.model_path = model_path
         self.settings = settings
         self.lock = threading.Lock()
@@ -303,6 +330,11 @@ class Engine:
                 "auto_mute": bool(self.settings.get("auto_mute")),
                 "auto_mute_s": int(self.settings.get("auto_mute_s", 0)),
                 "frames": self.frames,
+                **self.view.fields(),
+                "frame_size": ("%dx%d" % self.frame_size) if self.frame_size else None,
+                "detect_size": int(self.settings["detect_size"]),
+                "crop": bool(self.settings["crop"]),
+                "detect_box": list(self.det_box) if self.det_box else None,
                 "reconnects": self.reconnects,
                 "uptime_s": int(time.time() - self.started_at),
             }
@@ -401,6 +433,24 @@ class Engine:
             save_settings(self.settings)
             return dict(self.settings)
 
+    def set_view(self, stream=None, detect_size=None, crop=None):
+        with self.lock:
+            if detect_size is not None:
+                self.settings["detect_size"] = detect_size
+            if crop is not None:
+                self.settings["crop"] = crop
+            changed = stream is not None and stream != self.settings.get("stream")
+            if stream is not None:
+                self.settings["stream"] = stream
+            gg_view.clean_settings(self.settings)
+            save_settings(self.settings)
+            if changed:
+                self.view.want(self.settings["stream"])
+            out = {k: self.settings[k] for k in gg_view.DEFAULTS}
+        if changed:
+            self.reconnect("stream changed")
+        return out
+
     def set_roi(self, points):
         clean = []
         for p in points or []:
@@ -413,20 +463,34 @@ class Engine:
             save_settings(self.settings)
             return clean
 
+    def alerts_sig(self):
+        """Changes whenever a record is added, deleted or marked read or unread."""
+        conn = open_db()
+        n, top, unread = conn.execute(
+            "SELECT COUNT(*), COALESCE(MAX(id),0), COALESCE(SUM(COALESCE(read,0)=0),0)"
+            " FROM alerts").fetchone()
+        conn.close()
+        return f"{n}.{top}.{unread}.{len(jpg_names(SNAPSHOT_DIR))}"
+
     def recent_alerts(self, limit=50):
+        """Newest records first. A limit of 0 or less returns every record."""
+        limit = int(limit)
         conn = open_db()
         rows = conn.execute(
             "SELECT id, timestamp, event, smoothed_count, raw_count, n_bottle, n_bag,"
             " n_food_container, peak_confidence, threshold_used, snapshot_path,"
-            " COALESCE(read,0) AS read FROM alerts ORDER BY id DESC LIMIT ?", (int(limit),)
+            " COALESCE(read,0) AS read FROM alerts ORDER BY id DESC LIMIT ?",
+            (limit if limit > 0 else -1,)
         ).fetchall()
         conn.close()
+        pics = jpg_names(SNAPSHOT_DIR)
+        cleans = jpg_names(SNAPSHOT_DIR / gg_clean.FOLDER)
         out = []
         for r in rows:
             d = dict(r)
             name = Path(d["snapshot_path"]).name if d.get("snapshot_path") else None
-            d["snapshot"] = name if name and (SNAPSHOT_DIR / name).is_file() else None
-            d["clean"] = gg_clean.name_if_present(SNAPSHOT_DIR, d["snapshot"])
+            d["snapshot"] = name if name in pics else None
+            d["clean"] = d["snapshot"] if d["snapshot"] in cleans else None
             out.append(d)
         return out
 
@@ -526,16 +590,17 @@ class Engine:
         return snap is not None
 
     def _open(self):
-        if str(self.source).isdigit():
-            return cv2.VideoCapture(int(self.source))
+        url = self.view.url
+        if str(url).isdigit():
+            return cv2.VideoCapture(int(url))
         params = []
         for name, ms in (("CAP_PROP_OPEN_TIMEOUT_MSEC", 5000),
                          ("CAP_PROP_READ_TIMEOUT_MSEC", 5000)):
             if hasattr(cv2, name):
                 params += [getattr(cv2, name), ms]
-        cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG, params) if params \
-            else cv2.VideoCapture(self.source)
-        if str(self.source).lower().startswith("rtsp"):
+        cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG, params) if params \
+            else cv2.VideoCapture(url)
+        if str(url).lower().startswith("rtsp"):
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         return cap
 
@@ -589,6 +654,8 @@ class Engine:
                     seq = 0
                 elif reader.silent_for() > WATCHDOG_S:
                     self.reconnect_reason = "no frames"
+                    if not reader.last_ok and self.view.main_gave_nothing():
+                        print(f"[STREAM] {self.view.note}.")
                     reader = self._swap_reader()
                     seq = 0
                 frame, seq, captured_at = reader.latest(seq)
@@ -608,14 +675,34 @@ class Engine:
             with self.lock:
                 conf = self.settings["conf"]
                 roi_norm = list(self.settings["roi"])
+                size = int(self.settings["detect_size"])
+                use_crop = bool(self.settings["crop"])
 
             h, w = frame.shape[:2]
             roi_poly = scale_polygon(roi_norm, w, h)
-            roi_px = (np.array(roi_poly, dtype=np.int32)
-                      if roi_poly is not None else None)
+            box = gg_view.crop_box(roi_poly, w, h) if use_crop else None
+            if box != self.det_box or (w, h) != self.frame_size:
+                reset_tracker(model)
+                self.display_ids = DisplayIds()
+            if box is None:
+                part, dx, dy = frame, 0, 0
+            else:
+                part, dx, dy = frame[box[1]:box[3], box[0]:box[2]], box[0], box[1]
 
-            results = model.track(frame, persist=True, tracker="bytetrack.yaml",
-                                  conf=conf, imgsz=IMGSZ, verbose=False)
+            try:
+                results = model.track(np.ascontiguousarray(part), persist=True,
+                                      tracker="bytetrack.yaml",
+                                      conf=conf, imgsz=size, verbose=False)
+            except Exception as e:
+                if size == 640:
+                    raise
+                print(f"[DETECT] {size} px failed ({e}); going back to 640 px.", flush=True)
+                with self.lock:
+                    self.settings["detect_size"] = 640
+                    self.view.note = f"The model could not run at {size} px, using 640 px"
+                    save_settings(self.settings)
+                reset_tracker(model)
+                continue
             latency_ms = (time.perf_counter() - t0) * 1000.0
 
             dets = []
@@ -627,18 +714,20 @@ class Engine:
                 ids = (boxes.id.cpu().numpy().astype(int)
                        if boxes.id is not None else np.full(len(cls), -1))
                 for b, c, v, i in zip(xyxy, cls, cf, ids):
-                    dets.append({"box": tuple(float(x) for x in b),
+                    dets.append({"box": gg_view.shift(tuple(float(x) for x in b), dx, dy),
                                  "name": self.names.get(int(c), str(c)),
                                  "conf": float(v), "id": int(i)})
 
             flags, counts, raw_count, peak = tally(dets, roi_poly)
             numbers = self.display_ids.assign([d["id"] for d in dets])
 
-            annotated = frame.copy()
-            draw_roi(annotated, roi_px)
+            annotated, f = gg_view.for_display(frame)
+            roi_show = scale_polygon(roi_norm, annotated.shape[1], annotated.shape[0])
+            draw_roi(annotated, np.array(roi_show, dtype=np.int32)
+                     if roi_show is not None else None)
             for d, inside, n in zip(dets, flags, numbers):
                 tag = f"#{n} " if n > 0 else ""
-                draw_detection(annotated, d["box"],
+                draw_detection(annotated, gg_view.scale_box(d["box"], f),
                                f"{tag}{d['name']} {d['conf']:.2f}",
                                CLASS_COLORS.get(d["name"], DEFAULT_COLOR), inside)
 
@@ -647,6 +736,8 @@ class Engine:
             with self.lock:
                 self.raw_frame = frame
                 self.annotated = annotated
+                self.frame_size = (w, h)
+                self.det_box = box
                 self.connected = True
                 self.counts = dict(counts)
                 self.raw_count = raw_count
@@ -751,6 +842,12 @@ def main():
     ap.add_argument("--model", default=MODEL_PATH)
     ap.add_argument("--conf", type=float, default=None)
     ap.add_argument("--threshold", type=int, default=None)
+    ap.add_argument("--stream", choices=("main", "sub"), default=None,
+                    help="camera stream to read (default: saved setting, main)")
+    ap.add_argument("--detect-size", type=int, default=None,
+                    help="pixels the model works at: 640, 960 or 1280")
+    ap.add_argument("--no-crop", action="store_true",
+                    help="give the model the whole frame, not just the ROI box")
     ap.add_argument("--port", type=int, default=WEB_PORT)
     ap.add_argument("--no-web", action="store_true")
     ap.add_argument("--display", action="store_true",
@@ -765,13 +862,22 @@ def main():
         settings["conf"] = args.conf
     if args.threshold is not None:
         settings["threshold"] = args.threshold
+    if args.stream:
+        settings["stream"] = args.stream
+    if args.detect_size:
+        settings["detect_size"] = args.detect_size
+    if args.no_crop:
+        settings["crop"] = False
+    gg_view.clean_settings(settings)
 
     engine = Engine(args.source, args.model, settings)
 
     print("=" * 64)
     print(" GARBAGE-GUARD")
     print("=" * 64)
-    print(f" source     : {args.source}")
+    print(f" source     : {engine.view.url}  ({engine.view.active} stream)")
+    print(f" detection  : {settings['detect_size']} px, "
+          f"{'ROI box only' if settings['crop'] else 'whole frame'}")
     print(f" confidence : {settings['conf']}")
     print(f" threshold  : {settings['threshold']}  (re-arm {engine.counter.off})")
     print(f" roi points : {len(settings['roi'])}")

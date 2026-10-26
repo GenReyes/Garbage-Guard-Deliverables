@@ -4,6 +4,29 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi: sharper detection from the main stream, full History (2026-10-26)
+
+### Pi
+
+- The Pi now reads the camera's main stream instead of the 640x360
+  sub-stream, so small or far items are no longer a few blurred pixels.
+- The model gets only the box around the monitored area, at 960 px by
+  default. An item in the water is now drawn with several times as many
+  pixels as before, depending on how much of the picture the area covers. Detections outside that box are not looked for at all.
+- If the main stream gives no picture twice in a row, the Pi goes back to the
+  sub-stream on its own and says so in the camera pill's tooltip. If the model
+  cannot run at the chosen size, it goes back to 640 px.
+- The live picture on the screen and phones is 960x540, and annotated
+  snapshots are the same size. Clean copies for labelling are saved at the
+  full main-stream resolution.
+- New `gg_view.py` and `test_view.py`, `POST /api/view`, the `view` Firebase
+  command, and the `--stream`, `--detect-size` and `--no-crop` options.
+- History showed at most 300 records. The dashboard now loads every record,
+  and the 5-second refresh only downloads the list again when something has
+  changed (`/api/alerts?limit=0&sig=...`).
+- Camera setup needed once: in the camera's Video/Audio page, set the
+  **Main Stream** to 1920x1080, H.264, 15 fps.
+
 ## App version 12: Pi vibration removed (2026-10-17)
 
 ### App

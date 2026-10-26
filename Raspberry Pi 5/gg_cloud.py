@@ -51,6 +51,7 @@ COMMANDS = {
     "buzzer": "/api/buzzer",
     "buzzer_test": "/api/buzzer/test",
     "clean": "/api/clean",
+    "view": "/api/view",
 }
 
 STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "roi", "latency_ms",
@@ -61,7 +62,8 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
               "buzzer_on", "buzzer_volume", "buzzer_alerts", "buzzer_countdown", "buzzer_ui",
               "buzzer_repeat", "buzzer_repeat_s", "quiet_on", "quiet_from", "quiet_to",
               "buzzer_available", "buzzer_note", "quiet_now", "quiet_note",
-              "clean_mode", "clean_count", "clean_bytes")
+              "clean_mode", "clean_count", "clean_bytes",
+              "stream", "stream_note", "frame_size", "detect_size", "crop")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 

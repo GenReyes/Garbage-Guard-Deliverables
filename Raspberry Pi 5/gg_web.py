@@ -273,7 +273,10 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
 
             if path == "/api/alerts":
                 limit = int((query.get("limit") or [50])[0])
-                return self._json({"alerts": engine.recent_alerts(limit)})
+                sig = engine.alerts_sig() if hasattr(engine, "alerts_sig") else None
+                if sig is not None and (query.get("sig") or [None])[0] == sig:
+                    return self._json({"same": True, "sig": sig})
+                return self._json({"alerts": engine.recent_alerts(limit), "sig": sig})
 
             if path == "/frame.jpg":
                 jpg = engine.get_jpeg()
@@ -361,6 +364,15 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                                            threshold=data.get("threshold"))
                 buzzer.play("saved")
                 return self._json({"ok": True, "settings": s})
+
+            if path == "/api/view":
+                size = data.get("detect_size")
+                crop = data.get("crop")
+                out = engine.set_view(stream=data.get("stream"),
+                                      detect_size=int(size) if size is not None else None,
+                                      crop=bool(crop) if crop is not None else None)
+                buzzer.play("saved")
+                return self._json({"ok": True, **out})
 
             if path == "/api/roi":
                 pts = engine.set_roi(data.get("points"))

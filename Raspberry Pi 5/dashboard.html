@@ -2585,11 +2585,15 @@ window.addEventListener("resize", () => requestAnimationFrame(fitRows));
 
 $("newer").onclick = () => { if(page>0){ page--; renderPage(); } };
 $("older").onclick = () => { if((page+1)*PAGE < view.length){ page++; renderPage(); } };
-$("refreshLogs").onclick = () => { page=0; loadLogs(); toast("History refreshed","i-refresh"); };
+$("refreshLogs").onclick = () => { page=0; loadLogs(true); toast("History refreshed","i-refresh"); };
 
-async function loadLogs(){
+let logSig = "";
+async function loadLogs(force){
   try{
-    rows = (await (await fetch("/api/alerts?limit=300")).json()).alerts || [];
+    const j = await (await fetch("/api/alerts?limit=0" + (force || !logSig ? "" : "&sig=" + encodeURIComponent(logSig)))).json();
+    if(j.same) return;
+    logSig = j.sig || "";
+    rows = j.alerts || [];
     renderPage();
   }catch(e){}
 }
@@ -2629,6 +2633,7 @@ async function refresh(){
     last = s;
     clockSynced = s.clock_synced !== false || s.clock_settling === true; tickClock();
     setLink(s.connected ? "online" : "nocam");
+    $("connPill").title = viewText(s);
     cloud = s.cloud || null;
     setViewers(s.viewers);
     paintScreen(s);
@@ -2660,6 +2665,13 @@ const LINK = {online:["online","i-signal","Camera online"],
               nocam:["nocam","i-camoff","No camera"],
               nopi:["offline","i-nolink","No link to Pi"]};
 let linkState = "online";
+function viewText(s){
+  if(!s.frame_size) return "";
+  const kind = s.stream === "main" ? "Main stream" : "Sub-stream";
+  const area = s.detect_box ? "the monitored area" : "the whole picture";
+  return `${kind}, ${s.frame_size.replace("x","×")}. Detecting on ${area} at ${s.detect_size} px.`
+    + (s.stream_note ? " " + s.stream_note + "." : "");
+}
 function setLink(st){
   linkState = st;
   const [cls, ico, txt] = LINK[st];

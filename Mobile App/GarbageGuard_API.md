@@ -156,6 +156,11 @@ reliable on the Pi's browser. Use polling unless you have a reason not to.
 
 ### `GET /api/alerts?limit=50`
 
+`limit=0` returns every record (the dashboard's History does this). Each
+reply carries a `sig` that changes whenever a record is added, deleted or
+marked read. Send it back as `&sig=...` and, if nothing changed, the reply is
+just `{"same": true, "sig": "..."}`, so polling stays cheap.
+
 ```json
 {
   "alerts": [
@@ -729,3 +734,24 @@ On local Wi-Fi the app calls: `/api/state`, `/frame.jpg`,
 `/api/client/bye`. It sends all six `X-GG-*` headers on these calls. It does
 not use `/stream.mjpg`, `/api/window`, `/api/net/ipv4` or the Wi-Fi setup
 endpoints.
+
+---
+
+### `POST /api/view`
+
+Which camera stream is read and how much of the picture the model sees.
+All fields are optional.
+
+```json
+{"stream": "main", "detect_size": 960, "crop": true}
+```
+
+- `stream`: `main` (sharp, default) or `sub` (the light 640x360 stream).
+  Changing it reconnects the camera.
+- `detect_size`: 640, 960 or 1280 pixels for the model. Bigger finds
+  smaller items but takes longer.
+- `crop`: `true` gives the model only the box around the monitored area.
+
+Reply: `{"ok": true, "stream": "main", "detect_size": 960, "crop": true}`.
+The state (`/api/state`) also carries `stream`, `stream_note`,
+`frame_size`, `detect_size`, `crop` and `detect_box`. Firebase command: `view`.

@@ -29,6 +29,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
 | `gg_buzzer.py` | The passive buzzer: a different sound for each event, the repeating alarm, quiet hours, and the three ways to drive the pin (software PWM, hardware PWM, and a fake one for tests). |
 | `test_buzzer.py` | Unit tests for `gg_buzzer.py`. |
+| `gg_view.py` | Which camera stream is read and which part of each frame the model sees: the main stream, cropped to the box around the ROI and detected at 960 px, with a fall back to the sub-stream if the main stream gives no picture. |
+| `test_view.py` | Unit tests for `gg_view.py`. |
 | `gg_clean.py` | Clean copies: the camera picture alone, saved in `snapshots/clean/` next to each snapshot for labelling. Off, Manual or All. |
 | `test_clean.py` | Unit tests for `gg_clean.py`, plus the engine saving and deleting clean copies. |
 | `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
@@ -52,9 +54,11 @@ Two files have to exist on the Pi but are never committed, because they
 hold secrets or change per device:
 
 - **`camera.txt`** — one line, the camera's RTSP URL including its
-  password. Create it yourself on each Pi.
+  password. Create it yourself on each Pi. Point it at the sub-stream
+  (`/Streaming/Channels/102`); the main stream (`101`) is worked out from it.
 - **`gg_settings.json`** — detection confidence, accumulation threshold,
-  and the ROI polygon. Generated automatically the first time the script
+  the ROI polygon, and the stream settings (`stream` main or sub,
+  `detect_size` 640/960/1280, `crop` true or false). Generated automatically the first time the script
   runs, then it persists across restarts.
 
 Both are listed in the repo's `.gitignore`. If you clone this fresh, the
