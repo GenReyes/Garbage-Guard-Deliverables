@@ -31,6 +31,7 @@ import gg_buzzer
 import gg_clean
 import gg_clock
 import gg_cloud
+import gg_model
 import gg_power
 import gg_screen
 import gg_touch
@@ -45,7 +46,7 @@ if CAMERA_FILE.is_file():
     line = CAMERA_FILE.read_text().strip()
     if line:
         SOURCE = line
-MODEL_PATH = "garbageguard_v7_best_ncnn_model"
+MODEL_PATH = gg_model.DEFAULT
 
 SMOOTH_WINDOW = 15
 ALERT_COOLDOWN_SEC = 60
@@ -61,7 +62,7 @@ SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
                     "auto_mute": False, "auto_mute_s": 900,
                     **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS,
-                    **gg_clean.DEFAULTS, **gg_view.DEFAULTS}
+                    **gg_clean.DEFAULTS, **gg_view.DEFAULTS, **gg_model.DEFAULTS}
 
 CLASS_COLORS = {
     "bottle": (255, 128, 0),
@@ -246,6 +247,11 @@ def jpg_names(folder):
         return set()
 
 
+def _short(e, n=120):
+    text = str(e).strip().splitlines()[0] if str(e).strip() else type(e).__name__
+    return text if len(text) <= n else text[:n - 1] + "…"
+
+
 def reset_tracker(model):
     for t in getattr(getattr(model, "predictor", None), "trackers", None) or []:
         try:
@@ -260,7 +266,13 @@ class Engine:
         self.view = gg_view.StreamChoice(source, settings.get("stream", "main"))
         self.frame_size = None
         self.det_box = None
-        self.model_path = model_path
+        self.model_path = str(model_path)
+        self.model_name = Path(self.model_path).name
+        self.model_note = ""
+        self.model_request = None
+        self.model_loading = None
+        self.model_flag = threading.Event()
+        self._models = ([], 0.0)
         self.settings = settings
         self.lock = threading.Lock()
         self.stop_flag = threading.Event()
@@ -335,6 +347,12 @@ class Engine:
                 "detect_size": int(self.settings["detect_size"]),
                 "crop": bool(self.settings["crop"]),
                 "detect_box": list(self.det_box) if self.det_box else None,
+                "model": self.model_name,
+                "model_label": gg_model.label(self.model_name),
+                "model_wanted": self.model_request or self.model_loading or self.settings.get("model"),
+                "model_loading": self.model_request is not None or self.model_loading is not None,
+                "models": self._installed_models(),
+                "model_note": self.model_note,
                 "reconnects": self.reconnects,
                 "uptime_s": int(time.time() - self.started_at),
             }
@@ -450,6 +468,96 @@ class Engine:
         if changed:
             self.reconnect("stream changed")
         return out
+
+    def _installed_models(self):
+        found, at = self._models
+        if time.monotonic() - at > 5:
+            found = gg_model.list_models(BASE_DIR)
+            self._models = (found, time.monotonic())
+        return [dict(m) for m in found]
+
+    def set_model(self, name):
+        if not gg_model.valid(name, BASE_DIR):
+            return {"ok": False, "error": "That model is not installed on the Pi.",
+                    "model": self.model_name}
+        with self.lock:
+            self.settings["model"] = name
+            save_settings(self.settings)
+            self.model_note = ""
+            if name == self.model_name:
+                self.model_request = None
+                return {"ok": True, "model": self.model_name, "pending": None}
+            self.model_request = name
+        self.model_flag.set()
+        return {"ok": True, "model": self.model_name, "pending": name}
+
+    def _load_model(self, path, check=True):
+        model = YOLO(str(path), task="detect")
+        names = model.names
+        problem = gg_model.class_problem(names)
+        if check and problem:
+            raise ValueError(problem)
+        if check:
+            model.track(np.zeros((360, 640, 3), np.uint8), persist=True,
+                        tracker="bytetrack.yaml", imgsz=640, verbose=False)
+            reset_tracker(model)
+        return model
+
+    def _first_model(self):
+        default = BASE_DIR / gg_model.DEFAULT
+        if Path(self.model_path).name == gg_model.DEFAULT or not gg_model.valid(gg_model.DEFAULT, BASE_DIR):
+            return self._load_model(self.model_path, check=False)
+        try:
+            return self._load_model(self.model_path)
+        except Exception as e:
+            bad = gg_model.label(self.model_name)
+            print(f"[MODEL] Could not load {bad} ({e}). Starting with v7.", flush=True)
+            with self.lock:
+                self.model_note = f"Could not load {bad} at start, using v7: {_short(e)}"
+                self.model_path = str(default)
+                self.model_name = default.name
+                self.settings["model"] = default.name
+                save_settings(self.settings)
+            return self._load_model(default, check=False)
+
+    def _swap_model(self, model):
+        with self.lock:
+            name, self.model_request = self.model_request, None
+            self.model_loading = name
+        try:
+            return self._swap_to(model, name)
+        finally:
+            with self.lock:
+                self.model_loading = None
+
+    def _swap_to(self, model, name):
+        if not name or name == self.model_name:
+            return model
+        new_label, old_label = gg_model.label(name), gg_model.label(self.model_name)
+        print(f"[MODEL] Loading {new_label}...", flush=True)
+        try:
+            if not gg_model.valid(name, BASE_DIR):
+                raise ValueError("its folder is missing or incomplete")
+            new = self._load_model(BASE_DIR / name)
+        except Exception as e:
+            print(f"[MODEL] Could not load {new_label}, still using {old_label}: {e}", flush=True)
+            with self.lock:
+                self.model_note = f"Could not load {new_label}, still using {old_label}: {_short(e)}"
+                if self.model_request is None:
+                    self.settings["model"] = self.model_name
+                    save_settings(self.settings)
+            return model
+        with self.lock:
+            self.model_path = str(BASE_DIR / name)
+            self.model_name = name
+            self.names = new.names
+            self.model_note = ""
+            self.counts = {}
+            self.raw_count = 0
+            self.peak_conf = 0.0
+            self.display_ids = DisplayIds()
+        print(f"[MODEL] Now using {new_label}. Classes: {self.names}", flush=True)
+        return new
 
     def set_roi(self, points):
         clean = []
@@ -625,7 +733,7 @@ class Engine:
 
     def run(self, show_window=False):
         print(f"Loading model: {self.model_path}")
-        model = YOLO(self.model_path, task="detect")
+        model = self._first_model()
         self.names = model.names
         print(f"Classes: {self.names}")
 
@@ -647,6 +755,9 @@ class Engine:
         latency_window = []
 
         while not self.stop_flag.is_set():
+            if self.model_flag.is_set():
+                self.model_flag.clear()
+                model = self._swap_model(model)
             if live:
                 if self.reconnect_flag.is_set():
                     self.reconnect_flag.clear()
@@ -839,7 +950,8 @@ class Engine:
 def main():
     ap = argparse.ArgumentParser(description="Garbage-Guard live detection")
     ap.add_argument("--source", default=SOURCE)
-    ap.add_argument("--model", default=MODEL_PATH)
+    ap.add_argument("--model", default=None,
+                    help="model folder to start with (default: the one picked in Settings, v7)")
     ap.add_argument("--conf", type=float, default=None)
     ap.add_argument("--threshold", type=int, default=None)
     ap.add_argument("--stream", choices=("main", "sub"), default=None,
@@ -869,8 +981,15 @@ def main():
     if args.no_crop:
         settings["crop"] = False
     gg_view.clean_settings(settings)
+    wanted = settings.get("model")
+    gg_model.clean_settings(settings, BASE_DIR)
+    model_path = args.model or str(BASE_DIR / settings["model"])
 
-    engine = Engine(args.source, args.model, settings)
+    engine = Engine(args.source, model_path, settings)
+    if not args.model and wanted != settings["model"]:
+        engine.model_note = (f"{gg_model.label(wanted)} is not installed, "
+                             f"using {gg_model.label(settings['model'])}")
+        save_settings(settings)
 
     print("=" * 64)
     print(" GARBAGE-GUARD")
@@ -878,6 +997,7 @@ def main():
     print(f" source     : {engine.view.url}  ({engine.view.active} stream)")
     print(f" detection  : {settings['detect_size']} px, "
           f"{'ROI box only' if settings['crop'] else 'whole frame'}")
+    print(f" model      : {gg_model.label(engine.model_name)}  ({engine.model_path})")
     print(f" confidence : {settings['conf']}")
     print(f" threshold  : {settings['threshold']}  (re-arm {engine.counter.off})")
     print(f" roi points : {len(settings['roi'])}")

@@ -4,6 +4,28 @@ Changes to Garbage-Guard, newest first. App versions refer to the Android app
 in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `pi/`. Entries before version 7 are summarised from the commit history.
 
+## Pi dashboard: Model card (2026-10-28)
+
+### Pi
+
+- Settings has a Model card to switch the detection model (v7, v8, ...)
+  without editing code. It lists the `garbageguard_*_ncnn_model` folders in
+  `~/gg/` that hold a `.param` and a `.bin` file. v7 stays the default.
+- The choice is saved in `gg_settings.json` as `model` and applies with the
+  Save button. The new model is loaded and test-run on a blank frame before it
+  replaces the old one; detection pauses for a few seconds while it loads.
+- If the new model cannot load, or its classes are not bottle, bag,
+  food_container in that order, the old model keeps running and the card says
+  why ("Could not load v8, still using v7: ..."). If the saved model is missing
+  or broken at start-up, the Pi starts with v7.
+- The browser can only send a name from the installed list, never a path.
+- New `gg_model.py` and `test_model.py`, `POST /api/model`, and the state
+  fields `model`, `model_label`, `model_wanted`, `model_loading`, `models` and
+  `model_note` (the last three are also synced to Firebase).
+- `--model` still overrides the saved choice when given.
+- The Settings column with Camera stream, Model and Quiet hours scrolls if it
+  does not fit; Quiet hours moved to the bottom of it.
+
 ## Pi dashboard: Camera stream card (2026-10-26)
 
 ### Pi

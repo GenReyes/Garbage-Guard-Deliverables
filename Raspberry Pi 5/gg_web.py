@@ -374,6 +374,14 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                 buzzer.play("saved")
                 return self._json({"ok": True, **out})
 
+            if path == "/api/model":
+                if not hasattr(engine, "set_model"):
+                    return self._json({"ok": False, "error": "Model switching is not available."})
+                res = engine.set_model(data.get("model"))
+                if res.get("ok"):
+                    buzzer.play("saved")
+                return self._json(res)
+
             if path == "/api/roi":
                 pts = engine.set_roi(data.get("points"))
                 return self._json({"ok": True, "points": pts})

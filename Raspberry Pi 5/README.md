@@ -31,6 +31,8 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_buzzer.py` | Unit tests for `gg_buzzer.py`. |
 | `gg_view.py` | Which camera stream is read and which part of each frame the model sees: the main stream, cropped to the box around the ROI and detected at 960 px, with a fall back to the sub-stream if the main stream gives no picture. |
 | `test_view.py` | Unit tests for `gg_view.py`. |
+| `gg_model.py` | Which detection model runs. Lists the installed `garbageguard_*_ncnn_model` folders for the Model card, checks a chosen name against that list, and checks the classes are bottle, bag, food_container. |
+| `test_model.py` | Unit tests for `gg_model.py`, plus the engine switching models and keeping the old one when a new one fails. |
 | `gg_clean.py` | Clean copies: the camera picture alone, saved in `snapshots/clean/` next to each snapshot for labelling. Off, Manual or All. |
 | `test_clean.py` | Unit tests for `gg_clean.py`, plus the engine saving and deleting clean copies. |
 | `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
@@ -58,7 +60,8 @@ hold secrets or change per device:
   (`/Streaming/Channels/102`); the main stream (`101`) is worked out from it.
 - **`gg_settings.json`** — detection confidence, accumulation threshold,
   the ROI polygon, and the stream settings (`stream` main or sub,
-  `detect_size` 640/960/1280, `crop` true or false). Generated automatically the first time the script
+  `detect_size` 640/960/1280, `crop` true or false). Also `model`, the
+  model folder picked in Settings (v7 by default). Generated automatically the first time the script
   runs, then it persists across restarts.
 
 Both are listed in the repo's `.gitignore`. If you clone this fresh, the
@@ -379,3 +382,15 @@ rather than a guess.
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.
+
+## Adding a new model (for example v8)
+
+1. Export it to NCNN on the training PC or the Pi (`yolo export model=garbageguard_v8_best.pt format=ncnn imgsz=960`).
+2. Copy the folder into `~/gg/` with the name `garbageguard_v8_best_ncnn_model`.
+   It must hold the `.param` and `.bin` files, plus `metadata.yaml` with the
+   classes bottle, bag, food_container in that order.
+3. Open Settings → Model on the dashboard. v8 appears within a few seconds.
+   Pick it and press Save. The live view pauses for a few seconds while it loads.
+4. If it cannot load, or its classes are wrong, the Pi keeps the old model and
+   the card says why. `--model <folder>` on the command line still overrides
+   the saved choice for one run.

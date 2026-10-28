@@ -1103,9 +1103,14 @@ a.btn{text-decoration:none}
 .c-snd .hd .ico{color:#0F7BD4}
 .c-qt .hd .ico{color:var(--purple)}
 .c-cam .hd .ico{color:var(--teal)}
+.c-mdl .hd .ico{color:var(--teal)}
 /* the fourth column holds two short cards, Quiet hours above Camera stream */
-#settings .setcol{display:flex;flex-direction:column;gap:14px;min-height:0;min-width:0}
-#settings .setcol > .card-pow{flex:1 1 auto}
+#settings .setcol{display:flex;flex-direction:column;gap:9px;min-height:0;min-width:0;
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--shade) transparent}
+#settings .setcol > .card-pow{flex:none;overflow:visible}
+#settings .setcol .c-mdl div.seg{height:30px}
+#settings .setcol .card-pow .hint{flex:none;overflow:visible}
+#settings .setcol .c-mdl div.seg button:disabled{opacity:1;cursor:default}
 #settings .setcol .c-qt .hint.gen{display:none}
 #settings .setcol .c-qt .pair2{grid-template-columns:1fr 1fr}
 #settings .setcol .c-qt .pair2{gap:5px}
@@ -1722,6 +1727,32 @@ body .fbar.quick button{padding:0 9px}
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
       <div class="setcol">
+      <section class="card card-pow c-cam wait" id="camCard">
+        <div class="hd"><svg class="ico"><use href="#i-cam"/></svg><h2>Camera stream</h2>
+          <span class="chip" id="camChip"><span>–</span></span></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
+        <div class="seg" id="camStream" role="group" aria-label="Camera stream">
+          <button type="button" data-stream="main" aria-pressed="false" title="Sharp picture, finds smaller items">Main</button>
+          <button type="button" data-stream="sub" aria-pressed="false" title="Light 640×360 picture, the old setting">Sub</button>
+        </div>
+        <div class="pfield"><label><svg class="ico"><use href="#i-target"/></svg>Detection size</label>
+          <div class="seg" id="camSize" role="group" aria-label="Detection size">
+            <button type="button" data-size="640" aria-pressed="false" title="Fastest">640</button>
+            <button type="button" data-size="960" aria-pressed="false" title="Balanced, the default">960</button>
+            <button type="button" data-size="1280" aria-pressed="false" title="Smallest items, slowest">1280</button>
+          </div></div>
+        <p class="hint" id="camNow"><svg class="ico"><use href="#i-signal"/></svg><span>–</span></p>
+        <p class="hint bad" id="camNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+      </section>
+      <section class="card card-pow c-mdl wait" id="mdlCard">
+        <div class="hd"><svg class="ico"><use href="#i-target"/></svg><h2>Model</h2>
+          <span class="chip" id="mdlChip"><span>–</span></span></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
+        <div class="seg" id="mdlPick" role="group" aria-label="Detection model"></div>
+        <p class="hint" id="mdlNow"><svg class="ico"><use href="#i-ok"/></svg><span>–</span></p>
+        <p class="hint bad" id="mdlNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
+        <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>v7 was trained at 640 px, v8 at 960 px. Pick the detection size that suits the model.</p>
+      </section>
       <section class="card card-pow c-qt wait" id="quietCard">
         <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
         <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
@@ -1744,23 +1775,6 @@ body .fbar.quick button{padding:0 9px}
         <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
         <span class="grow"></span>
         <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence the buzzer. Tests use the saved settings.</p>
-      </section>
-      <section class="card card-pow c-cam wait" id="camCard">
-        <div class="hd"><svg class="ico"><use href="#i-cam"/></svg><h2>Camera stream</h2>
-          <span class="chip" id="camChip"><span>–</span></span></div>
-        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
-        <div class="seg" id="camStream" role="group" aria-label="Camera stream">
-          <button type="button" data-stream="main" aria-pressed="false" title="Sharp picture, finds smaller items">Main</button>
-          <button type="button" data-stream="sub" aria-pressed="false" title="Light 640×360 picture, the old setting">Sub</button>
-        </div>
-        <div class="pfield"><label><svg class="ico"><use href="#i-target"/></svg>Detection size</label>
-          <div class="seg" id="camSize" role="group" aria-label="Detection size">
-            <button type="button" data-size="640" aria-pressed="false" title="Fastest">640</button>
-            <button type="button" data-size="960" aria-pressed="false" title="Balanced, the default">960</button>
-            <button type="button" data-size="1280" aria-pressed="false" title="Smallest items, slowest">1280</button>
-          </div></div>
-        <p class="hint" id="camNow"><svg class="ico"><use href="#i-signal"/></svg><span>–</span></p>
-        <p class="hint bad" id="camNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
       </div>
     </div>
@@ -2987,6 +3001,7 @@ function paintScreen(s){
   fillPower(s);
   fillBuzzer(s);
   fillView(s);
+  fillModel(s);
   fillClean(s);
   if(!KIOSK || waking) return;
   const sv = $("saver");
@@ -3146,6 +3161,14 @@ $("pwrSave").onclick = async () => {
     if(st && sz && (st !== (cur.stream_wanted || cur.stream) || Number(sz) !== cur.detect_size))
       await post("/api/view", {stream: st, detect_size: Number(sz)});
   }
+  if(!$("mdlCard").classList.contains("wait")){
+    const pick = (document.querySelector("#mdlPick [aria-pressed=true]") || {dataset: {}}).dataset.model;
+    const cur = last || {};
+    if(pick && pick !== (cur.model_loading ? cur.model_wanted : cur.model)){
+      const j = await post("/api/model", {model: pick});
+      if(j && j.ok === false) toast(j.error || "That model could not be chosen", "i-warn");
+    }
+  }
   pwrDirty = false; toast("Settings saved", "i-save"); refresh(); pollBattery();
 };
 function pickView(attr, v){
@@ -3168,6 +3191,41 @@ function fillView(s){
   if(pwrDirty) return;
   pickView("stream", s.stream_wanted || s.stream);
   pickView("size", s.detect_size);
+}
+let mdlKey = "";
+function pickModel(name){
+  document.querySelectorAll("#mdlPick button").forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.model === name ? "true" : "false"));
+}
+function fillModel(s){
+  const card = $("mdlCard");
+  const list = Array.isArray(s.models) ? s.models : null;
+  card.classList.toggle("wait", !list || !s.model);
+  if(!list || !s.model) return;
+  const shown = list.length ? list : [{name: s.model, label: s.model_label || s.model}];
+  const key = shown.map(m => m.name).join("|");
+  if(key !== mdlKey){
+    mdlKey = key;
+    $("mdlPick").innerHTML = shown.map(m =>
+      `<button type="button" data-model="${m.name}" aria-pressed="false">${m.label}</button>`).join("");
+    document.querySelectorAll("#mdlPick button").forEach(b => b.addEventListener("click", () => {
+      if(!b.disabled){ pwrDirty = true; pickModel(b.dataset.model); }
+    }));
+  }
+  const one = shown.length < 2;
+  document.querySelectorAll("#mdlPick button").forEach(b => { b.disabled = one; });
+  const label = s.model_label || s.model;
+  const want = (shown.find(m => m.name === s.model_wanted) || {}).label;
+  $("mdlChip").querySelector("span").textContent = label.toUpperCase();
+  $("mdlNow").querySelector("span").textContent = s.model_loading && want
+    ? `Now running: ${label}. Loading ${want}…`
+    : `Now running: ${label}` + (one ? " (only model installed)" : "");
+  const note = $("mdlNote");
+  note.hidden = !s.model_note;
+  note.querySelector("span").textContent = s.model_note || "";
+  $("mdlChip").classList.toggle("off", !!s.model_note);
+  if(pwrDirty && !one) return;
+  pickModel(s.model_loading && s.model_wanted ? s.model_wanted : s.model);
 }
 document.querySelectorAll("#camStream button").forEach(b => b.addEventListener("click", () => pickView("stream", b.dataset.stream)));
 document.querySelectorAll("#camSize button").forEach(b => b.addEventListener("click", () => pickView("size", b.dataset.size)));

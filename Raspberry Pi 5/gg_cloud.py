@@ -63,7 +63,8 @@ STATE_KEYS = ("connected", "counts", "smoothed", "threshold", "rearm", "conf", "
               "buzzer_repeat", "buzzer_repeat_s", "quiet_on", "quiet_from", "quiet_to",
               "buzzer_available", "buzzer_note", "quiet_now", "quiet_note",
               "clean_mode", "clean_count", "clean_bytes",
-              "stream", "stream_note", "frame_size", "detect_size", "crop")
+              "stream", "stream_note", "frame_size", "detect_size", "crop",
+              "model", "models", "model_note")
 ALERT_KEYS = ("id", "timestamp", "event", "smoothed_count", "raw_count", "n_bottle", "n_bag",
               "n_food_container", "peak_confidence", "threshold_used", "read")
 
