@@ -2,7 +2,7 @@
 
 This is a guide for writing Chapter IV of the Garbage-Guard manuscript. You built most of the system, so the content is yours to decide. What follows is what the chapter has to answer, what has to stay consistent with Chapters I to III, and some notes on where the raw data already sits.
 
-Read it against `Documents/Garbage-Guard v19.docx` (the newest manuscript, 214 pages). Chapter IV starts on page 80 and currently holds bracketed placeholders only.
+Read it against `Documents/Garbage-Guard v21.docx` (the newest manuscript). It keeps the Chapter IV draft from v20 with every figure renumbered, and adds a first-pass Chapter V.
 
 ## What the chapter must do
 
@@ -49,11 +49,11 @@ This outline is close to HelmetGuard's (Project Description, Project Structure, 
 
 **Headings.** Chapter heading is `IV. RESULTS AND DISCUSSION` (Heading 1). Sections are `4.1`, `4.2` and so on (Heading 2). Anything below that uses unnumbered bold headings, the way Chapter III uses "Phase 1: Verification" and "Unit Testing".
 
-**Figure and table numbers.** From v19 the main text ends at Figure 45 and Table 9. In Chapter III, Figures 41 and 42 are now the unmodified junction box and the dimensioned enclosure drawing, the V-Model is Figure 43, the training pipeline Figure 44 and the Roboflow annotation sample Figure 45. Chapter IV starts at **Figure 46** and **Table 10** and counts up.
+**Figure and table numbers.** From v21 the main text of Chapter III ends at Figure 48 and Table 9. Figure 27 (in 3.1) is the dimensioned enclosure drawing with its three cable entries, Figure 42 the unmodified junction box, Figure 43 the Mitsushi power extension, Figure 44 the USB case fan, Figure 45 the V-Model and Scrum hybrid, Figure 46 the training pipeline, and Figures 47 and 48 the team's own Roboflow screenshots. Chapter IV now starts at **Figure 49** (the assembled unit) and runs to Figure 61; tables still start at **Table 10**. Your draft's numbers were shifted by three in v21, so number anything new from Figure 62.
 
 **Prototype photos.** The three photos of the finished prototype (closed unit with the touchscreen, side with fan and cable entries, opened enclosure) were taken out of Chapter III and belong in 4.1. They are in `Documents/Figures/Components/` as `Prototype Front.png`, `Prototype Side.png` and `Prototype Internal.png`. Appendix items keep their own letters (Figure G1, Listing H1), so don't renumber those.
 
-**Caption format.** Copy what Chapters II and III do: a bold line `Figure 46`, then the title on the next line in italics, then the figure. A source goes underneath as `Note.` followed by the citation. Tables use the same pattern with `Table 10` above the table. Refer to every figure and table in the text before it appears ("Figure 46 shows..."), and put the figure before its explanation where possible, which is Brian's layout ruling.
+**Caption format.** Copy what Chapters II and III do: a bold line `Figure 49`, then the title on the next line in italics, then the figure. A source goes underneath as `Note.` followed by the citation. Tables use the same pattern with `Table 10` above the table. Refer to every figure and table in the text before it appears ("Figure 49 shows..."), and put the figure before its explanation where possible, which is Brian's layout ruling.
 
 **Equations.** The Chapter III formulas are numbered (1) to (5) on the right: Precision (1), Recall (2), Accuracy (3), Success Rate (4), Average Latency (5). Refer to them by number ("Equation 1"). If you add a formula, write it in Word's equation editor (Cambria Math) and number it on the right starting at (6).
 
@@ -107,7 +107,7 @@ These came up while reading the manuscript against the code. Some need a decisio
 5. **Camera stream settings.** Section 3.4 says detection reads the main stream at 1280 x 720, 15 fps, H.264, cropped to the monitored area, with a 960 px detection size by default and the sub-stream as a fallback. Report the settings actually used in the field, because latency and small-object recall both depend on them. If they differ from Section 3.4, tell Brian so the two chapters agree.
 6. **Old limitation notes.** Section 10 of the Field Reference still describes an earlier model (recall about 0.70, food container weakest). For v7, bags are the weakest class and food containers are the strongest. Use the v7 figures.
 7. **"Good" equals "Neutral" in Table 9.** The usability target is a weighted mean of 2.61, which is the Neutral band. A panel member may ask why a neutral answer counts as passing. That's Brian's and the adviser's decision, not yours, but it affects how you word the evaluation results.
-8. **Roboflow, the V-Model and the model versions.** From v19, Chapter III covers Roboflow (Section 3.4 and Figure 45), the paired left and right arms of the V-Model, the retrain and re-test loop, and an Assembly and Installation Procedure that includes the threshold calibration steps. It says nine training runs so far (v1 to v8, plus v6b), v9 in training, and that v7 stays the default model and the one whose scores are reported. If v8 or v9 becomes the reported model, tell Brian so Chapter III and Figure 44 change with it. Chapter IV can refer back to all of this without introducing it again.
+8. **Roboflow, the V-Model and the model versions.** From v19, Chapter III covers Roboflow (Section 3.4 and Figures 47 and 48), a V-Model and Scrum hybrid (Figure 45: requirements and system design up front, sprints of software design, development and unit testing, then system and acceptance testing at the end), and an Assembly and Installation Procedure that includes the threshold calibration steps. It says nine training runs so far (v1 to v8, plus v6b), v9 in training, and that v7 stays the default model and the one whose scores are reported. If v8 or v9 becomes the reported model, tell Brian so Chapter III and Figure 46 change with it. Chapter IV can refer back to all of this without introducing it again.
 9. **Chapter V depends on this one.** Section 5.1 and 5.2 are still placeholders. Whatever findings you report here become the conclusions there, so a short list of your main findings at the end of your draft would help whoever writes Chapter V.
 
 ## A starting point, if useful
@@ -122,7 +122,7 @@ This is one way to open each section. Rewrite freely.
 ## Before handing it back
 
 - Every specific objective has a direct answer with a number and a Table 3 band.
-- Figures start at 46, tables at 10, and each is mentioned in the text before it appears.
+- New figures continue from 62, tables at the next free number after Table 17, and each is mentioned in the text before it appears.
 - Every test case ID from Tables 4 to 8 appears with a result, or the text says why it wasn't run.
 - Every cited author is in VIII. REFERENCES in APA 7.
 - Anything that contradicts Chapter I or III is flagged to Brian, not left in.
