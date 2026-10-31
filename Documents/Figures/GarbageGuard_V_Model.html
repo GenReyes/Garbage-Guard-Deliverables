@@ -1,15 +1,17 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Garbage-Guard Adapted V-Model</title>
 <style>
-@page { size:1040px 500px; margin:0 }
+@page { size:1040px 545px; margin:0 }
 *{margin:0;box-sizing:border-box}
 html,body{background:#DED4C8}
 body{width:1040px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style></head><body>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 500" width="1040" height="500">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 545" width="1040" height="545">
 <defs>
 <marker id="ae" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 <path d="M0,1 L9,5 L0,9 z" fill="#16130F"/></marker>
+<marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M0,1 L9,5 L0,9 z" fill="#B7791F"/></marker>
 <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 <path d="M0,1 L9,5 L0,9 z" fill="#16130F"/></marker>
 </defs>
@@ -17,12 +19,24 @@ body{width:1040px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 text { font-family:system-ui,-apple-system,"Segoe UI","DejaVu Sans",Roboto,sans-serif }
 .bt { font-size:15.5px; font-weight:800; fill:#FFFFFF; text-anchor:middle }
 .bs { font-size:10px; font-weight:500; fill:#FFFFFF; fill-opacity:.92; text-anchor:middle }
+.pl { font-size:10.5px; font-weight:700; fill:#16130F; text-anchor:middle }
+.lp { font-size:10.5px; font-weight:700; fill:#8A5A12 }
+.nt { font-size:10.5px; font-weight:500; fill:#4A4238 }
 .ph { font-size:12.5px; font-weight:800; fill:#6A6054; letter-spacing:.16em; text-anchor:middle }
 </style>
-<rect width="1040" height="500" fill="#DED4C8"/>
+<rect width="1040" height="545" fill="#DED4C8"/>
 <polygon points="114,74 344,74 394,160 164,160" fill="#16130F"/><polygon points="934,74 704,74 654,160 884,160" fill="#16130F"/><polygon points="174,176 404,176 454,262 224,262" fill="#16130F"/><polygon points="874,176 644,176 594,262 824,262" fill="#16130F"/><polygon points="234,278 464,278 514,364 284,364" fill="#16130F"/><polygon points="814,278 584,278 534,364 764,364" fill="#16130F"/><polygon points="284,380 764,380 714,466 334,466" fill="#16130F"/>
-<polygon points="110,70 340,70 390,156 160,156" fill="#2FB3A8" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="250.0" y="103.0" class="bt">Requirement Gathering</text><text x="250.0" y="122.0" class="bs">Scope and ISO/IEC 25010:2023</text><text x="250.0" y="135.0" class="bs">targets set with the adviser</text><polygon points="930,70 700,70 650,156 880,156" fill="#4FBF63" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="790.0" y="103.0" class="bt">Acceptance Testing</text><text x="790.0" y="122.0" class="bs">Developer indicators and</text><text x="790.0" y="135.0" class="bs">the end-user survey</text><polygon points="170,172 400,172 450,258 220,258" fill="#128C84" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="310.0" y="205.0" class="bt">System Design</text><text x="310.0" y="224.0" class="bs">Pi 5, IP camera, touchscreen,</text><text x="310.0" y="237.0" class="bs">UPS HAT, buzzer, enclosure</text><polygon points="870,172 640,172 590,258 820,258" fill="#2F9E44" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="730.0" y="205.0" class="bt">System Testing</text><text x="730.0" y="224.0" class="bs">The integrated system,</text><text x="730.0" y="237.0" class="bs">end to end at the creek</text><polygon points="230,274 460,274 510,360 280,360" fill="#0E6E68" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="370.0" y="307.0" class="bt">Software Design</text><text x="370.0" y="326.0" class="bs">YOLO26n, ROI and tracking,</text><text x="370.0" y="339.0" class="bs">SQLite, dashboard, Android app</text><polygon points="810,274 580,274 530,360 760,360" fill="#246F35" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="670.0" y="307.0" class="bt">Unit Testing</text><text x="670.0" y="326.0" class="bs">Model on the held-out set;</text><text x="670.0" y="339.0" class="bs">counter and ROI logic</text><polygon points="280,376 760,376 710,462 330,462" fill="#B7791F" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="520.0" y="409.0" class="bt">Prototyping and Development</text><text x="520.0" y="428.0" class="bs">Dataset annotation, YOLO26n training, NCNN export,</text><text x="520.0" y="441.0" class="bs">Pi integration and enclosure fabrication</text>
+<polygon points="110,70 340,70 390,156 160,156" fill="#2FB3A8" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="250.0" y="103.0" class="bt">Requirement Gathering</text><text x="250.0" y="122.0" class="bs">Scope and ISO/IEC 25010:2023</text><text x="250.0" y="135.0" class="bs">targets set with the adviser</text><polygon points="930,70 700,70 650,156 880,156" fill="#4FBF63" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="790.0" y="103.0" class="bt">Acceptance Testing</text><text x="790.0" y="122.0" class="bs">Developer indicators and</text><text x="790.0" y="135.0" class="bs">the end-user survey</text><polygon points="170,172 400,172 450,258 220,258" fill="#128C84" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="310.0" y="205.0" class="bt">System Design</text><text x="310.0" y="224.0" class="bs">Pi 5, IP camera, touchscreen,</text><text x="310.0" y="237.0" class="bs">UPS HAT, buzzer, enclosure</text><polygon points="870,172 640,172 590,258 820,258" fill="#2F9E44" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="730.0" y="205.0" class="bt">System Testing</text><text x="730.0" y="224.0" class="bs">The integrated system,</text><text x="730.0" y="237.0" class="bs">end to end at the creek</text><polygon points="230,274 460,274 510,360 280,360" fill="#0E6E68" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="370.0" y="307.0" class="bt">Software Design</text><text x="370.0" y="326.0" class="bs">YOLO26n, ROI and tracking,</text><text x="370.0" y="339.0" class="bs">SQLite, dashboard, Android app</text><polygon points="810,274 580,274 530,360 760,360" fill="#246F35" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="670.0" y="307.0" class="bt">Unit Testing</text><text x="670.0" y="326.0" class="bs">Model on the held-out set;</text><text x="670.0" y="339.0" class="bs">counter and ROI logic</text><polygon points="280,376 760,376 710,462 330,462" fill="#B7791F" stroke="#16130F" stroke-width="2.5" stroke-linejoin="round"/><text x="520.0" y="409.0" class="bt">Prototyping and Development</text><text x="520.0" y="428.0" class="bs">Roboflow annotation, YOLO26n training on an RTX 2070 Max-Q laptop,</text><text x="520.0" y="441.0" class="bs">NCNN export, Pi integration and enclosure fabrication</text>
 <line x1="379.0" y1="113.0" x2="661.0" y2="113.0" stroke="#16130F" stroke-width="2" stroke-dasharray="7 5" marker-start="url(#ab)" marker-end="url(#ae)"/><line x1="439.0" y1="215.0" x2="601.0" y2="215.0" stroke="#16130F" stroke-width="2" stroke-dasharray="7 5" marker-start="url(#ab)" marker-end="url(#ae)"/><line x1="499.0" y1="317.0" x2="541.0" y2="317.0" stroke="#16130F" stroke-width="2" stroke-dasharray="7 5" marker-start="url(#ab)" marker-end="url(#ae)"/>
-<line x1="58" y1="78" x2="228" y2="368" stroke="#16130F" stroke-width="3" marker-end="url(#ae)"/><line x1="812" y1="368" x2="982" y2="78" stroke="#16130F" stroke-width="3" marker-end="url(#ae)"/><text class="ph" transform="translate(124.0,234.1) rotate(59.6)">VERIFICATION PHASE</text><text class="ph" transform="translate(916.0,234.1) rotate(-59.6)">VALIDATION PHASE</text>
+<line x1="58" y1="78" x2="228" y2="368" stroke="#16130F" stroke-width="3" marker-end="url(#ae)"/><line x1="844" y1="314" x2="982" y2="78" stroke="#16130F" stroke-width="3" marker-end="url(#ae)"/><text class="ph" transform="translate(124.0,234.1) rotate(59.6)">VERIFICATION PHASE</text><text class="ph" transform="translate(916.0,234.1) rotate(-59.6)">VALIDATION PHASE</text>
+
+<text x="520" y="104" class="pl">Acceptance indicators planned here (Tables 6 to 8)</text>
+<text x="520" y="206" class="pl">System test cases (Table 5)</text>
+<text x="520" y="302" class="pl">Table 4</text>
+<path d="M 774,342 C 850,370 860,450 740,428" fill="none" stroke="#B7791F" stroke-width="3" marker-end="url(#ao)"/>
+<text x="838" y="452" class="lp">Retrain and re-test loop</text>
+<text x="838" y="466" class="lp">8 training runs (v1 to v7, v6b)</text>
+<text x="520" y="500" class="nt" text-anchor="middle">Dashed arrows pair each design stage with the test stage written alongside it.</text>
+<text x="520" y="516" class="nt" text-anchor="middle">Every retrained model returned to the vertex and climbed the right arm again before acceptance at the creek.</text>
 </svg>
 </body></html>
