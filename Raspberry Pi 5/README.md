@@ -66,7 +66,7 @@ hold secrets or change per device:
 - **`gg_settings.json`** — detection confidence, accumulation threshold,
   the ROI polygon, and the stream settings (`stream` main or sub,
   `detect_size` 640/960/1280, `crop` true or false). Also `model`, the
-  model folder picked in Settings (v7 by default). Generated automatically the first time the script
+  model folder picked in Settings (the field unit runs v8; v7 is the fallback). Generated automatically the first time the script
   runs, then it persists across restarts.
 
 Both are listed in the repo's `.gitignore`. If you clone this fresh, the
@@ -395,13 +395,13 @@ rather than a guess.
 
 Nothing here needs internet access to run, only to install.
 
-## Adding a new model (for example v8)
+## Adding a new model (for example v9)
 
-1. Export it to NCNN on the training PC or the Pi (`yolo export model=garbageguard_v8_best.pt format=ncnn imgsz=960`).
-2. Copy the folder into `~/gg/` with the name `garbageguard_v8_best_ncnn_model`.
+1. Export it to NCNN on the training PC or the Pi (`yolo export model=garbageguard_v9_best.pt format=ncnn imgsz=960`).
+2. Copy the folder into `~/gg/` with the name `garbageguard_v9_best_ncnn_model`.
    It must hold the `.param` and `.bin` files, plus `metadata.yaml` with the
    classes bottle, bag, food_container in that order.
-3. Open Settings → Model on the dashboard. v8 appears within a few seconds.
+3. Open Settings → Model on the dashboard. v9 appears within a few seconds.
    Pick it and press Save. The live view pauses for a few seconds while it loads.
 4. If it cannot load, or its classes are wrong, the Pi keeps the old model and
    the card says why. `--model <folder>` on the command line still overrides

@@ -40,16 +40,17 @@ Per class at the creek (mAP50): bottle 0.729, bag 0.179, food_container 0.871.
   code falls back to when no other model is chosen, or when the chosen one
   fails to load. Which model the unit runs is picked on the dashboard's Model
   card. The latency results are in Chapter IV of the manuscript.
-- v8 was run in the field session of 31 October 2026 through the dashboard's
-  Model card. Its scores are below; its weights are not in this folder.
+- The field unit runs v8 (below), chosen on the Model card. v9 is in
+  training and is expected to replace it.
 - `.gitignore` allows only this one `.pt` file. Other `.pt` files and the NCNN folder stay out of the repo.
 
-## garbageguard_v8 (weights not in the repo)
+## garbageguard_v8 (on the unit now, weights not in the repo)
 
 Retrained from v7 with the creek set relabelled, new bag images and field
 captures, at 960 px. Scored on the same frozen 807-image test set as v7, so
-the two are directly comparable. Source: Tables 10 and 11 of the manuscript
-(`Documents/Garbage-Guard v22.docx`).
+the two are directly comparable. Provisional: these are the figures in Tables
+10 and 11 of the manuscript draft (`Documents/Garbage-Guard v22.docx`) and
+have not been finalised by the training team.
 
 | Test set | Precision | Recall | mAP50 |
 |---|---|---|---|
@@ -61,3 +62,9 @@ Per class at the creek (mAP50): bottle 0.509, bag 0.174, food_container 0.807.
 v8 scores a little below v7 on the full test set and clearly below it at the
 creek. The field session of 31 October 2026 ran v8, and its latency on the Pi
 is reported in Chapter IV.
+
+## garbageguard_v9 (in training)
+
+Adds more creek photographs to training. Add its results here, in the same
+two tables, once it is scored on the frozen test set. To put it on the Pi,
+follow "Adding a new model" in `Raspberry Pi 5/README.md`.
