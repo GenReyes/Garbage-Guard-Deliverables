@@ -14,3 +14,4 @@ JavaScript.png | Unofficial JavaScript logo 2.svg | Public domain | Chris Willia
 AndroidStudio.png | Android Studio icon (2023).svg | CC BY 2.5 | Google | https://commons.wikimedia.org/wiki/File:Android_Studio_icon_(2023).svg | 2026-10-20
 Material.png | Google Material Design Logo.svg | Public domain | Google Inc. | https://commons.wikimedia.org/wiki/File:Google_Material_Design_Logo.svg | 2026-10-20
 JetpackCompose.png | Jetpack Compose logo.png | Apache License 2.0 | Google / Android Developers | https://commons.wikimedia.org/wiki/File:Jetpack_Compose_logo.png | 2026-10-20
+Roboflow.png | roboflow-logo-ink.png (Roboflow Brand Assets) | Roboflow brand asset, used unaltered per brand guidelines | Roboflow | https://media.roboflow.com/brand/roboflow-brand-assets.zip (from https://roboflow.com/brand) | 2026-10-31
