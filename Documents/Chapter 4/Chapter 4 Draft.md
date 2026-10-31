@@ -35,9 +35,9 @@ Figure 47 shows the side of the enclosure with the second case fan and the seale
 
 *Side View of the Enclosure Showing the Case Fan and Cable Entries*
 
-![](Figures/Fig_unit_side_old.jpg)
+![](Figures/Fig_unit_side.jpg)
 
-*Note.* This photograph was taken before the third cable entry was added. The finished enclosure has three entries: the mains lead, the camera cable, and the cable to the Wi-Fi repeater. CONFIRM: replace this photograph with a current one showing all three entries.
+*Note.* The three cable entries, from left to right: the Ethernet cable to the Wi-Fi extender, the 2-in-1 Ethernet and power cable to the camera, and the AC mains extension cable. The coil in the foreground is the camera cable.
 
 Figure 48 shows the inside of the enclosure with each part labelled.
 
