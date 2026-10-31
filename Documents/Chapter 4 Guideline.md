@@ -2,7 +2,7 @@
 
 This is a guide for writing Chapter IV of the Garbage-Guard manuscript. You built most of the system, so the content is yours to decide. What follows is what the chapter has to answer, what has to stay consistent with Chapters I to III, and some notes on where the raw data already sits.
 
-Read it against `Documents/Garbage-Guard v18.docx` (the newest manuscript, 215 pages). Chapter IV starts on page 81 and currently holds bracketed placeholders only.
+Read it against `Documents/Garbage-Guard v19.docx` (the newest manuscript, 214 pages). Chapter IV starts on page 80 and currently holds bracketed placeholders only.
 
 ## What the chapter must do
 
@@ -20,9 +20,9 @@ If a reader finishes Chapter IV and can't find a direct answer to each of these,
 
 ## The current outline (yours to change)
 
-v16 already lists these headings in the table of contents:
+The manuscript already lists these headings in the table of contents:
 
-| v16 heading | Placeholder says | CIT part |
+| Current heading | Placeholder says | CIT part |
 |---|---|---|
 | 4.1 Project Description | The finished prototype, where it was installed, what it does | 4.1 |
 | 4.2 Project Structure | Dashboard and app, tools used, screenshots mapped to requirements | 4.1 |
@@ -49,11 +49,13 @@ This outline is close to HelmetGuard's (Project Description, Project Structure, 
 
 **Headings.** Chapter heading is `IV. RESULTS AND DISCUSSION` (Heading 1). Sections are `4.1`, `4.2` and so on (Heading 2). Anything below that uses unnumbered bold headings, the way Chapter III uses "Phase 1: Verification" and "Unit Testing".
 
-**Figure and table numbers.** From v18 the main text ends at Figure 47 (Chapter III gained Figure 46, a Roboflow annotation sample, and Figure 47, the enclosure drawing) and Table 9. Chapter IV starts at **Figure 48** and **Table 10** and counts up. Appendix items keep their own letters (Figure G1, Listing H1), so don't renumber those.
+**Figure and table numbers.** From v19 the main text ends at Figure 45 and Table 9. In Chapter III, Figures 41 and 42 are now the unmodified junction box and the dimensioned enclosure drawing, the V-Model is Figure 43, the training pipeline Figure 44 and the Roboflow annotation sample Figure 45. Chapter IV starts at **Figure 46** and **Table 10** and counts up.
 
-**Caption format.** Copy what Chapters II and III do: a bold line `Figure 48`, then the title on the next line in italics, then the figure. A source goes underneath as `Note.` followed by the citation. Tables use the same pattern with `Table 10` above the table. Refer to every figure and table in the text before it appears ("Figure 48 shows..."), and put the figure before its explanation where possible, which is Brian's layout ruling.
+**Prototype photos.** The three photos of the finished prototype (closed unit with the touchscreen, side with fan and cable entries, opened enclosure) were taken out of Chapter III and belong in 4.1. They are in `Documents/Figures/Components/` as `Prototype Front.png`, `Prototype Side.png` and `Prototype Internal.png`. Appendix items keep their own letters (Figure G1, Listing H1), so don't renumber those.
 
-**Equations.** From v18 the Chapter III formulas are numbered (1) to (5) on the right: Precision (1), Recall (2), Accuracy (3), Success Rate (4), Average Latency (5). Refer to them by number ("Equation 1"). If you add a formula, write it in Word's equation editor (Cambria Math) and number it on the right starting at (6).
+**Caption format.** Copy what Chapters II and III do: a bold line `Figure 46`, then the title on the next line in italics, then the figure. A source goes underneath as `Note.` followed by the citation. Tables use the same pattern with `Table 10` above the table. Refer to every figure and table in the text before it appears ("Figure 46 shows..."), and put the figure before its explanation where possible, which is Brian's layout ruling.
+
+**Equations.** The Chapter III formulas are numbered (1) to (5) on the right: Precision (1), Recall (2), Accuracy (3), Success Rate (4), Average Latency (5). Refer to them by number ("Equation 1"). If you add a formula, write it in Word's equation editor (Cambria Math) and number it on the right starting at (6).
 
 **The numbers in Chapter III.** Chapter IV reports against what Chapter III promised, so these must line up:
 
@@ -96,16 +98,16 @@ Copy the database and snapshots off the Pi before anyone uses the History tab's 
 
 ## Things that don't line up yet
 
-These came up while reading v16 against the code. Some need a decision from you, some from Brian or Prof. Macalisang. Settle them before the numbers go in, since each one changes how a result is reported.
+These came up while reading the manuscript against the code. Some need a decision from you, some from Brian or Prof. Macalisang. Settle them before the numbers go in, since each one changes how a result is reported.
 
 1. **Accuracy versus precision for Objective 1.** Section 1.2 and TC_UNIT_01 grade the model on precision, recall and mAP@0.5. Table 3, row 1, grades it on "percentage of correct garbage recognition" and the Accuracy formula uses True Negatives, which object detection doesn't really have. Decide which single number gets read against the Table 3 scale. Precision fits the 80% target in Section 1.3. Report recall and mAP@0.5 beside it either way.
 2. **Which test set is the headline.** On the full test set v7 reaches 0.852 precision (Good). On creek images only it reaches 0.742 (Fair). Both are real and both belong in the chapter. Which one answers the objective is your call, but the other one should not be left out.
 3. **What "latency" measures.** Chapter III defines it as frame capture time to detection completion. The code times the `model.track()` call, so it covers inference and tracking but not camera capture or drawing. Either describe exactly what was timed, or ask Brian to adjust the Chapter III wording. The code reports milliseconds and Table 3 is in seconds, so convert.
-4. **The "Successful Trials / 10" column.** Tables 4 to 6 count successes out of ten trials, but TC_UNIT_01 is one evaluation run on the test set and TC_ACC_03 is a log review. The v16 placeholder also mentions "Pass/Fail columns" that the tables don't have. Fill in what makes sense for each case and tell Brian what column changes Chapter III needs.
-5. **Camera stream settings.** Section 3.4 in v18 says detection reads the main stream at 1280 x 720, 15 fps, H.264, cropped to the monitored area, with a 960 px detection size by default and the sub-stream as a fallback. Report the settings actually used in the field, because latency and small-object recall both depend on them. If they differ from Section 3.4, tell Brian so the two chapters agree.
+4. **The "Successful Trials / 10" column.** Tables 4 to 6 count successes out of ten trials, but TC_UNIT_01 is one evaluation run on the test set and TC_ACC_03 is a log review. The current placeholder also mentions "Pass/Fail columns" that the tables don't have. Fill in what makes sense for each case and tell Brian what column changes Chapter III needs.
+5. **Camera stream settings.** Section 3.4 says detection reads the main stream at 1280 x 720, 15 fps, H.264, cropped to the monitored area, with a 960 px detection size by default and the sub-stream as a fallback. Report the settings actually used in the field, because latency and small-object recall both depend on them. If they differ from Section 3.4, tell Brian so the two chapters agree.
 6. **Old limitation notes.** Section 10 of the Field Reference still describes an earlier model (recall about 0.70, food container weakest). For v7, bags are the weakest class and food containers are the strongest. Use the v7 figures.
 7. **"Good" equals "Neutral" in Table 9.** The usability target is a weighted mean of 2.61, which is the Neutral band. A panel member may ask why a neutral answer counts as passing. That's Brian's and the adviser's decision, not yours, but it affects how you word the evaluation results.
-8. **Roboflow, the V-Model and the model versions.** From v18, Chapter III covers Roboflow (Section 3.4 and Figure 46), the paired left and right arms of the V-Model, the retrain and re-test loop, and an Assembly and Installation Procedure that includes the threshold calibration steps. It says nine training runs so far (v1 to v8, plus v6b), v9 in training, and that v7 stays the default model and the one whose scores are reported. If v8 or v9 becomes the reported model, tell Brian so Chapter III and Figure 44 change with it. Chapter IV can refer back to all of this without introducing it again.
+8. **Roboflow, the V-Model and the model versions.** From v19, Chapter III covers Roboflow (Section 3.4 and Figure 45), the paired left and right arms of the V-Model, the retrain and re-test loop, and an Assembly and Installation Procedure that includes the threshold calibration steps. It says nine training runs so far (v1 to v8, plus v6b), v9 in training, and that v7 stays the default model and the one whose scores are reported. If v8 or v9 becomes the reported model, tell Brian so Chapter III and Figure 44 change with it. Chapter IV can refer back to all of this without introducing it again.
 9. **Chapter V depends on this one.** Section 5.1 and 5.2 are still placeholders. Whatever findings you report here become the conclusions there, so a short list of your main findings at the end of your draft would help whoever writes Chapter V.
 
 ## A starting point, if useful
@@ -120,7 +122,7 @@ This is one way to open each section. Rewrite freely.
 ## Before handing it back
 
 - Every specific objective has a direct answer with a number and a Table 3 band.
-- Figures start at 48, tables at 10, and each is mentioned in the text before it appears.
+- Figures start at 46, tables at 10, and each is mentioned in the text before it appears.
 - Every test case ID from Tables 4 to 8 appears with a result, or the text says why it wasn't run.
 - Every cited author is in VIII. REFERENCES in APA 7.
 - Anything that contradicts Chapter I or III is flagged to Brian, not left in.
