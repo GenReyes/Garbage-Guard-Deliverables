@@ -2,7 +2,7 @@
 new Figures 44/45 images, Figure 46, signed Testing Permit page 2.
 
 python build_v18.py IN.docx OUT.docx ASSET_DIR
-ASSET_DIR holds: vmodel.png, pipeline.png, permit_p2.jpg,
+ASSET_DIR holds: vmodel.png, pipeline.png, permit_p2.jpg, enclosure.png,
                  roboflow_logo.png, roboflow_annotate.png
 """
 import copy
@@ -176,18 +176,21 @@ V2 = ("The figure should not be read as one line running from the top left to th
       "software design of the model, the counter and the latency log. In a waterfall model, "
       "testing is planned after development ends. Here, every design decision already had a "
       "test waiting for it before the part was built.")
-V3 = ("In practice the V was travelled many times, not once. The detection model was "
-      "trained eight times (v1 to v7, plus a v6b run), and each retraining sent the work "
+V3 = ("In practice the V was travelled many times, not once. The detection model has been "
+      "trained nine times so far (v1 to v8, plus a v6b run), with a v9 that adds more creek "
+      "photographs in training at the time of writing, and each retraining sent the work "
       "back to the vertex and up the right arm again. The new weights were scored on the "
       "held-out test partition (TC_UNIT_01), exported to NCNN and loaded on the Raspberry Pi "
       "as the default model, and the system cases that depend on detection, TC_SYS_01, "
       "TC_SYS_06 and TC_SYS_07, were repeated with them. The test partition changed as the "
       "dataset was rebuilt between the early runs, so the scores of v5 and v6b cannot be "
       "compared with those of v7. With v7 its 807 images were frozen, and any later model "
-      "is measured against the same set. Changes outside the model followed the same loop. "
+      "is measured against the same set. The v8 model, trained with about 800 photographs "
+      "taken at the creek, went through the same cycle, while v7 remains the default model "
+      "on the unit and the one whose scores are reported in this paper. Changes outside the model followed the same loop. "
       "When the vibration motor was removed from the unit, the alert delivery case "
       "(TC_SYS_09) was repeated with the buzzer alone, and when detection moved from the "
-      "camera's sub-stream to a crop of the 4 MP main stream, the detection and region cases "
+      "camera's sub-stream to a crop of the main stream, the detection and region cases "
       "were run again because every item now covered more pixels. Acceptance testing at the "
       "creek is the one stage meant to run a single time, on the final build.")
 V4 = ("Roboflow, the platform used to label the dataset, sits at the vertex of the V and not "
@@ -321,6 +324,184 @@ set_runs(p._p, [(p.text.replace(
     "Acceptance testing is the partner of requirement gathering, and its indicators were set "
     "with the adviser during that stage."), False)])
 
+
+# ------------------------------------------- camera stream paragraph (out of date)
+i_cam = find("The camera operates from a 12V input power source")
+set_runs(paras()[i_cam]._p, [(
+    "The camera operates from a 12 V input power source and not from a power over Ethernet "
+    "(PoE) cable, which is used solely for data transfer. Garbage-Guard reads the camera's main stream, set to 1280 x 720 at 15 frames per second "
+    "in H.264, and crops each frame to the monitored area before it reaches the model, which "
+    "runs at a detection size of 960 pixels by default. Cropping keeps the detail of the main "
+    "stream inside the area that matters, so a floating item covers more pixels than it did on "
+    "the 640 x 360 sub-stream that earlier builds used. At 1920 x 1080 the Pi could not decode "
+    "the stream fast enough and the picture fell six to seven seconds behind; at 1280 x 720 it "
+    "runs about one second behind on the touchscreen. The sub-stream remains available from "
+    "the Settings tab as a fallback.", False)])
+
+# ------------------------------------------- Figure 47 enclosure drawing and installation
+i_35 = find("3.5 Project Development", exact=True)
+i_port = find("The prototype was made portable", start=i_35)
+i_f46 = find("Figure 46", start=i_35, exact=True)
+port = paras()[i_port]._p
+
+
+def figure(num, title, img_path, docpr):
+    i_f = find("Figure 46", start=i_35, exact=True)
+    c1 = clone(paras()[i_f]._p)
+    for t in c1.iter(qn("w:t")):
+        t.text = f"Figure {num}"
+    for bs in c1.iter(qn("w:bookmarkStart")):
+        bs.set(qn("w:name"), f"_FigMk{num}")
+        bs.set(qn("w:id"), str(900 + num))
+    for be in c1.iter(qn("w:bookmarkEnd")):
+        be.set(qn("w:id"), str(900 + num))
+    c2 = clone(paras()[i_f + 1]._p)
+    ts = list(c2.iter(qn("w:t")))
+    for t in ts:
+        t.text = ""
+    ts[0].text = title
+    im = clone(paras()[i_f + 2]._p)
+    swap_image(im, img_path)
+    unique_docpr(im, docpr)
+    return [c1, c2, im]
+
+
+i_body = i_port
+E47 = ("Figure 47 gives the outside dimensions of the enclosure in front and side view. The "
+       "front door carries the 7-inch touchscreen behind a cut-out, so the dashboard can be "
+       "read and touched without opening the box, and a key lock keeps the door shut at the "
+       "site. A USB case fan is fitted on each side wall, and the cable entries for the mains "
+       "lead and the camera cables sit low on the side and are sealed with rubber sealant. The "
+       "camera is not drawn. It is mounted outside, apart from the box, and joined to it by its "
+       "cables only.")
+els = figure(47, "Front and Side Views of the Garbage-Guard Enclosure with Dimensions",
+             A("enclosure.png"), 900300)
+els.append(new_para(i_body, [(E47, False)]))
+
+i_h4tpl = find("Requirement Gathering", start=i_35, exact=True)
+i_h5tpl = find("1. Classification Evaluation", start=i_35)
+els.append(new_para(i_h4tpl, [("Assembly and Installation Procedure", False)]))
+els.append(new_para(i_body, [(
+    "The unit was assembled and installed in the order below. The order matters at two points: "
+    "the camera has to be in its final position before the monitored area is drawn, and the "
+    "threshold is set only after the dashboard count has been compared with a hand count at the "
+    "site.", False)]))
+STEPS_A = [
+    "The Waveshare UPS HAT (E) is fixed under the Raspberry Pi 5 so that its pogo pins meet the "
+    "power pads on the underside of the board, and the four 21700 cells are loaded. The Active "
+    "Cooler is attached to the Pi.",
+    "The Waveshare PCIe adapter is connected to the Pi's PCIe connector by its ribbon cable and "
+    "the KingSpec SSD is fitted to it. The microSD card holding Raspberry Pi OS goes into the "
+    "Pi's card slot.",
+    "The buzzer module is wired to the 40-pin header: VCC to pin 17 (3.3 V), IN to pin 32 "
+    "(GPIO12) and GND to pin 34.",
+    "The board stack is fixed inside the junction box, and the touchscreen is mounted behind the "
+    "cut-out in the door and connected to the Pi by micro-HDMI for video and USB for touch.",
+    "The two USB case fans are mounted on the side walls. The fans and the UPS charger are "
+    "plugged into the extension lead, and the cable entries are sealed with rubber sealant once "
+    "the cables are through.",
+]
+STEPS_B = [
+    "The enclosure is placed under cover at the site. Only the camera is installed outside.",
+    "The camera is mounted above the water and aimed along the creek surface. Its Ethernet "
+    "cable runs to the Pi's Ethernet port, and its power plug to the 5 V to 12 V step-up cable "
+    "on the UPS HAT's USB-A output.",
+    "The USB-to-Ethernet adapter is cabled to the Wi-Fi repeater, and the repeater is set from "
+    "its setup page to join the site's wireless network or a phone hotspot.",
+    "The extension lead is plugged into the mains and the Pi powers up. The launcher checks the "
+    "camera, opens the dashboard full screen and starts detection; if no network is in range, "
+    "the Wi-Fi setup screen appears first.",
+    "With the camera in its final position, the operator presses Draw on the Monitor tab, taps "
+    "points along the waterline and presses Apply. The monitored area is saved and reloaded "
+    "after every restart.",
+    "The threshold is calibrated on site. Over several sessions the dashboard's item count is "
+    "compared with a hand count of the items visible on the water at the same moment, with the "
+    "time and lighting recorded, and the Accumulation Limit in the Settings tab is set so that "
+    "the alert fires at the real count wanted. The default is 20 items, re-arming at 15.",
+    "A test alert is raised from the Settings tab to confirm that the dashboard, the buzzer and "
+    "the Android application all respond before the unit is left running.",
+]
+
+
+def step(n, text):
+    e = new_para(i_body, [(f"{n}.\t{text}", False)])
+    ppr = e.find(qn("w:pPr"))
+    for old in ppr.findall(qn("w:ind")):
+        ppr.remove(old)
+    ind = ppr.makeelement(qn("w:ind"), {qn("w:left"): "720", qn("w:hanging"): "360"})
+    ppr.append(ind)
+    tabs = ppr.makeelement(qn("w:tabs"), {})
+    tabs.append(tabs.makeelement(qn("w:tab"), {qn("w:val"): "left", qn("w:pos"): "720"}))
+    ppr.insert(0, tabs)
+    return e
+
+
+els.append(new_para(i_h5tpl, [("Assembly of the Unit", False)]))
+n = 1
+for t in STEPS_A:
+    els.append(step(n, t)); n += 1
+els.append(new_para(i_h5tpl, [("Installation at the Creek", False)]))
+for t in STEPS_B:
+    els.append(step(n, t)); n += 1
+insert_after(port, els)
+
+# ------------------------------------------- number the Chapter III formulas
+M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
+i_35 = find("3.5 Project Development", exact=True)
+i_iv = find("IV. RESULTS AND DISCUSSION", start=i_35, exact=True)
+eqs = [paras()[i]._p for i in range(i_35, i_iv)
+       if paras()[i]._p.find(".//" + M + "oMath") is not None]
+
+
+def number_eq(pel, num):
+    ppr = pel.find(qn("w:pPr"))
+    for j in ppr.findall(qn("w:jc")):
+        ppr.remove(j)
+    tabs = ppr.makeelement(qn("w:tabs"), {})
+    tabs.append(tabs.makeelement(qn("w:tab"), {qn("w:val"): "center", qn("w:pos"): "4320"}))
+    tabs.append(tabs.makeelement(qn("w:tab"), {qn("w:val"): "right", qn("w:pos"): "8640"}))
+    ppr.insert(0, tabs)
+    def tabrun(text=None):
+        r = pel.makeelement(qn("w:r"), {})
+        r.append(r.makeelement(qn("w:tab"), {}))
+        if text:
+            t = r.makeelement(qn("w:t"), {}); t.text = text; r.append(t)
+        return r
+    ppr.addnext(tabrun())
+    pel.append(tabrun(f"({num})"))
+
+
+first = eqs[0]
+kids = [k for k in first if k.tag != qn("w:pPr")]
+groups, cur = [], []
+for k in kids:
+    cur.append(k)
+    if k.tag == M + "oMath":
+        groups.append(cur); cur = []
+assert len(groups) == 3, f"expected three formulas in first equation line, got {len(groups)}"
+new_ps = []
+for g in groups:
+    e = copy.deepcopy(first)
+    for k in [k for k in e if k.tag != qn("w:pPr")]:
+        e.remove(k)
+    for k in g:
+        kc = copy.deepcopy(k)
+        if kc.tag == qn("w:r"):
+            t = kc.find(qn("w:t"))
+            if t is not None and t.text and t.text.strip() in (",", ""):
+                continue
+            if t is not None and t.text:
+                t.text = t.text.lstrip(" ,")
+        e.append(kc)
+    new_ps.append(e)
+insert_after(first, new_ps)
+first.getparent().remove(first)
+order = new_ps + eqs[1:]
+nums = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+assert len(order) == len(nums), f"found {len(order)} formula lines, expected {len(nums)}"
+for pel, num in zip(order, nums):
+    number_eq(pel, num)
+
 # ------------------------------------------- List of Figures row 46
 xml_rows = list(body.iter(qn("w:tr")))
 row45 = None
@@ -338,6 +519,14 @@ row46.find(".//" + qn("w:hyperlink")).set(qn("w:anchor"), "_FigMk46")
 for it in row46.iter(qn("w:instrText")):
     it.text = " PAGEREF _FigMk46 \\h "
 row45.addnext(row46)
+row47 = copy.deepcopy(row46)
+ts = list(row47.iter(qn("w:t")))
+ts[0].text = "47"
+ts[1].text = "Front and Side Views of the Garbage-Guard Enclosure with Dimensions"
+row47.find(".//" + qn("w:hyperlink")).set(qn("w:anchor"), "_FigMk47")
+for it in row47.iter(qn("w:instrText")):
+    it.text = " PAGEREF _FigMk47 \\h "
+row46.addnext(row47)
 
 # ------------------------------------------- References
 i_refs = find("VIII. REFERENCES", exact=True)
