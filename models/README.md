@@ -36,10 +36,10 @@ Per class at the creek (mAP50): bottle 0.729, bag 0.179, food_container 0.871.
 ### Notes
 
 - These scores are not comparable to the v5 or v6b scores, because the test set is different.
-- Status: the NCNN export runs on the Raspberry Pi 5 and is the Pi's default
-  model. On the main stream cropped to the monitored area at 960 px, the Pi
-  takes a median of about 190 ms per frame. The full latency results are in
-  Chapter IV of the manuscript.
+- Status: the NCNN export runs on the Raspberry Pi 5. v7 is the model the
+  code falls back to when no other model is chosen, or when the chosen one
+  fails to load. Which model the unit runs is picked on the dashboard's Model
+  card. The latency results are in Chapter IV of the manuscript.
 - v8 was run in the field session of 31 October 2026 through the dashboard's
   Model card. Its scores are below; its weights are not in this folder.
 - `.gitignore` allows only this one `.pt` file. Other `.pt` files and the NCNN folder stay out of the repo.
@@ -59,4 +59,5 @@ the two are directly comparable. Source: Tables 10 and 11 of the manuscript
 Per class at the creek (mAP50): bottle 0.509, bag 0.174, food_container 0.807.
 
 v8 scores a little below v7 on the full test set and clearly below it at the
-creek, so v7 stays the Pi's default model.
+creek. The field session of 31 October 2026 ran v8, and its latency on the Pi
+is reported in Chapter IV.
