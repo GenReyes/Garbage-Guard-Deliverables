@@ -1,7 +1,8 @@
 import sys, math; from ggfig import *
 W,H=1180,672
 K=0.35          # slope of the V edges (dx per dy)
-BLUE="#1C7ED6"
+BLUE="#0B5CAD"   # darker than before so it stands apart from the black outlines
+HALO="#FFFFFF"
 o=[]
 def panel(pts,fill):
     p=" ".join(f"{x:.1f},{y:.1f}" for x,y in pts); ps=" ".join(f"{x+6:.1f},{y+6:.1f}" for x,y in pts)
@@ -34,10 +35,13 @@ box(M(c2),y2,BW,BH,"System Testing","#237A35")
 # arrows down the left, up the right
 o.append(arrow([(c1+6,y1+BH/2+4),(c1+6+K*(y2-y1-BH-8),y2-BH/2-4)],2.6))
 o.append(arrow([(M(c1+6+K*(y2-y1-BH-8)),y2-BH/2-4),(M(c1+6),y1+BH/2+4)],2.6))
-# test-plan links (blue, dashed, two-headed)
-for y,(a,b),lab in ((y1,(c1+BW/2+10,M(c1)-BW/2-10),"ACCEPTANCE TEST PLAN"),(y2,(c2+BW/2+10,M(c2)-BW/2-10),"SYSTEM TEST PLAN")):
-    o.append(arrow([(a,y),(b,y)],2.6,dashed=True,start=True).replace(f'stroke="{INK}"',f'stroke="{BLUE}"'))
-    o.append(f'<text x="590" y="{y-9}" class="tl" text-anchor="middle">{lab}</text>')
+# test-plan links (blue, dashed, two-headed) on a white halo, label in a white pill between the panels
+for y,(a,b),lab in ((y1,(c1+BW/2+10,M(c1)-BW/2-10),("ACCEPTANCE","TEST PLAN")),(y2,(c2+BW/2+10,M(c2)-BW/2-10),("SYSTEM","TEST PLAN"))):
+    o.append(f'<line x1="{a}" y1="{y}" x2="{b}" y2="{y}" stroke="{HALO}" stroke-width="9" stroke-linecap="round"/>')
+    o.append(arrow([(a,y),(b,y)],3.2,dashed=True,start=True).replace(f'stroke="{INK}"',f'stroke="{BLUE}"'))
+    LW,LH=96,38
+    o.append(f'<rect x="{590-LW/2}" y="{y-LH/2}" width="{LW}" height="{LH}" rx="9" fill="{HALO}" stroke="{BLUE}" stroke-width="2.2"/>')
+    o.append(f'<text x="590" y="{y-3}" class="tl" text-anchor="middle">{lab[0]}</text><text x="590" y="{y+12}" class="tl" text-anchor="middle">{lab[1]}</text>')
 # scrum pills
 PW,PH=200,50
 sd=(590-172,394); ut=(590+172,394); dv=(590,512)
@@ -48,9 +52,10 @@ box(*dv,PW,PH,"Development","#E8590C",25)
 o.append(arrow([(c2+10,y2+BH/2+6),(sd[0]-30,sd[1]-PH/2-6)],2.6))
 o.append(arrow([(M(sd[0]-30),sd[1]-PH/2-6),(M(c2+10),y2+BH/2+6)],2.6))
 # sprint circle on top, with arrowheads (left -> bottom -> right -> top)
-cx,cy,r=590,412,82
-o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#FFFFFF" stroke-width="7"/>')
-o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{BLUE}" stroke-width="3" stroke-dasharray="9 6"/>')
+# kept inside the Scrum panel and clear of the three pills
+cx,cy,r=590,410,62
+o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{HALO}" stroke="{HALO}" stroke-width="9"/>')
+o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{BLUE}" stroke-width="3.4" stroke-dasharray="9 6"/>')
 for th in (135,315):
     t=math.radians(th); px,py=cx+r*math.cos(t),cy+r*math.sin(t)
     dx,dy=math.sin(t),-math.cos(t)   # direction of decreasing angle
@@ -69,8 +74,8 @@ o.append(arrow([(ex(B2)+10,624),(M(ex(B2))-10,624)],3))
 o.append('<text x="590" y="652" class="ph" text-anchor="middle">DEVELOPMENT PHASE</text>')
 html=page("Garbage-Guard V-Model and Scrum Hybrid",W,H,"".join(o))
 html=html.replace("</style>\n<rect",""".bx { font-size:15px; font-weight:800; fill:#FFFFFF }
-.sp { font-size:13px; font-weight:800; fill:#1C7ED6; letter-spacing:.12em }
-.tl { font-size:10.5px; font-weight:800; fill:#1C7ED6; letter-spacing:.1em }
+.sp { font-size:14px; font-weight:800; fill:#0B5CAD; letter-spacing:.12em }
+.tl { font-size:11.5px; font-weight:800; fill:#0B5CAD; letter-spacing:.08em }
 .ph { font-size:14px; font-weight:800; fill:#6A6054; letter-spacing:.18em }
 </style>
 <rect""",1)
