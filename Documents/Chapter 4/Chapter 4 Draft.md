@@ -47,7 +47,7 @@ Figure 48 shows the inside of the enclosure with each part labelled.
 
 ![](Figures/Fig_internal_labelled.jpg)
 
-*Note.* (a) Back of the 7-inch 1024 x 600 HDMI touchscreen, mounted on the door; (b) USB case fan; (c) Raspberry Pi 5 board stack (CONFIRM: Raspberry Pi 5 with the NVMe HAT on top); (d) Waveshare UPS HAT (E) with four 21700 lithium-ion cells; (e) passive buzzer module; (f) 2-in-1 Ethernet and power cable to the camera; (g) power adapters (CONFIRM which); (h) CONFIRM: the black unit with the red display.
+*Note.* (a) Back of the 7-inch 1024 x 600 HDMI touchscreen, mounted on the door; (b) USB fan; (c) board stack, from top to bottom: NVMe HAT, Raspberry Pi 5 with the Active Cooler, and Waveshare UPS HAT (E); (d) the four 21700 lithium-ion cells of the UPS HAT (E); (e) passive buzzer module; (f) 2-in-1 Ethernet and power cable to the camera; (g) official Raspberry Pi 27 W (5.1 V, 5 A) power adapter, plugged into the AC mains extension; (h) 5 V to 12 V USB to DC barrel jack step-up cable for the camera, connected to a USB hub.
 
 During the session on October 31, 2026, the unit ran from 11:30 AM to 1:00 PM in sunny weather with normal daylight. Figure 49 shows the touchscreen during that session, with the monitored area drawn over the water and detections labelled by class, identity number and confidence.
 
@@ -65,7 +65,7 @@ The structure is explained by following one camera frame from the moment it is c
 
 **Camera**
 
-The Hikvision HiWatch HWI-B140H sends its video over RTSP through an Ethernet cable connected directly to the Raspberry Pi 5. The camera is powered from the UPS HAT through a 5 V to 12 V step-up cable and a 2-in-1 Ethernet and power cable, so the camera and the Raspberry Pi share one battery. The camera has two streams. The main stream, used for detection, was set to 1280 x 720 at 15 frames per second with H.264 encoding. The sub-stream, at 640 x 360, is kept as a fallback. The main stream at 1920 x 1080 was also tried, but the Raspberry Pi could not decode it fast enough and the picture fell six to seven seconds behind, so 1280 x 720 was chosen. At that setting the picture on the touchscreen was about one second behind the scene.
+The Hikvision HiWatch HWI-B140H sends its video over RTSP through an Ethernet cable connected directly to the Raspberry Pi 5. The camera is powered from the UPS HAT through a USB hub, a 5 V to 12 V step-up cable and a 2-in-1 Ethernet and power cable, so the camera and the Raspberry Pi share one battery. The camera has two streams. The main stream, used for detection, was set to 1280 x 720 at 15 frames per second with H.264 encoding. The sub-stream, at 640 x 360, is kept as a fallback. The main stream at 1920 x 1080 was also tried, but the Raspberry Pi could not decode it fast enough and the picture fell six to seven seconds behind, so 1280 x 720 was chosen. At that setting the picture on the touchscreen was about one second behind the scene.
 
 **Raspberry Pi 5**
 
