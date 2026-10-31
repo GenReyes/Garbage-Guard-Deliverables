@@ -18,7 +18,7 @@ The earlier shared Google Doc is still reachable through
 
 | Item | What it is |
 |---|---|
-| `Garbage-Guard v20.docx`, `Garbage-Guard v21.docx` | The manuscript. v21 is the newest |
+| `Garbage-Guard v20.docx` and later | The manuscript, one file per version. The highest number is the newest |
 | [`Chapter 4/`](Chapter%204/) | Field week material for Chapter IV: the working draft, the printable Field Kit, and the photographs and model plots used as figures |
 | [`Figures/`](Figures/) | The diagrams in the manuscript (block diagram, architecture, flowchart, V-Model, enclosure drawing, training pipeline, Gantt chart, conceptual framework), each as an HTML source and a PNG, plus component photos (`Components/`), software logos (`Logos/`) and images taken from cited studies (`Sources/`), each folder with its credits in `sources.txt` |
 | [`References/`](References/) | A copy of every cited source, named `(Author, Year)`. `index.md` lists them |

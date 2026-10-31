@@ -40,6 +40,23 @@ Per class at the creek (mAP50): bottle 0.729, bag 0.179, food_container 0.871.
   model. On the main stream cropped to the monitored area at 960 px, the Pi
   takes a median of about 190 ms per frame. The full latency results are in
   Chapter IV of the manuscript.
-- A v8 model was run in the field session of 31 October 2026 through the
-  dashboard's Model card. Its weights and scores are not in this folder yet.
+- v8 was run in the field session of 31 October 2026 through the dashboard's
+  Model card. Its scores are below; its weights are not in this folder.
 - `.gitignore` allows only this one `.pt` file. Other `.pt` files and the NCNN folder stay out of the repo.
+
+## garbageguard_v8 (weights not in the repo)
+
+Retrained from v7 with the creek set relabelled, new bag images and field
+captures, at 960 px. Scored on the same frozen 807-image test set as v7, so
+the two are directly comparable. Source: Tables 10 and 11 of the manuscript
+(`Documents/Garbage-Guard v22.docx`).
+
+| Test set | Precision | Recall | mAP50 |
+|---|---|---|---|
+| Full (807 images) | 0.829 | 0.674 | 0.728 |
+| Creek only (180 images) | 0.567 | 0.499 | 0.497 |
+
+Per class at the creek (mAP50): bottle 0.509, bag 0.174, food_container 0.807.
+
+v8 scores a little below v7 on the full test set and clearly below it at the
+creek, so v7 stays the Pi's default model.
