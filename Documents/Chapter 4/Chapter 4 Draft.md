@@ -37,7 +37,7 @@ Figure 47 shows the side of the enclosure with the second case fan and the seale
 
 ![](Figures/Fig_unit_side.jpg)
 
-*Note.* The three cable entries, from left to right: the Ethernet cable to the Wi-Fi extender, the 2-in-1 Ethernet and power cable to the camera, and the AC mains extension cable. The coil in the foreground is the camera cable.
+*Note.* The three cable entries, from left to right: the AC mains extension cable, the Ethernet cable to the Wi-Fi extender, and the 2-in-1 Ethernet and power cable to the camera. The coil in the foreground is the camera cable.
 
 Figure 48 shows the inside of the enclosure with each part labelled.
 
