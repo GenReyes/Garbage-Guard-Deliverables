@@ -389,8 +389,9 @@ rather than a guess.
 - The NCNN model folder, `garbageguard_v7_best_ncnn_model/` (not in this
   repo — it's a 9.3 MB binary; make it on the Pi with
   `yolo export model=garbageguard_v7_best.pt format=ncnn imgsz=640`, or copy
-  it over directly). To run another model, use `--model <folder>`; v5 is
-  `garbageguard_v5_best_ncnn_model/`
+  it over directly). It is the fallback, so keep it even when another model
+  is in use. The field unit also holds `garbageguard_v8_best_ncnn_model/`,
+  which it runs now. `--model <folder>` picks a model for one run
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.
