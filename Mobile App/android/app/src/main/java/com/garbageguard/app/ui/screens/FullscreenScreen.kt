@@ -90,7 +90,7 @@ fun LandscapeImmersive() {
 fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
     val c = Gg.colors
     LandscapeImmersive()
-    BackHandler { vm.closeFullscreen() }
+    BackHandler { if (vm.drawing) vm.stopDrawing() else vm.closeFullscreen() }
 
     val view = LocalView.current
     val online = state.conn == ConnState.ONLINE
@@ -140,7 +140,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
         },
         right = {
             if (vm.drawing) {
-                RailGroup { RailKey(GgIcons.X, "CANCEL", vm::closeFullscreen, sound = Sfx.BACK) }
+                RailGroup { RailKey(GgIcons.X, "CANCEL", vm::stopDrawing, sound = Sfx.BACK) }
                 RailGroup {
                     RailKey(GgIcons.Undo, "UNDO", { if (vm.drawPoints.isNotEmpty()) vm.drawPoints.removeAt(vm.drawPoints.lastIndex) }, sound = Sfx.POINT_UNDO)
                     RailKey(GgIcons.Eraser, "CLEAR", { vm.drawPoints.clear() }, sound = Sfx.DANGER)
@@ -155,6 +155,14 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                         RailKey(if (c.isDark) GgIcons.Sun else GgIcons.Moon, null, { vm.toggleTheme(c.isDark) }, Modifier.weight(1f),
                             sound = if (c.isDark) Sfx.THEME_LIGHT else Sfx.THEME_DARK)
                         RailKey(GgIcons.Shrink, null, vm::closeFullscreen, Modifier.weight(1f), sound = Sfx.BACK)
+                    }
+                }
+                // The monitored area can be drawn from here as well as from Settings.
+                RailGroup {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RailKey(GgIcons.Pen, "DRAW", { vm.startDrawing(edit = false) }, Modifier.weight(1f), sound = Sfx.OPEN)
+                        RailKey(GgIcons.Edit, "EDIT", { vm.startDrawing(edit = true) }, Modifier.weight(1f),
+                            enabled = state.roi.isNotEmpty(), sound = Sfx.OPEN)
                     }
                 }
                 RailGroup {

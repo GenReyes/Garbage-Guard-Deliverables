@@ -443,6 +443,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var drawing by mutableStateOf(false)
         private set
     val drawPoints = mutableStateListOf<RoiPoint>()
+    /** Drawing began from the fullscreen keys, so finishing it goes back to the fullscreen feed, not to Settings. */
+    private var drawInFullscreen = false
 
     // History view.
     var filter by mutableStateOf(HistFilter.ALL)
@@ -909,10 +911,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun testAlert() = launchAction("Test alert logged", key = LOCK_TEST) { repo.testAlert() }
 
     fun startDrawing(edit: Boolean) {
+        drawInFullscreen = fullscreen
         drawPoints.clear()
         if (edit) drawPoints.addAll(state.value.roi)
         drawing = true
         fullscreen = true
+    }
+
+    /** Leaves drawing without saving. Started from fullscreen, the feed stays on screen. */
+    fun stopDrawing() {
+        if (drawInFullscreen) drawing = false else closeFullscreen()
+        drawPoints.clear()
     }
 
     fun applyArea() {
@@ -921,7 +930,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val points = drawPoints.toList()
-        closeFullscreen()
+        stopDrawing()
         launchAction("Area applied", key = LOCK_AREA) { repo.setRoi(points) }
     }
 

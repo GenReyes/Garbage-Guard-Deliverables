@@ -638,6 +638,21 @@ main{flex:1;min-height:0;display:flex}
   letter-spacing:.05em;text-transform:uppercase}
 .hw.fk .ico{width:20px;height:20px}
 .fk-sw{flex-direction:column;gap:5px;font-size:9.5px;text-align:center}
+/* Drawing the monitored area in fullscreen: the right keys swap from the
+   feed controls to the drawing keys, the same set the app shows, and a tip
+   sits over the top of the picture with the running point count. */
+.fs .fk-pen{display:none}
+.fs.drawing .fs-r > *{display:none}
+.fs.drawing .fs-r > .fk-pen{display:inline-flex}
+.fs.drawing .screen{cursor:crosshair}
+.hw:hover .a-tilt{animation:tilt .8s ease-in-out infinite}
+.hw:hover .a-left{animation:nudgeL .7s ease-in-out infinite}
+.fs-tip{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;display:none;
+  align-items:center;gap:6px;max-width:calc(100% - 20px);padding:5px 12px;border-radius:10px;
+  background:rgba(14,12,10,.82);border:2px solid #F0B429;color:#F0B429;font-size:13px;font-weight:800;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.fs-tip .ico{width:15px;height:15px;flex:none}
+.fs.drawing .fs-tip{display:flex}
 .fs-mon .fs-lcdrow{flex:none;min-height:0;height:40px;padding:0;position:relative;z-index:1}
 .fs-mon .lcd{height:36px;font-size:13px}
 
@@ -1399,6 +1414,7 @@ body .fbar.quick button{padding:0 9px}
   <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-wrench" viewBox="0 0 24 24">
     <path d="M15.6 3.4a5.4 5.4 0 0 0-5.1 7.1L3.4 17.6l3 3 7.1-7.1a5.4 5.4 0 0 0 6.9-6.6l-3.1 3.1-2.9-.6-.6-2.9z"/>
   </symbol>
+  <symbol fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
 </svg>
 
 <div id="app">
@@ -1837,7 +1853,9 @@ body .fbar.quick button{padding:0 9px}
           <span title="Container"><svg class="ico c-cont"><use href="#i-cont"/></svg><b id="fsCont">0</b></span>
         </div>
       </div>
-      <div class="fs-stage" id="fsStage"></div>
+      <div class="fs-stage" id="fsStage">
+        <div class="fs-tip" id="fsTip"><svg class="ico"><use href="#i-pen"/></svg><span id="fsTipTxt"></span></div>
+      </div>
       <div class="fs-keys fs-r">
         <button class="hw teal fk" id="fsCapture" type="button">
           <svg class="ico a-shutter"><use href="#i-shutter"/></svg><span>Capture</span></button>
@@ -1847,6 +1865,18 @@ body .fbar.quick button{padding:0 9px}
           <svg class="ico a-pop"><use href="#i-bellon"/></svg><span>Unmute</span></button>
         <button class="sw fk-sw" id="fsAutoBtn" type="button" role="switch" aria-checked="false"
                 title="Mute every new alert automatically"><i></i><span>Auto-mute</span></button>
+        <button class="hw fk fk-area" id="fsDraw" data-snd="open" type="button" title="Draw a new monitored area">
+          <svg class="ico a-tilt"><use href="#i-pen"/></svg><span>Draw</span></button>
+        <button class="hw fk fk-area" id="fsEdit" data-snd="open" type="button" title="Move the points of the saved area">
+          <svg class="ico a-tilt"><use href="#i-edit"/></svg><span>Edit</span></button>
+        <button class="hw fk fk-pen" id="fsCancel" data-snd="back" type="button" title="Stop drawing, keep the saved area">
+          <svg class="ico"><use href="#i-x"/></svg><span>Cancel</span></button>
+        <button class="hw fk fk-pen" id="fsUndo" data-snd="point_undo" type="button" title="Remove the last point">
+          <svg class="ico a-left"><use href="#i-undo"/></svg><span>Undo</span></button>
+        <button class="hw fk fk-pen" id="fsWipe" data-snd="danger" type="button" title="Remove every point and start again">
+          <svg class="ico a-shake"><use href="#i-eraser"/></svg><span>Clear</span></button>
+        <button class="hw teal fk fk-pen" id="fsApply" data-snd="confirm" type="button" title="Save this outline as the monitored area">
+          <svg class="ico a-pop"><use href="#i-check"/></svg><span>Apply</span></button>
       </div>
     </div>
     <div class="mon-bot mute fs-lcdrow" id="fsMuteBar">
@@ -2004,7 +2034,11 @@ function toast(m, icon){
   if(icon === "i-warn") uiSnd("denied");
   $("toastMsg").textContent = m;
   $("toast").querySelector("use").setAttribute("href", "#" + (icon || "i-ok"));
-  const t = $("toast"); t.classList.add("show");
+  const t = $("toast");
+  // A fullscreen element hides everything outside it, so the toast moves in with it.
+  const host = $("fsRoot").hidden ? document.body : $("fsRoot");
+  if(t.parentNode !== host) host.appendChild(t);
+  t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2100);
 }
 
@@ -2053,9 +2087,11 @@ function drawOverlay(){
 
 function setEditing(on, seed){
   editing = on; draft = on ? (seed||[]) : null;
-  $("fsOpen").disabled = on;
-  $("fsOpen").title = on ? "Finish the area first" : "Fullscreen";
   $("tv").classList.toggle("drawing", on);
+  $("fsRoot").classList.toggle("drawing", on);
+  if(on) $("fsTipTxt").textContent = draft.length < 3
+    ? `Tap the picture to outline the water · ${draft.length} of 3 points`
+    : `${draft.length} points placed · tap Apply when the shape is closed`;
   $("undo").style.display = on ? "flex" : "none";
   $("roihelp").innerHTML = on
     ? `<svg class="ico"><use href="#i-pen"/></svg>${draft.length} point${draft.length===1?"":"s"} placed, tap Apply when closed`
@@ -2236,7 +2272,7 @@ function fsMoveScreen(toFs){
 }
 
 async function openFs(){
-  if(fsOn || editing) return;
+  if(fsOn) return;
   fsOn = true;
   const root = $("fsRoot");
   root.hidden = false;
@@ -2299,6 +2335,15 @@ function setFsPanel(s){
 }
 
 $("fsCapture").onclick = () => $("capture").click();
+/* The drawing keys in fullscreen share the handlers of the Monitored area
+   card, except Clear: here it only wipes the points being placed, as in the
+   app. The card's Clear removes the saved area itself. */
+$("fsDraw").onclick = () => $("new").click();
+$("fsEdit").onclick = () => $("edit").click();
+$("fsApply").onclick = () => $("apply").click();
+$("fsUndo").onclick = () => $("undo").click();
+$("fsWipe").onclick = () => { if(editing) setEditing(true, []); };
+$("fsCancel").onclick = () => setEditing(false);
 $("fsMuteBtn").onclick = () => doMute(Number($("fsMuteFor").value), $("fsMuteFor"));
 $("fsUnmuteBtn").onclick = () => doUnmute();
 
