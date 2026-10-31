@@ -145,7 +145,7 @@ def replace_in(i, old, new):
 
 
 def image_after(cap_idx):
-    for k in range(cap_idx + 1, cap_idx + 5):
+    for k in range(cap_idx, cap_idx + 5):
         if has_pic(P(k)):
             return k
     raise SystemExit(f"no picture after paragraph {cap_idx}")
