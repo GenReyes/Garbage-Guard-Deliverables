@@ -1,4 +1,4 @@
-# mobile-app/
+# Mobile App
 
 The Garbage-Guard Android app and everything needed to work on it without
 the Raspberry Pi, the camera, or the model. App developer: Brian.
@@ -8,13 +8,10 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v12.apk` | The latest build, ready to install on a phone. Only the newest version is kept here. |
-| `BUZZER_APP.md` | What the app needs to add for the Pi's buzzer: the card, the fields, the warnings, and how to try it on the mock server. |
+| `Garbage-Guard v13.apk` | The latest build (version 13), ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
-| `HISTORY_TOOLS.md` | What the app's History page does (filters, date range, scoped Mark read and Delete, a look for every event), written so the web dashboard can match it. |
-| `SYNC_PLAN.md` | Earlier comparison of options for remote access (Tailscale, Firebase, MQTT). Superseded by `FIREBASE.md`. |
 
 ## What the app does
 
@@ -26,7 +23,8 @@ few seconds.
   camera feed, capture, mute and auto-mute, and camera reconnect.
 - **Fullscreen:** the picture takes the full height of the phone at the
   camera's own shape, with readouts and keys on the bezel either side.
-  Tapping the picture hides them.
+  Tapping the picture hides them. The monitored area can be drawn or edited
+  from here too.
 - **History:** every alert, capture, test, mute and shutdown event with its
   snapshot. A row of symbols filters by kind and a calendar sets a date
   range; Mark read and Delete then act on exactly the records shown.
@@ -93,16 +91,16 @@ gg.fb.password=<phone account password>
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v12.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v13.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 
 ## Building it
 
-1. Open `mobile-app/android` in Android Studio and let Gradle sync.
+1. Open `Mobile App/android` in Android Studio and let Gradle sync.
 2. Press Run with a phone or emulator selected.
 
-From a terminal, in `mobile-app/android`:
+From a terminal, in `Mobile App/android`:
 
 ```bash
 ./gradlew :app:assembleDebug
@@ -149,7 +147,7 @@ on the first screen.
 
 ## The dashboard as a reference
 
-`../pi/dashboard.html` is the touchscreen UI and calls every endpoint the
+`../Raspberry Pi 5/dashboard.html` is the touchscreen UI and calls every endpoint the
 API reference describes. When the reference is unclear, its JavaScript shows
-how an endpoint is used. It is kept once, in `pi/`, so there is only one
+how an endpoint is used. It is kept once, in `Raspberry Pi 5/`, so there is only one
 copy to keep current.

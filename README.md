@@ -4,53 +4,57 @@ Capstone project: computer-vision detection of floating solid waste in
 creeks, running on a Raspberry Pi 5 with a Hikvision camera over RTSP.
 A project made by 5 people in TUP-Manila.
 
-## Two sides, two folders
+## What is in this repository
 
-The project splits cleanly into two halves that almost never need to change
-together, so they live in separate folders:
+### [`Raspberry Pi 5/`](Raspberry%20Pi%205/) — the system
 
-### [`pi/`](pi/) — the Raspberry Pi side
+Camera, model, detection, counting, alerts, the buzzer, the UPS battery
+readout, Firebase sync and the touchscreen dashboard. Start in
+[`Raspberry Pi 5/README.md`](Raspberry%20Pi%205/README.md).
 
-The actual system. Camera, model, detection, counting, alerts, and the
-touchscreen dashboard. This is the half that's been under constant change —
-new UI styling, mute, fullscreen, history deletion, display scaling. If
-you're working on detection or the dashboard, start in
-[`pi/README.md`](pi/README.md).
+### [`Mobile App/`](Mobile%20App/) — the Android app
 
-### [`mobile-app/`](mobile-app/) — for the mobile app
+The Android Studio project, the installable APK, a mock server that speaks
+the same API as the Pi, the API reference and the Firebase guide. The app
+shows the live count, feed, history, settings and Pi battery, and raises
+alert notifications, on the Pi's Wi-Fi or through Firebase when away. Start
+in [`Mobile App/README.md`](Mobile%20App/README.md).
 
-The Android app (developer: Brian): the Android Studio project, an
-installable APK, a mock server that speaks the same API as the real system,
-and the full API reference. The app shows the live count, feed, history,
-settings and Pi battery, and raises alert notifications, over the same Wi-Fi
-as the Pi. Start in [`mobile-app/README.md`](mobile-app/README.md).
+### [`models/`](models/) — the trained detector
 
-## Why split this way
+The v7 weights and their test results.
 
-The app only ever talks to the Pi over HTTP — it has no code dependency on
-anything in `pi/`. Keeping them in separate folders means the app can be
-built and tested against the mock server with no hardware in the room, and
-changes to the dashboard's styling never touch the app's code.
+### [`Documents/`](Documents/) — the thesis
 
-`dashboard.html` lives once, in `pi/`, even though it's also useful to
-the app developer as a reference implementation — `mobile-app/README.md` points to it
-rather than duplicating it, so there's only ever one copy to go stale.
+The manuscript, its figures, the cited sources and the Chapter IV field
+material.
+
+## Why the Pi and the app are split
+
+The app only ever talks to the Pi over HTTP (or through Firebase). It has no
+code dependency on anything in `Raspberry Pi 5/`, so it can be built and
+tested against the mock server with no hardware in the room, and changes to
+the dashboard's styling never touch the app's code.
+
+`dashboard.html` lives once, in `Raspberry Pi 5/`. The app README points to
+it as a reference rather than keeping a second copy.
 
 ## Quick links
 
 | I want to... | Go to |
 |---|---|
-| Run the system on the Pi | [`pi/README.md`](pi/README.md) → Running it |
-| Run the counting tests | [`pi/README.md`](pi/README.md) → Running the tests |
-| Build the mobile app | [`mobile-app/README.md`](mobile-app/README.md) |
-| Install the app on a phone | [`Mobile App/Garbage-Guard v12.apk`](Mobile%20App/Garbage-Guard%20v12.apk) |
-| Look up an API endpoint | [`mobile-app/GarbageGuard_API.md`](mobile-app/GarbageGuard_API.md) |
-| Set up or calibrate at the creek site | [`pi/GarbageGuard_Field_Reference.md`](pi/GarbageGuard_Field_Reference.md) |
+| Run the system on the Pi | [`Raspberry Pi 5/README.md`](Raspberry%20Pi%205/README.md) → Running it |
+| Run the tests | [`Raspberry Pi 5/README.md`](Raspberry%20Pi%205/README.md) → Running the tests |
+| Build the mobile app | [`Mobile App/README.md`](Mobile%20App/README.md) |
+| Install the app on a phone | [`Mobile App/Garbage-Guard v13.apk`](Mobile%20App/Garbage-Guard%20v13.apk) |
+| Look up an API endpoint | [`Mobile App/GarbageGuard_API.md`](Mobile%20App/GarbageGuard_API.md) |
+| Set up or calibrate at the creek site | [`Raspberry Pi 5/GarbageGuard_Field_Reference.md`](Raspberry%20Pi%205/GarbageGuard_Field_Reference.md) |
 | See what changed in each version | [`CHANGELOG.md`](CHANGELOG.md) |
 | Read or edit the thesis paper | [`Documents/`](Documents/) |
 
 ## Not in this repo, on purpose
 
-`camera.txt` and `gg_settings.json` hold the camera's RTSP credentials and
-per-device settings. They're excluded by `.gitignore` and documented in
-`pi/README.md`. Never commit a filled-in copy of either.
+`camera.txt`, `gg_settings.json` and `gg_firebase.json` hold the camera's
+RTSP password, per-device settings and the Pi's Firebase login. They are
+excluded by `.gitignore` and documented in `Raspberry Pi 5/README.md`. Never
+commit a filled-in copy of any of them.

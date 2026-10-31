@@ -1,14 +1,13 @@
-# pi/ — the Raspberry Pi side
+# Raspberry Pi 5 — the system
 
 This is the actual system: the part that talks to the camera, runs the
-model, counts garbage, and serves the touchscreen dashboard. It's the half
-of the project that's been changing constantly — new UI styling, mute,
-fullscreen, deletion, scaling fixes. If you're Brian or Gen working on the
-detection or dashboard, this folder is yours.
+model, counts garbage, drives the buzzer, reads the UPS battery, syncs to
+Firebase and serves the touchscreen dashboard. On the Pi this folder is
+copied to `~/gg`.
 
-If you're working on the mobile app (Brian), you don't need anything in
-here except `dashboard.html`, and only as a reference — see
-[`../mobile-app/README.md`](../mobile-app/README.md) instead. The app is
+If you're working on the mobile app, you don't need anything in here except
+`dashboard.html`, and only as a reference. See
+[`../Mobile App/README.md`](../Mobile%20App/README.md) instead. The app is
 built against the mock server, so none of the Python here has to run for it.
 
 ## Files
@@ -44,9 +43,15 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_screen.py`, `test_power.py` | Unit tests for the two above, with a fake `wlr-randr` and a fake UPS. |
 | `gg_touch.py` | Reads the touchscreen directly so a tap can wake the screen while the output is off. |
 | `test_touch.py` | Unit tests for `gg_touch.py`. |
+| `gg_ups.py` | Reads the Waveshare UPS HAT (E) over I2C: voltage, current, power, the four cell voltages and the charger input, for the battery panel and the low-battery shutdown. |
+| `gg_window.py` | Minimizes the fullscreen dashboard window to reach the Pi desktop, and brings it back (uses `wlrctl`). |
+| `test_window.py` | Unit tests for `gg_window.py`. |
+| `buzzer_bench.py` | Bench tool: plays a sweep of tones at three volumes to pick the loudest pitch by ear (see Buzzer below). |
 | `firebase.rules.json` | Security rules to paste into the Firebase console. |
 | `wifi.html` | The startup splash (`/start`) and the network screen (`/wifi`): live status of Wi-Fi, the internet cable and the camera cable, full details per connection, Wi-Fi setup with an on-screen keyboard, and checked IP settings. |
 | `install_autostart.sh` | One-time installer that makes Garbage-Guard start at boot. `--remove` undoes it. |
+| `open_dashboard.sh` | Opens the dashboard fullscreen, or brings it back if it was minimized. Run by `start.sh` and by the desktop icon. |
+| `gg-icon.png` | The icon for the **Garbage-Guard** desktop and menu entry made by `install_autostart.sh`. |
 | `start.sh` | The launcher. Checks the camera's reachable, activates the Python environment, opens the dashboard fullscreen (via `/start`), and starts detection. |
 | `GarbageGuard_Field_Reference.md` | Everything needed to run this at the actual creek site: wiring, startup, ROI setup, calibration, troubleshooting. |
 
@@ -88,41 +93,38 @@ chmod +x start.sh
 
 ## Running the tests
 
-No camera, no model, no Pi required — this runs anywhere Python 3 is
-installed:
+No camera, no model, no Pi required for most of them. Run each file with
+`python3`, for example:
 
 ```bash
 python3 test_counter.py
 ```
 
-Expect `Ran 24 tests` and `OK`. If you change anything in `gg_counter.py`,
-run this before anything else.
+If you change anything in `gg_counter.py`, run that one before anything
+else. Expected results:
 
-```bash
-python3 test_net.py
-```
+| Test file | Tests |
+|---|---|
+| `test_counter.py` | 24 |
+| `test_net.py` | 27 |
+| `test_window.py` | 5 |
+| `test_snapcard.py` | 5 |
+| `test_web.py` | 23 |
+| `test_cloud.py` | 28 |
+| `test_usage.py` | 11 |
+| `test_clock.py` | 5 |
+| `test_buzzer.py` | 49 |
+| `test_screen.py` | 24 |
+| `test_touch.py` | 7 |
+| `test_power.py` | 26 |
+| `test_view.py` | 18 |
+| `test_model.py` | 20 (7 skipped without `ultralytics`) |
+| `test_clean.py` | 8 (3 skipped without OpenCV) |
 
-Expect `Ran 27 tests` and `OK`.
-
-```bash
-python3 test_window.py
-```
-
-Expect `Ran 5 tests` and `OK`.
-
-```bash
-python3 test_snapcard.py
-python3 test_web.py
-python3 test_cloud.py
-python3 test_usage.py
-python3 test_clock.py
-python3 test_buzzer.py
-python3 test_screen.py
-python3 test_touch.py
-python3 test_power.py
-```
-
-Expect `Ran 5 tests`, `Ran 13 tests`, `Ran 22 tests`, `Ran 11 tests`, `Ran 17 tests`, `Ran 7 tests` and `Ran 20 tests`, all `OK`.
+Each should end in `OK`. `test_snapcard.py`, `test_cloud.py` and
+`test_view.py` need OpenCV, so run them inside `gg-env` on the Pi.
+`test_screen.py`, `test_touch.py` and `test_web.py` expect Linux and fail on
+Windows for that reason alone.
 
 ## Screen saver and low-battery shutdown
 
@@ -229,7 +231,7 @@ Reboot after enabling I2C. Without them the panel shows "No UPS found" and
 everything else works normally.
 
 **Buzzer (passive buzzer module).** Wire VCC to pin 17 (3.3 V), I/O to pin 32
-(GPIO12) and GND to pin 34. `BUZZER_PLAN.md` has the full plan. The Pi 5 needs
+(GPIO12) and GND to pin 34. The Pi 5 needs
 the `lgpio` library inside `gg-env`, which cannot see system packages, so link
 the installed package into it:
 
@@ -266,7 +268,8 @@ automatic choice (the one with 4 channels) is wrong. Set
 `GG_BUZZER_BACKEND=fake` to print the sounds instead of playing them, or
 `sysfs` for hardware PWM (needs the `pwm-2chan` overlay in
 `/boot/firmware/config.txt`). The buzzer, its alarm repeat, quiet hours, the Sound card and the Shut down button have been tried on the Pi 5.
-The button sounds, boot chime and Wi-Fi/saved sounds from Brian's sound plan (`SOUND_PLAN.md`) are built and tested in software but have not yet been listened to on the Pi; retune any that sound too faint at Low volume with `buzzer_bench.py`.
+The button sounds, boot chime and Wi-Fi and saved sounds are built in;
+retune any that sound too faint at Low volume with `buzzer_bench.py`.
 
 **"Power supply is not capable of supplying 5V at 5A" pop-up.** The UPS HAT
 does not announce 5 A over USB-C the way the official Pi supply does, so the
@@ -291,12 +294,14 @@ Later, the small Wi-Fi button next to Dark mode reopens setup. The setup
 endpoints only answer to the Pi's own screen, so a phone on the network cannot
 change the Wi-Fi.
 
+On the field unit the built-in Wi-Fi could not join a network, so internet
+comes from a USB-to-Ethernet adapter cabled to a Wi-Fi repeater instead (see
+`GarbageGuard_Field_Reference.md`, section 1). The Wi-Fi screen still shows
+that wired link and the camera cable.
+
 To try the screens on any computer with no Pi, start the server with
 `GG_FAKE_NET=offline` (or `connected`, `conflict`, `nohw`). The fake network
 accepts the password `goodpass`.
-
-This is not verified on real Pi hardware yet. See the checklist in
-`GarbageGuard_Field_Reference.md`, section 2.
 
 ## Firebase (phones away from the Pi's Wi-Fi)
 
@@ -305,7 +310,7 @@ directly, with live video and full-size snapshots. Firebase is the fallback
 for phones elsewhere, and the Pi keeps it up to date either way.
 
 1. Set up the Firebase project once, following section 5 of
-   `mobile-app/FIREBASE.md` (database in Singapore, Email/Password sign-in, a
+   `Mobile App/FIREBASE.md` (database in Singapore, Email/Password sign-in, a
    user for the Pi and one per phone, the `gg_users` list, and the rules from
    `firebase.rules.json`).
 2. On the Pi: Dashboard → Wi-Fi button → **Firebase** card. Fill in the
@@ -359,15 +364,22 @@ Firebase project**, because the limits are counted per project.
 
 ```
 start.sh
+  ├─ open_dashboard.sh       (opens the dashboard fullscreen)
   └─ garbageguard_live.py
-       ├─ gg_counter.py      (counting, ROI math — imported directly)
-       └─ gg_web.py          (HTTP server — imported directly)
-                └─ dashboard.html  (served as a static file, not imported)
+       ├─ gg_counter.py      (counting, ROI math)
+       ├─ gg_view.py         (stream choice and cropping)
+       ├─ gg_model.py        (which model runs)
+       ├─ gg_snapcard.py, gg_clean.py   (snapshots and clean copies)
+       ├─ gg_buzzer.py, gg_screen.py, gg_touch.py, gg_power.py, gg_ups.py, gg_clock.py
+       ├─ gg_cloud.py        (Firebase sync, with gg_usage.py)
+       └─ gg_web.py          (HTTP server, with gg_net.py and gg_window.py)
+                ├─ dashboard.html  (served as a static file, not imported)
+                └─ wifi.html
 ```
 
-`dashboard.html` only talks to the other three over HTTP, the same way a
+`dashboard.html` only talks to the Python side over HTTP, the same way a
 phone would. That's deliberate — it's what makes the API in
-`../mobile-app/GarbageGuard_API.md` an accurate description of this system
+`../Mobile App/GarbageGuard_API.md` an accurate description of this system
 rather than a guess.
 
 ## Requirements on the Pi

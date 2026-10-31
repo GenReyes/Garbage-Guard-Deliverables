@@ -1,29 +1,31 @@
 # Documents
 
 The home for every thesis document of the Garbage-Guard capstone. Anything
-written for the paper or the defense belongs here, so nobody has to ask
-which copy is the current one.
+written for the paper or the defense belongs here.
 
 ## The manuscript
 
-The paper is written in one shared Google Doc, and that Doc is always the
-current version:
+The manuscript is kept as numbered Word files, `Garbage-Guard v<n>.docx`.
+The highest number is the current version. Older versions stay in the
+repository's history. After opening one, right-click the table of contents
+and the lists of figures and tables and choose **Update Field**.
 
-**[Open the thesis manuscript](https://docs.google.com/document/d/106ayxSMCJ3CkT5rmMOQZKCY8vBI8NMwLzE606QYk6Ts/edit?tab=t.0)**
-
-On Windows, double-clicking `Thesis Manuscript (Google Doc).url` in this
-folder opens the same document. Edit the Google Doc, not the PDF copy below.
+The earlier shared Google Doc is still reachable through
+`Thesis Manuscript (Google Doc).url`, and the group's Drive folder through
+`THESIS FILES.url`.
 
 ## What is in this folder
 
-| File | What it is |
+| Item | What it is |
 |---|---|
-| [`Thesis Manuscript (Google Doc).url`](Thesis%20Manuscript%20%28Google%20Doc%29.url) | Shortcut to the online manuscript |
-| [`GarbageGuard Manuscript (PDF copy, 2026-10-10).pdf`](GarbageGuard%20Manuscript%20%28PDF%20copy%2C%202026-10-10%29.pdf) | A PDF copy of the manuscript as of 10 October 2026, kept for reference. The Google Doc may be ahead of it |
-| [`GarbageGuard v1.docx`](GarbageGuard%20v1.docx) | Word copy of the manuscript (from the Google Doc export of 18 October 2026), cleaned up in the Smart-Bin v4 format for revising offline. Right-click the table of contents and choose Update Field after edits |
-| [`GarbageGuard v4.docx`](GarbageGuard%20v4.docx) | Latest Word copy (19 October 2026): v3 corrected against the code. What changed is in [`v4 Changes.md`](v4%20Changes.md). Update the table of contents field after opening |
-| [`Revision Plan.md`](Revision%20Plan.md) | Prof. Jonel's comments turned into a task list, chapter by chapter |
-| [`CIT Capstone Study Guidelines Official Template.pdf`](CIT%20Capstone%20Study%20Guidelines%20Official%20Template.pdf) | The college's official format and guidelines for the paper |
+| `Garbage-Guard v20.docx`, `Garbage-Guard v21.docx` | The manuscript. v21 is the newest |
+| [`Chapter 4/`](Chapter%204/) | Field week material for Chapter IV: the working draft, the printable Field Kit, and the photographs and model plots used as figures |
+| [`Figures/`](Figures/) | The diagrams in the manuscript (block diagram, architecture, flowchart, V-Model, enclosure drawing, training pipeline, Gantt chart, conceptual framework), each as an HTML source and a PNG, plus component photos (`Components/`), software logos (`Logos/`) and images taken from cited studies (`Sources/`), each folder with its credits in `sources.txt` |
+| [`References/`](References/) | A copy of every cited source, named `(Author, Year)`. `index.md` lists them |
+| `v21 build/` | The script and figure generators used to build v21, and the Chapter V draft |
+| `CIT Capstone Study Guidelines Official Template.pdf` | The college's official format and guidelines for the paper |
+| `HelmetGuard OCR Text.pdf`, `PICTRETION CH 1-3 SAMPLE.pdf` | Sample capstone papers from the department, used as a model for structure |
+| `Thesis Manuscript (Google Doc).url`, `THESIS FILES.url` | Shortcuts to the shared Google Doc and the Drive folder |
 
 ## Technical documents kept beside the code
 
@@ -32,14 +34,10 @@ explain. They are listed here because the paper draws on them.
 
 | Document | Covers |
 |---|---|
-| [`pi/README.md`](../pi/README.md) | Running the system on the Raspberry Pi, and its tests |
-| [`pi/GarbageGuard_Field_Reference.md`](../pi/GarbageGuard_Field_Reference.md) | Setting up and calibrating at the creek site |
-| [`mobile-app/GarbageGuard_API.md`](../mobile-app/GarbageGuard_API.md) | Every API endpoint the dashboard and the app use |
-| [`mobile-app/README.md`](../mobile-app/README.md) | Building and installing the Android app |
+| [`Raspberry Pi 5/README.md`](../Raspberry%20Pi%205/README.md) | Running the system on the Raspberry Pi, and its tests |
+| [`Raspberry Pi 5/GarbageGuard_Field_Reference.md`](../Raspberry%20Pi%205/GarbageGuard_Field_Reference.md) | Setting up and calibrating at the creek site |
+| [`Mobile App/GarbageGuard_API.md`](../Mobile%20App/GarbageGuard_API.md) | Every API endpoint the dashboard and the app use |
+| [`Mobile App/FIREBASE.md`](../Mobile%20App/FIREBASE.md) | How the app reaches the Pi through Firebase |
+| [`Mobile App/README.md`](../Mobile%20App/README.md) | Building and installing the Android app |
+| [`models/README.md`](../models/README.md) | The trained model and its test results |
 | [`CHANGELOG.md`](../CHANGELOG.md) | What changed in each version |
-
-## Adding a document
-
-Put the file in this folder and add a row to the table above. When a new
-PDF copy of the manuscript is exported, put the date in its file name and
-remove the older copy.

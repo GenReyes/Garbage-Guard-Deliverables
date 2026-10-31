@@ -2,42 +2,12 @@
 
 Everything the mobile app needs to talk to the Raspberry Pi. App developer: Brian.
 
-**What changed in this version (Pi update after 7.0):** a Pi screen saver
-(`POST /api/screen_saver`, `POST /api/screen`, and six `screen*` fields in
-`/api/state`) and a low-battery auto shutdown (`POST /api/auto_shutdown`, and
-five new fields in `/api/battery`). A new history event, `low_battery_shutdown`,
-is written just before the Pi powers itself off. The Firebase commands
-`screen_saver`, `screen` and `auto_shutdown` run the same endpoints. Details
-under "Screen saver" and "Low battery shutdown" below. Everything else is
-unchanged.
-
-**Earlier version:** auto-mute (`POST /api/auto_mute`, the
-`auto_mute`, `auto_mute_s`, `auto_muted` and `mute_total` state fields, and
-an `auto_muted` history event), plus the FPS fields `fps` and `cam_fps`.
-Detection labels on `/frame.jpg` are now numbered from 1 for the objects in
-view instead of showing the tracker's internal ID. Earlier additions below.
-
-
-**Mute.** An operator can silence an active accumulation alert for a set
-time. `POST /api/mute`, plus `muted` and `mute_left` in `/api/state`. Muting
-and unmuting are logged as history rows, so a quiet stretch is explained
-rather than looking like a missed detection.
-
-**Read and unread.** Every history row carries a `read` flag, set through
-`POST /api/alerts/read`. It lives on the server, not in browser storage, so
-the touchscreen and the app agree on what has been seen.
-
-The previous version added deletion: `POST /api/alerts/delete` removes
-records by id, by date range, or all at once, and deletes the saved snapshot
-images with them. Each row also carries an `id`.
-
-The previous version added snapshots: a `snapshot` field on each row,
-`GET /snapshots/<name>` to load the image, `POST /api/capture` to save one on
-demand, and the `manual` event type. Everything else is unchanged.
+This file describes the API as it is now. What was added in each version is
+in `../CHANGELOG.md`.
 
 **You do not need to run `garbageguard_live.py`.** It needs the camera, the
 9.3 MB model, and a Linux environment with OpenCV, Ultralytics and `lap`
-installed. That is why it failed last time. The app only makes HTTP requests.
+installed. The app only makes HTTP requests.
 
 ---
 
@@ -712,7 +682,7 @@ at the bottom.
 | `gg_mock_server.py` | Run this. Fake API for development. |
 | `GarbageGuard_API.md` | This document. |
 | `dashboard.html` | Reference implementation, optional but useful. |
-| `SYNC_PLAN.md` | Plan for remote access and syncing the app with the Pi (Firebase and alternatives). Read before starting any cloud work. |
+| `FIREBASE.md` | How the app reaches the Pi through Firebase when it is away from the Pi's Wi-Fi. |
 
 You do not need `garbageguard_live.py`, `gg_counter.py`, `gg_web.py`, the
 model folder, or the camera.
@@ -755,3 +725,26 @@ All fields are optional.
 Reply: `{"ok": true, "stream": "main", "detect_size": 960, "crop": true}`.
 The state (`/api/state`) also carries `stream`, `stream_note`,
 `frame_size`, `detect_size`, `crop` and `detect_box`. Firebase command: `view`.
+
+### `POST /api/model`
+
+Which detection model runs. The Pi lists the installed
+`garbageguard_*_ncnn_model` folders in `models` in `/api/state`, and only a
+name from that list is accepted.
+
+```json
+{"model": "garbageguard_v8_best_ncnn_model"}
+```
+
+Reply: `{"ok": true, "model": "garbageguard_v7_best_ncnn_model", "pending": "garbageguard_v8_best_ncnn_model"}`.
+`model` is the one running now and `pending` the one being loaded (`null`
+if nothing changes). A name that is not installed gives
+`{"ok": false, "error": "That model is not installed on the Pi.", ...}`.
+
+The new model is loaded and test-run before it replaces the old one, and
+detection pauses for a few seconds meanwhile. If it fails to load, or its
+classes are not bottle, bag, food_container, the old one keeps running and
+`model_note` says why. State fields: `model`, `model_label` (for example
+`v8`), `model_wanted`, `model_loading`, `models` and `model_note`. There is
+no Firebase command for this; `models`, `model` and `model_note` are synced
+so a phone away from the Pi can show them.

@@ -119,7 +119,7 @@ Errors to translate (from the sign-in call):
 
 Because the user can change the URL and key at runtime, the simplest way is
 the REST API with OkHttp (or `HttpURLConnection`). This is exactly what the
-Pi does (`pi/gg_cloud.py`). The Firebase Android SDK also works, but it wants
+Pi does (`Raspberry Pi 5/gg_cloud.py`). The Firebase Android SDK also works, but it wants
 a `google-services.json` or a full `FirebaseOptions` with an app ID, which
 does not fit user-typed settings well.
 
@@ -324,7 +324,7 @@ if nothing came. An unknown `cmd` gives `{"ok": false, "error": "unknown_command
    child per user: key = the UID, value = `"pi"` for the Pi's account and
    `"app"` for every phone account.
 6. **Realtime Database → Rules**: paste the contents of
-   `pi/firebase.rules.json` and press **Publish**.
+   `Raspberry Pi 5/firebase.rules.json` and press **Publish**.
 7. **Project settings → General**: copy the **Web API key**. Copy the
    **database URL** from the top of the Realtime Database page.
 8. On the Pi: **Network → Firebase**, fill in the URL, the key and the

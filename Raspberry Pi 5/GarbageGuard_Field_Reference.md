@@ -21,13 +21,26 @@ Everything needed to run the system at the creek. Print this or keep it on your 
 
 ## 1. Physical setup
 
-1. PoE injector into mains power.
-2. Injector **LAN** port → Raspberry Pi ethernet port.
-3. Injector **POE** port → camera.
-4. Pi power, touchscreen, keyboard.
-5. Wait 60 seconds for the camera to boot before expecting anything.
+Everything except the camera and the Wi-Fi repeater sits inside the
+enclosure. Three cables leave it: the AC mains extension, the Ethernet cable
+to the Wi-Fi repeater, and the 2-in-1 Ethernet and power cable to the camera.
 
-An injector **adds** power to the cable. Do not use a splitter.
+1. Plug the AC extension into mains. The official Raspberry Pi 27 W adapter
+   inside the enclosure charges the Waveshare UPS HAT (E) through its
+   Type-C port, and the HAT powers the Pi.
+2. The camera takes its 12 V from the HAT's USB-A output: a small USB hub
+   inside the case, then the 5 V to 12 V USB to DC barrel step-up cable, then
+   the power half of the 2-in-1 cable. The hub is there only because the
+   barrel adapter is too wide to sit beside the Type-C charging lead. The
+   camera and the Pi share one battery, so the unit keeps running when mains
+   power drops.
+3. The Ethernet half of the 2-in-1 cable goes straight to the Pi's Ethernet
+   port and carries the RTSP video only. There is no PoE.
+4. Internet, for Firebase, comes from a USB-to-Ethernet adapter cabled to the
+   Wi-Fi repeater outside. The Pi's built-in Wi-Fi could not join a network
+   during testing.
+5. Switch the UPS HAT on and wait 60 seconds for the camera to boot before
+   expecting a picture.
 
 ---
 
@@ -48,7 +61,7 @@ activates the environment, opens the dashboard, and starts detection.
 After that, switching the Pi on is enough: it opens the dashboard fullscreen.
 If there is no Wi-Fi it shows the Wi-Fi setup screen first.
 
-**First boot test checklist (not yet verified on the real Pi):**
+**First boot checklist (after installing on a new Pi):**
 
 1. Run `./install_autostart.sh`, answer the prompts, then `sudo reboot`.
 2. With Wi-Fi saved: dashboard opens by itself within about a minute.
@@ -103,6 +116,10 @@ what stops the bridge wall being counted as garbage.
 4. **Undo last point** removes a mistake.
 5. Press **Apply**.
 
+The same Draw and Edit keys are on the right of the fullscreen view, and in
+the phone app's fullscreen view, so the area can be drawn on the larger
+picture.
+
 The ROI is saved to `~/gg/gg_settings.json` and survives restarts.
 **Edit** reloads the current shape for adjustment. **Clear** removes
 it entirely, which means the whole frame is active again.
@@ -111,7 +128,7 @@ it entirely, which means the whole frame is active again.
 
 ## 5. Threshold calibration (the field testing procedure)
 
-The model's recall is about 0.70, so it detects roughly 7 of every 10 items
+The v7 model's recall at the creek is about 0.53, so it detects roughly half of the items
 actually present. A displayed count of 20 does **not** mean 20 items are there.
 
 Procedure, repeated across several sessions:
@@ -152,7 +169,7 @@ cd ~/gg
 python3 test_counter.py
 ```
 
-Expect `Ran 19 tests` and `OK`. This is the evidence for thesis test case
+Expect `Ran 24 tests` and `OK`. This is the evidence for thesis test case
 TC_UNIT_02 (accumulation counter logic).
 
 ---
@@ -193,9 +210,9 @@ numbers, so this is a display change only.
 **Fullscreen.** The square button at the top right of the monitor opens it. It gives the feed the whole screen, with a compact top bar (camera
 status, latency, time) and a bottom bar (counts, accumulation status, Capture)
 so nothing has to be left behind. The mute controls are there too. Exit with
-the button at the top right, or the **Escape** key. The button is disabled
-while you are drawing the monitored area, since the Apply and Undo controls
-live on the main screen.
+the button at the top right, or the **Escape** key. The right side also has
+**Draw** and **Edit** for the monitored area; while drawing they change to
+Cancel, Undo, Clear and Apply.
 
 **Muting an alert.** The mute panel along the bottom of the monitor is always
 there. Its display reads "No alert to mute" when nothing is wrong and the
@@ -232,7 +249,7 @@ shows the unread count, so anyone returning to the screen can see what
 happened while they were away. The flag is stored on the Pi, so the
 touchscreen and the mobile app agree.
 
-**Deleting history to save card space.** The History tab has a trash button on each row and one **Delete** button that acts on exactly the rows on screen. With no filter set it clears everything; with a filter or a date range it clears only what is shown. Both remove the snapshot image files as well as the database rows, so this is how you reclaim space on the SD card. The confirmation names what will go, for example "Delete 2 alerts on 12 Oct and their snapshot images?". With dates alone it says "at least", because the Pi also clears records older than the 300 the page has loaded. Deletion cannot be undone, so copy anything you need for the thesis before clearing a field session.
+**Deleting history to save card space.** The History tab has a trash button on each row and one **Delete** button that acts on exactly the rows on screen. With no filter set it clears everything; with a filter or a date range it clears only what is shown. Both remove the snapshot image files as well as the database rows, so this is how you reclaim space on the SD card. The confirmation names what will go, for example "Delete 2 alerts on 12 Oct and their snapshot images?". Deletion cannot be undone, so copy anything you need for the thesis before clearing a field session.
 
 If `sqlite3` is not installed, the dashboard's own log table shows the same
 alert data.
@@ -265,12 +282,15 @@ Use `Ctrl+Shift+R` if the page loads blank.
 
 These were declared in advance in the progress report:
 
-- **Undercounting.** Recall is about 0.70, so the live count reads low.
-  Handled by threshold calibration, above.
-- **`food_container` is the weakest class** at about 0.53 recall. The
-  primary target if a v6 model is ever trained.
+- **Undercounting.** v7's recall is 0.685 on the full test set and 0.534 on
+  creek images, so the live count reads low. Handled by threshold
+  calibration, above.
+- **`bag` is the weakest class.** Floating bags are rarely detected at the
+  creek (mAP50 0.179). See `models/README.md`.
 - **Static false positives** persist across every frame with a stable track
   ID, so smoothing cannot remove them. Only the ROI does.
-- **Phone access needs a network.** The touchscreen works with no network at
-  all, but a phone browser needs the Pi and phone on the same router or
-  switch. A router with client isolation will block this.
+- **Phones need a network.** The touchscreen works with no network at all.
+  A phone on the Pi's network talks to it directly; a router with client
+  isolation blocks this. Away from it, the app uses Firebase, which needs
+  internet at the Pi and gives a still picture every 3 seconds instead of
+  live video.

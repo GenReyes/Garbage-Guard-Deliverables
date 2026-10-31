@@ -1,8 +1,25 @@
 # Changelog
 
 Changes to Garbage-Guard, newest first. App versions refer to the Android app
-in `mobile-app/`; Pi entries refer to the detector, dashboard and Firebase sync
-in `pi/`. Entries before version 7 are summarised from the commit history.
+in `Mobile App/`; Pi entries refer to the detector, dashboard and Firebase sync
+in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
+`pi/` that were in use at the time. Entries before version 7 are summarised from the commit history.
+
+## App version 13: draw the monitored area from fullscreen (2026-10-31)
+
+### Pi
+
+- The dashboard's fullscreen view has Draw and Edit keys on the right. While
+  drawing they change to Cancel, Undo, Clear and Apply, and a tip over the
+  picture counts the points placed.
+- Fullscreen can be opened in the middle of drawing, and messages (toasts)
+  now show inside fullscreen.
+
+### App
+
+- The fullscreen right panel has the same Draw and Edit keys. Cancel, Apply
+  and Back return to the fullscreen feed when the drawing was started there.
+- `Garbage-Guard v13.apk` replaces v12.
 
 ## Pi dashboard: Model card (2026-10-28)
 

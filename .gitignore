@@ -19,8 +19,8 @@ gg-env/
 Thumbs.db
 *.swp
 
-# The NCNN model folder — large binary files, keep out unless using Git LFS
-garbageguard_v5_best_ncnn_model/
+# NCNN model folders — large binary files, keep out unless using Git LFS
+garbageguard_*_ncnn_model/
 *.pt
 !models/garbageguard_v7_best.pt
 
