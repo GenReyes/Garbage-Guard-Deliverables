@@ -22,6 +22,7 @@ folder opens the same document. Edit the Google Doc, not the PDF copy below.
 | [`GarbageGuard Manuscript (PDF copy, 2026-10-10).pdf`](GarbageGuard%20Manuscript%20%28PDF%20copy%2C%202026-10-10%29.pdf) | A PDF copy of the manuscript as of 10 October 2026, kept for reference. The Google Doc may be ahead of it |
 | [`GarbageGuard v1.docx`](GarbageGuard%20v1.docx) | Word copy of the manuscript (from the Google Doc export of 18 October 2026), cleaned up in the Smart-Bin v4 format for revising offline. Right-click the table of contents and choose Update Field after edits |
 | [`GarbageGuard v4.docx`](GarbageGuard%20v4.docx) | Latest Word copy (19 October 2026): v3 corrected against the code. What changed is in [`v4 Changes.md`](v4%20Changes.md). Update the table of contents field after opening |
+| [`Chapter 4 Guideline.md`](Chapter%204%20Guideline.md) | Guide for writing Chapter IV (Results and Discussion): what CIT requires, what must match Chapters I to III, where the data is, and open issues |
 | [`Revision Plan.md`](Revision%20Plan.md) | Prof. Jonel's comments turned into a task list, chapter by chapter |
 | [`CIT Capstone Study Guidelines Official Template.pdf`](CIT%20Capstone%20Study%20Guidelines%20Official%20Template.pdf) | The college's official format and guidelines for the paper |
 
