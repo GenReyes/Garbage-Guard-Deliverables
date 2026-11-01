@@ -1,8 +1,7 @@
 import sys, math; from ggfig import *
 W,H=1180,672
 K=0.35          # slope of the V edges (dx per dy)
-BLUE="#0B5CAD"   # darker than before so it stands apart from the black outlines
-HALO="#FFFFFF"
+BLUE="#0B5CAD"
 o=[]
 def panel(pts,fill):
     p=" ".join(f"{x:.1f},{y:.1f}" for x,y in pts); ps=" ".join(f"{x+6:.1f},{y+6:.1f}" for x,y in pts)
@@ -24,42 +23,49 @@ panel([(ex(T2),T2),(M(ex(T2)),T2),(M(ex(B2)),B2),(ex(B2),B2)],"#F3E6D2")
 o.append(header(M(1180)+ (ex(T1)+IN_TOP)/2-125,56,250,"V-MODEL UP-FRONT","#128C84"))
 o.append(header(M((ex(T1)+IN_TOP)/2)-125,56,250,"V-MODEL AT-END","#2F9E44"))
 o.append(header(590-90,B2+16,180,"SCRUM","#B7791F"))
-# stages (same size, stepped along the slope)
+# stages: two boxes per upper panel, evenly spaced top to bottom and centred between the slanted edges
 BW,BH=230,52
-y1,y2=152,250
-c1=ex(y1)+30+BW/2; c2=c1+K*(y2-y1)
+gap=(B1-T1-2*BH)/3
+y1=T1+gap+BH/2; y2=y1+BH+gap
+cen=lambda y:(ex(y)+IN_TOP+K*(y-T1))/2      # centre line of the left panel, parallel to its edges
+c1,c2=cen(y1),cen(y2)
 box(c1,y1,BW,BH,"Requirement Gathering","#128C84")
 box(c2,y2,BW,BH,"System Design","#0E6F68")
 box(M(c1),y1,BW,BH,"Acceptance Testing","#2F9E44")
 box(M(c2),y2,BW,BH,"System Testing","#237A35")
-# arrows down the left, up the right
-o.append(arrow([(c1+6,y1+BH/2+4),(c1+6+K*(y2-y1-BH-8),y2-BH/2-4)],2.6))
-o.append(arrow([(M(c1+6+K*(y2-y1-BH-8)),y2-BH/2-4),(M(c1+6),y1+BH/2+4)],2.6))
-# test-plan links (blue, dashed, two-headed) on a white halo, label in a white pill between the panels
+# arrows down the left, up the right, along the centre line
+ya,yb=y1+BH/2+5,y2-BH/2-5
+o.append(arrow([(cen(ya),ya),(cen(yb),yb)],2.6))
+o.append(arrow([(M(cen(yb)),yb),(M(cen(ya)),ya)],2.6))
+# test-plan links (blue, dashed, two-headed, white halo) with two-line labels
 for y,(a,b),lab in ((y1,(c1+BW/2+10,M(c1)-BW/2-10),("ACCEPTANCE","TEST PLAN")),(y2,(c2+BW/2+10,M(c2)-BW/2-10),("SYSTEM","TEST PLAN"))):
-    o.append(f'<line x1="{a}" y1="{y}" x2="{b}" y2="{y}" stroke="{HALO}" stroke-width="9" stroke-linecap="round"/>')
+    o.append(f'<line x1="{a:.1f}" y1="{y}" x2="{b:.1f}" y2="{y}" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>')
     o.append(arrow([(a,y),(b,y)],3.2,dashed=True,start=True).replace(f'stroke="{INK}"',f'stroke="{BLUE}"'))
-    LW,LH=96,38
-    o.append(f'<rect x="{590-LW/2}" y="{y-LH/2}" width="{LW}" height="{LH}" rx="9" fill="{HALO}" stroke="{BLUE}" stroke-width="2.2"/>')
+    o.append(f'<rect x="{590-48}" y="{y-19}" width="96" height="38" rx="9" fill="#FFFFFF" stroke="{BLUE}" stroke-width="2.2"/>')
     o.append(f'<text x="590" y="{y-3}" class="tl" text-anchor="middle">{lab[0]}</text><text x="590" y="{y+12}" class="tl" text-anchor="middle">{lab[1]}</text>')
-# scrum pills
+# scrum pills: the entry and exit run on the same centre line, so they are straight and parallel to the V
 PW,PH=200,50
-sd=(590-172,394); ut=(590+172,394); dv=(590,512)
+ys=394
+sdx=cen(ys)
+sd=(sdx,ys); ut=(M(sdx),ys); dv=(590,512)
 box(*sd,PW,PH,"Software Design","#B7791F",25)
 box(*ut,PW,PH,"Unit Testing","#B7791F",25)
 box(*dv,PW,PH,"Development","#E8590C",25)
-# entry and exit of the sprints
-o.append(arrow([(c2+10,y2+BH/2+6),(sd[0]-30,sd[1]-PH/2-6)],2.6))
-o.append(arrow([(M(sd[0]-30),sd[1]-PH/2-6),(M(c2+10),y2+BH/2+6)],2.6))
-# sprint circle on top, with arrowheads (left -> bottom -> right -> top)
-# kept inside the Scrum panel and clear of the three pills
-cx,cy,r=590,410,62
-o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{HALO}" stroke="{HALO}" stroke-width="9"/>')
+def blue_arrow(p,q):
+    o.append(f'<line x1="{p[0]:.1f}" y1="{p[1]:.1f}" x2="{q[0]:.1f}" y2="{q[1]:.1f}" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>')
+    a=arrow([p,q],3).replace(f'stroke="{INK}"',f'stroke="{BLUE}"')
+    o.append(a)
+y3,y4=y2+BH/2+6,ys-PH/2-8
+blue_arrow((cen(y3),y3),(cen(y4),y4))
+blue_arrow((M(cen(y4)),y4),(M(cen(y3)),y3))
+# sprint circle inside the Scrum band, with arrowheads
+cx,cy,r=590,412,58
+o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="9"/>')
 o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{BLUE}" stroke-width="3.4" stroke-dasharray="9 6"/>')
 for th in (135,315):
     t=math.radians(th); px,py=cx+r*math.cos(t),cy+r*math.sin(t)
-    dx,dy=math.sin(t),-math.cos(t)   # direction of decreasing angle
-    L,hw=16,8; bx,by=px-dx*L/2,py-dy*L/2; tx,ty=px+dx*L/2,py+dy*L/2
+    dx,dy=math.sin(t),-math.cos(t)
+    L,hw=18,8.5; bx,by=px-dx*L/2,py-dy*L/2; tx,ty=px+dx*L/2,py+dy*L/2
     o.append(f'<polygon points="{tx:.1f},{ty:.1f} {bx-dy*hw:.1f},{by+dx*hw:.1f} {bx+dy*hw:.1f},{by-dx*hw:.1f}" fill="{BLUE}" stroke="#FFFFFF" stroke-width="1.5"/>')
 o.append(f'<text x="{cx}" y="{cy+5}" class="sp" text-anchor="middle">SPRINT</text>')
 # phase arrows, parallel to the V edges and along the bottom
