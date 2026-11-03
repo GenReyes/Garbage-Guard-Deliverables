@@ -1910,7 +1910,7 @@ body .fbar.quick button{padding:0 9px}
           <svg class="ico"><use href="#i-x"/></svg><span>Cancel</span></button>
         <button class="hw fk fk-pen" id="fsUndo" data-snd="point_undo" type="button" title="Remove the last point">
           <svg class="ico a-left"><use href="#i-undo"/></svg><span>Undo</span></button>
-        <button class="hw fk fk-pen" id="fsWipe" data-snd="danger" type="button" title="Remove every point and start again">
+        <button class="hw fk fk-pen" id="fsWipe" data-snd="danger" type="button" title="Remove every point. Press again to remove the saved area">
           <svg class="ico a-shake"><use href="#i-eraser"/></svg><span>Clear</span></button>
         <button class="hw teal fk fk-pen" id="fsApply" data-snd="confirm" type="button" title="Save this outline as the monitored area">
           <svg class="ico a-pop"><use href="#i-check"/></svg><span>Apply</span></button>
@@ -2169,6 +2169,7 @@ $("clear").onclick = async () => {
 };
 $("apply").onclick = async () => {
   if(!editing) return toast("Use Draw first.","i-warn");
+  if(!draft.length) return $("clear").click();
   if(draft.length < 3) return toast("Place at least 3 points.","i-warn");
   await post("/api/roi", {points:draft});
   setEditing(false); toast("Area applied","i-check"); refresh();
@@ -2485,13 +2486,16 @@ function setFsPanel(s){
 
 $("fsCapture").onclick = () => $("capture").click();
 /* The drawing keys in fullscreen share the handlers of the Monitored area
-   card, except Clear: here it only wipes the points being placed, as in the
-   app. The card's Clear removes the saved area itself. */
+   card. Clear wipes the points being placed; pressed again with none left,
+   it removes the saved area, as the card's Clear does. */
 $("fsDraw").onclick = () => $("new").click();
 $("fsEdit").onclick = () => $("edit").click();
 $("fsApply").onclick = () => $("apply").click();
 $("fsUndo").onclick = () => $("undo").click();
-$("fsWipe").onclick = () => { if(editing) setEditing(true, []); };
+$("fsWipe").onclick = () => {
+  if(editing && draft && draft.length) return setEditing(true, []);
+  $("clear").click();
+};
 $("fsCancel").onclick = () => setEditing(false);
 $("fsMuteBtn").onclick = () => doMute(Number($("fsMuteFor").value), $("fsMuteFor"));
 $("fsUnmuteBtn").onclick = () => doUnmute();
