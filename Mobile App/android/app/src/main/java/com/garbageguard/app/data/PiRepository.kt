@@ -70,6 +70,8 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     private val _alerts = MutableStateFlow<List<AlertRow>>(emptyList())
     override val alerts: StateFlow<List<AlertRow>> = _alerts.asStateFlow()
+    private val _alertsTotal = MutableStateFlow<Int?>(null)
+    override val alertsTotal: StateFlow<Int?> = _alertsTotal.asStateFlow()
 
     private val _battery = MutableStateFlow(Battery())
     override val battery: StateFlow<Battery> = _battery.asStateFlow()
@@ -90,6 +92,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             sayBye(baseUrl)
             loaded.value = false
             _alerts.value = emptyList()
+            _alertsTotal.value = null
             _state.value = LiveState(conn = ConnState.NO_PI)
             _battery.value = Battery()
         }
@@ -186,8 +189,11 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
 
     private suspend fun refreshAlerts() {
         try {
-            val rows = JSONObject(request("GET", "/api/alerts?limit=$ALERT_LIMIT")).optJSONArray("alerts")
-            _alerts.value = parseAlerts(rows ?: JSONArray())
+            val reply = JSONObject(request("GET", "/api/alerts?limit=$ALERT_LIMIT"))
+            val rows = parseAlerts(reply.optJSONArray("alerts") ?: JSONArray())
+            // The total comes with the same reply, so the numbers always match the rows shown.
+            _alertsTotal.value = if (reply.has("total") && !reply.isNull("total")) reply.optInt("total") else null
+            _alerts.value = rows
             loaded.value = true
         } catch (e: CancellationException) {
             throw e
@@ -351,6 +357,23 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
     override suspend fun setClean(mode: String) {
         post("/api/clean", JSONObject().put("mode", mode))
         pollState()
+    }
+
+    override suspend fun setLabels(labels: BoxLabels) {
+        post("/api/labels", labelsJson(labels))
+        pollState()
+    }
+
+    internal fun labelsJson(l: BoxLabels): JSONObject =
+        JSONObject().put("class", l.className).put("id", l.trackId).put("conf", l.confidence)
+
+    internal fun parseLabels(o: JSONObject): BoxLabels? {
+        val l = o.optJSONObject("labels") ?: return null
+        return BoxLabels(
+            className = l.optBoolean("class", false),
+            trackId = l.optBoolean("id", false),
+            confidence = l.optBoolean("conf", true),
+        )
     }
 
     internal fun parseClean(o: JSONObject): CleanCopies? {
@@ -532,6 +555,8 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             screenNote = text(o, "screen_note").ifEmpty { null },
             buzzer = parseBuzzer(o),
             clean = parseClean(o),
+            alertsTotal = if (o.has("alerts_total") && !o.isNull("alerts_total")) o.optInt("alerts_total") else null,
+            labels = parseLabels(o),
         )
     }
 

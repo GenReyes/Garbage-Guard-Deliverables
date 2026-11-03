@@ -61,7 +61,27 @@ data class LiveState(
     val clean: CleanCopies? = null,
     /** The Pi's buzzer. Null on a Pi without one. */
     val buzzer: Buzzer? = null,
+    /** "alerts_total": every record in the Pi's log, however many the app has loaded. Null on an older Pi. */
+    val alertsTotal: Int? = null,
+    /** What the Pi writes on each detection box. Null on an older Pi without the setting. */
+    val labels: BoxLabels? = null,
 )
+
+/**
+ * The text the Pi burns above each detection box, the "labels" object of
+ * GET /api/state. Printed in a fixed order, ID then class then confidence,
+ * so all three read "#53 food_container 50%". With none, only the outline is drawn.
+ */
+data class BoxLabels(
+    val className: Boolean = false,
+    val trackId: Boolean = false,
+    val confidence: Boolean = true,
+) {
+    /** How a box reads with these choices, for the setting's preview. */
+    fun sample(): String = listOfNotNull(
+        "#53".takeIf { trackId }, "food_container".takeIf { className }, "50%".takeIf { confidence },
+    ).joinToString(" ")
+}
 
 /** One phone or browser from the "viewers" list in GET /api/state. */
 data class Viewer(

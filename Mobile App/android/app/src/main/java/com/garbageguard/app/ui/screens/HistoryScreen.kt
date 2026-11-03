@@ -7,6 +7,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalView
+import com.garbageguard.app.notify.Feel
+import com.garbageguard.app.notify.Sfx
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -97,6 +103,10 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
     val all = vm.visibleRows(alerts)
     val rows = all.take(vm.shown)
     val unread = alerts.count { !it.read }
+    val state by vm.state.collectAsState()
+    val total by vm.alertsTotal.collectAsState()
+    // The position of every record in the whole log, worked out once per change of the list.
+    val numbers = remember(alerts, total, state.alertsTotal) { vm.recordNumbers(alerts, state) }
 
     Column(
         Modifier
@@ -126,7 +136,7 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
             }
             else -> {
                 rows.forEach { row ->
-                    androidx.compose.runtime.key(row.id) { HistoryCard(vm, row) }
+                    androidx.compose.runtime.key(row.id) { HistoryCard(vm, row, numbers[row.id]) }
                 }
                 T(
                     "Showing 1 to ${rows.size} of ${all.size}", Modifier.fillMaxWidth(),
@@ -136,7 +146,7 @@ fun HistoryScreen(vm: AppViewModel, alerts: List<AlertRow>) {
                     GgButton("Load older", { vm.shown += 6 }, Modifier.fillMaxWidth())
                 }
                 Hint(
-                    "Tap a row to reveal Delete. Tap a thumbnail to open it.",
+                    "Tap a row to reveal Delete. Tap a picture to open it.",
                     icon = GgIcons.Eye, modifier = Modifier.fillMaxWidth(), center = true,
                 )
             }
@@ -227,7 +237,7 @@ private fun lookOf(e: EventType, c: GgColors): RowLook = when (e) {
  * read is pressed into the page.
  */
 @Composable
-private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
+private fun HistoryCard(vm: AppViewModel, row: AlertRow, number: Int?) {
     val c = Gg.colors
     val swiped = vm.swipedId == row.id
     val shift by animateDpAsState(if (swiped) (-96).dp else 0.dp, tween(200), label = "swipe")
@@ -311,8 +321,17 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                 }
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The record's place in the log, newest highest. A small "NO." above it
+            // keeps it from being read as the item count on the right.
+            if (number != null) Column(
+                Modifier.widthIn(min = 30.dp).alpha(fade),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                T("NO.", size = 0.52f, weight = FontWeight.Black, color = c.muted, spacing = 0.06f, maxLines = 1)
+                T("$number", size = 0.92f, weight = FontWeight.Black, color = c.text, tnum = true, maxLines = 1)
+            }
             // .dot
             Box(
                 Modifier
@@ -344,28 +363,65 @@ private fun HistoryCard(vm: AppViewModel, row: AlertRow) {
                 "${row.smoothedCount}", Modifier.widthIn(min = 30.dp).alpha(fade),
                 size = 1.3f, weight = FontWeight.Black, color = c.text, align = TextAlign.End, tnum = true,
             )
-            // .thumb
-            val thumbShape = RoundedCornerShape(7.dp)
-            Box(
-                Modifier
-                    .size(width = 54.dp, height = 40.dp)
-                    .alpha(fade)
-                    .clip(thumbShape)
-                    .background(if (row.snapshot != null) FEED_BLACK else c.sunk)
-                    .border(2.dp, c.edge, thumbShape)
-                    .then(
-                        if (row.snapshot != null) Modifier.pressable { vm.overlay = Overlay.Viewer(row.id) } else Modifier
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (row.snapshot != null) {
-                    val picture = rememberSnapshot(RemoteImages.thumb(vm.snapshotUrl(row.snapshot)))
-                    // Demo data draws its own picture. A real record waits for the real one.
-                    if (vm.demo || picture != null) FeedCanvas(snapshotFrame(row), Modifier.fillMaxSize(), image = picture, alignTop = true)
-                    else T(if (vm.remote) "LOADING" else "\u2026", size = 0.5f, color = GLASS_EDGE, maxLines = 1)
-                }
-                else T("NO IMAGE", size = 0.5f, color = c.muted, maxLines = 1)
-            }
+            SnapshotThumb(vm, row, Modifier.alpha(fade))
         }
+    }
+}
+
+/**
+ * .thumb, a square crop of the snapshot with the view symbol over it. The
+ * symbol is half see-through on a small pale disc so the picture still
+ * reads, and turns solid while it is pressed or focused. It shows the
+ * annotated or the clean picture, whichever the viewer's switch was left on.
+ */
+@Composable
+private fun SnapshotThumb(vm: AppViewModel, row: AlertRow, modifier: Modifier = Modifier) {
+    val c = Gg.colors
+    val shape = RoundedCornerShape(8.dp)
+    val view = LocalView.current
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val focused by source.collectIsFocusedAsState()
+    val solid = pressed || focused
+    val has = row.snapshot != null
+    // The clean copy only where it can be loaded; over Firebase it stays on the Pi.
+    val cleanUrl = if (vm.snapClean) vm.cleanUrl(row.clean) else null
+    Box(
+        modifier
+            .size(52.dp)
+            .clip(shape)
+            .background(if (has) FEED_BLACK else c.sunk)
+            .border(2.dp, c.edge, shape)
+            .then(
+                if (has) Modifier.clickable(interactionSource = source, indication = null) {
+                    Feel.play(view, Sfx.OPEN)
+                    vm.overlay = Overlay.Viewer(row.id)
+                } else Modifier
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!has) {
+            T("NO IMAGE", size = 0.46f, color = c.muted, maxLines = 1)
+            return@Box
+        }
+        val picture = rememberSnapshot(RemoteImages.thumb(cleanUrl ?: vm.snapshotUrl(row.snapshot)))
+        val clean = vm.snapClean && (cleanUrl != null || (vm.demo && row.hasClean))
+        // Demo data draws its own picture. A real record waits for the real one.
+        if (vm.demo || picture != null) {
+            FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), image = picture)
+        } else {
+            T(if (vm.remote) "LOADING" else "\u2026", size = 0.46f, color = GLASS_EDGE, maxLines = 1)
+        }
+        // The scrim sits behind the symbol only, not over the whole picture.
+        val scrim = if (c.isDark) Color.Black else Color.White
+        Box(
+            Modifier
+                .size(26.dp)
+                .alpha(if (solid) 1f else 0.62f)
+                .clip(CircleShape)
+                .background(scrim.copy(alpha = if (solid) 0.85f else 0.5f))
+                .border(if (solid) 2.dp else 1.dp, c.edge.copy(alpha = if (solid) 1f else 0.5f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) { Ico(GgIcons.Eye, size = 15.dp, tint = if (c.isDark) Color.White else Color(0xFF16130F)) }
     }
 }

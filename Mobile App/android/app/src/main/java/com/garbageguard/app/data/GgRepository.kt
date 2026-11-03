@@ -3,6 +3,7 @@ package com.garbageguard.app.data
 import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -35,6 +36,13 @@ interface GgRepository {
 
     /** From GET /api/alerts?limit=50, newest first. */
     val alerts: StateFlow<List<AlertRow>>
+
+    /**
+     * "total" from GET /api/alerts: the number of records in the whole log,
+     * which can be more than the rows loaded. Null where the repository does
+     * not know it; the screen then falls back to the state's alerts_total.
+     */
+    val alertsTotal: StateFlow<Int?> get() = NO_TOTAL
 
     /** Polled from GET /api/battery every two seconds. */
     val battery: StateFlow<Battery>
@@ -114,6 +122,11 @@ interface GgRepository {
     /** POST /api/clean {"mode": "off"|"manual"|"all"}. */
     suspend fun setClean(mode: String) {}
 
+    /** POST /api/labels {"class": bool, "id": bool, "conf": bool}: what the Pi writes on each box. */
+    suspend fun setLabels(labels: BoxLabels) {}
+
     /** Where the clean copy of a snapshot can be loaded. Null where it cannot, as over Firebase. */
     fun cleanUrl(name: String): String? = null
 }
+
+private val NO_TOTAL: StateFlow<Int?> = MutableStateFlow(null)

@@ -73,6 +73,8 @@ import com.garbageguard.app.ui.components.Acts
 import com.garbageguard.app.ui.components.BtnKind
 import com.garbageguard.app.ui.components.FEED_BLACK
 import com.garbageguard.app.ui.components.FeedCanvas
+import com.garbageguard.app.ui.components.ZoomReset
+import com.garbageguard.app.ui.components.rememberFeedZoom
 import com.garbageguard.app.ui.components.GgButton
 import com.garbageguard.app.ui.components.GgIcons
 import com.garbageguard.app.ui.components.GgInput
@@ -142,7 +144,10 @@ fun OverlayHost(
         is Overlay.Delete -> DeleteSheet(vm, alerts.firstOrNull { it.id == o.id }, o.id == null, vm.visibleRows(alerts).size, close)
         is Overlay.Viewer -> {
             val row = alerts.firstOrNull { it.id == o.id }
-            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(row, vm.snapshotUrl(row.snapshot), vm.cleanUrl(row.clean), { vm.overlay = Overlay.Delete(row.id) }, close, drawn = vm.demo)
+            if (row == null) LaunchedEffect(o) { close() } else SnapshotViewer(
+                row, vm.snapshotUrl(row.snapshot), vm.cleanUrl(row.clean), { vm.overlay = Overlay.Delete(row.id) }, close,
+                clean = vm.snapClean, onClean = vm::chooseSnapClean, drawn = vm.demo,
+            )
         }
         Overlay.ClearArea -> GgSheet(close) {
             SheetTitle("Clear monitored area?")
@@ -533,12 +538,15 @@ private fun SheetTextIn(text: String, modifier: Modifier) {
 @Composable
 private fun SnapshotViewer(
     row: AlertRow, imageUrl: String?, cleanUrl: String?, onDelete: () -> Unit, close: () -> Unit,
+    /** The Annotated or Clean switch, shared with the History thumbnails. */
+    clean: Boolean, onClean: (Boolean) -> Unit,
     /** Demo data: the picture is drawn on the phone, so its clean copy is too (the same scene without boxes). */
     drawn: Boolean = false,
 ) {
     // Annotated is the snapshot as saved, boxes and outline drawn in; Clean is the camera picture alone.
-    var clean by rememberSaveable(row.id) { mutableStateOf(false) }
-    val image = rememberSnapshot(if (clean && cleanUrl != null) cleanUrl else imageUrl)
+    // The shared switch applies only where this record has a clean copy to show.
+    val showClean = clean && (cleanUrl != null || (drawn && row.hasClean))
+    val image = rememberSnapshot(if (showClean && cleanUrl != null) cleanUrl else imageUrl)
     val c = Gg.colors
     var fullSize by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -550,13 +558,24 @@ private fun SnapshotViewer(
     if (fullSize) {
         // Full size means the whole screen, sideways, like the live feed.
         LandscapeImmersive()
+        // Two fingers zoom and pan; a tap goes back to the readings.
+        val zoom = rememberFeedZoom()
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black)
-                .pressable(sound = Sfx.BACK) { fullSize = false },
+                .background(Color.Black),
             contentAlignment = Alignment.Center,
-        ) { FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image) }
+        ) {
+            FeedCanvas(
+                snapshotFrame(row).let { if (showClean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image,
+                zoom = zoom,
+                onPictureTap = {
+                    Feel.play(view, Sfx.BACK)
+                    fullSize = false
+                },
+            )
+            ZoomReset(zoom)
+        }
         return
     }
 
@@ -575,8 +594,8 @@ private fun SnapshotViewer(
             Box(Modifier.weight(1f)) {
                 when {
                     cleanUrl != null || (drawn && row.hasClean) -> Segmented(
-                        listOf("Annotated", "Clean"), selected = if (clean) 1 else 0,
-                        onSelect = { clean = it == 1 },
+                        listOf("Annotated", "Clean"), selected = if (showClean) 1 else 0,
+                        onSelect = { onClean(it == 1) },
                     )
                     // Over Firebase the clean picture stays on the Pi; say so instead of offering it.
                     row.hasClean -> T(
@@ -643,7 +662,7 @@ private fun SnapshotViewer(
             // the full height and the readings stand in a column beside it.
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxHeight().background(FEED_BLACK).pressable(sound = Sfx.OPEN) { fullSize = true }) {
-                    FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
+                    FeedCanvas(snapshotFrame(row).let { if (showClean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
                 }
                 Box(Modifier.fillMaxHeight().width(2.dp).background(c.edge))
                 Column(Modifier.width(minOf(wide * 0.42f, 380.dp)).fillMaxHeight()) {
@@ -663,7 +682,7 @@ private fun SnapshotViewer(
                 header()
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
                 Box(Modifier.fillMaxWidth().weight(1f).background(FEED_BLACK).pressable(sound = Sfx.OPEN) { fullSize = true }) {
-                    FeedCanvas(snapshotFrame(row).let { if (clean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
+                    FeedCanvas(snapshotFrame(row).let { if (showClean) it.copy(showBoxes = false) else it }, Modifier.fillMaxSize(), cover = false, image = image)
                 }
                 Box(Modifier.fillMaxWidth().height(2.dp).background(c.edge))
                 readings(Modifier.height(sheet))

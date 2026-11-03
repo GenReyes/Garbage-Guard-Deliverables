@@ -634,6 +634,18 @@ class CloudRepository(
         }
     }
 
+    override suspend fun setLabels(labels: BoxLabels) {
+        val result = command("labels", parser.labelsJson(labels))
+        val base = lastState
+        val next = if (result == null) null else parser.parseLabels(result)
+        if (base != null && next != null) {
+            lastState = base.copy(labels = next)
+            countDown()
+        } else {
+            pollState()
+        }
+    }
+
     /** The Pi's network screen is local only. */
     override suspend fun networkDetails(): NetDetails? = null
 

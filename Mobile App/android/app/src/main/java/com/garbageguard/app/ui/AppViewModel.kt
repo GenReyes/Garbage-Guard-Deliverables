@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.garbageguard.app.data.AlertRow
 import com.garbageguard.app.data.Battery
+import com.garbageguard.app.data.BoxLabels
 import com.garbageguard.app.data.CloudRepository
 import com.garbageguard.app.data.CloudUsage
 import com.garbageguard.app.data.FirebaseConfig
@@ -125,6 +126,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     @OptIn(ExperimentalCoroutinesApi::class)
     val alerts: StateFlow<List<AlertRow>> =
         active.flatMapLatest { it.alerts }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val alertsTotal: StateFlow<Int?> =
+        active.flatMapLatest { it.alertsTotal }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /**
+     * Each record's place in the whole log, by id: the newest of 300 is 300
+     * and the count runs down from there. It comes from the Pi's total, not
+     * from the rows loaded or the page, so it stays right when only the
+     * latest 200 are on the phone and when a filter hides some of them.
+     */
+    fun recordNumbers(rows: List<AlertRow>, state: LiveState): Map<Long, Int> {
+        val total = maxOf(alertsTotal.value ?: state.alertsTotal ?: rows.size, rows.size)
+        return rows.withIndex().associate { (i, r) -> r.id to total - i }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val battery: StateFlow<Battery> =
@@ -613,6 +629,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun cleanUrl(name: String?): String? = name?.let { repo.cleanUrl(it) }
 
+    /**
+     * The Annotated or Clean switch of the snapshot viewer. It is one choice
+     * for the whole History, so the row thumbnails show the same version.
+     */
+    var snapClean by mutableStateOf(prefs.getBoolean(KEY_SNAP_CLEAN, false))
+        private set
+
+    fun chooseSnapClean(clean: Boolean) {
+        snapClean = clean
+        prefs.edit().putBoolean(KEY_SNAP_CLEAN, clean).apply()
+    }
+
+    /** What the Pi writes above each box. Any mix of the three, or none for the outline alone. */
+    fun setLabels(labels: BoxLabels) = launchAction(
+        if (labels.sample().isEmpty()) "Boxes show the outline only" else "Boxes now read " + labels.sample(),
+        key = LOCK_LABELS,
+    ) { repo.setLabels(labels) }
+
     /** Called by the Screen saver card after it changes one of its drafts. */
     fun screenSaverChanged() = arm(LOCK_SAVER, ::sendScreenSaver)
 
@@ -1096,6 +1130,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_BUZZER = "buzzer"
         const val LOCK_BUZZ_TEST = "buzzer_test"
         const val LOCK_CLEAN = "clean"
+        const val LOCK_LABELS = "labels"
         const val LOCK_WAKE_ALERT = "wake_alert"
         const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"
         const val LOCK_SCREEN = "screen"
@@ -1114,5 +1149,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private const val KEY_HAPTICS = "haptics"
         private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
         private const val KEY_AWAKE = "keep_screen_on"
+        private const val KEY_SNAP_CLEAN = "snap_clean"
     }
 }

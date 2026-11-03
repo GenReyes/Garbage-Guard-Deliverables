@@ -120,6 +120,8 @@ STATE = {
     "quiet_to": "06:00",
     # Clean copies of snapshots (Raspberry Pi 5/gg_clean.py).
     "clean_mode": "all",
+    # What the Pi writes above each box: ID, class, confidence, in that order.
+    "labels": {"class": False, "id": False, "conf": True},
 }
 
 BUZZER_SOUNDS = ("accumulation", "shutdown_low", "countdown", "test", "auto_muted",
@@ -326,6 +328,8 @@ def build_state():
         "screen_wake_on_alert": STATE["screen_wake_on_alert"],
         "screen": screen_now(),
         "screen_note": None,
+        "alerts_total": len(LOG),
+        "labels": dict(STATE["labels"]),
         **buzzer_fields(),
     }
 
@@ -470,7 +474,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(build_net_details())
         if path == "/api/alerts":
             limit = int((q.get("limit") or [50])[0])
-            return self._json({"alerts": LOG[:limit]})
+            # limit=0 means every record, as on the Pi; total ignores the limit.
+            return self._json({"alerts": LOG[:limit] if limit > 0 else LOG, "total": len(LOG)})
         if path == "/frame.jpg":
             return self._send(200, "image/jpeg", FRAME)
         if path.startswith("/snapshots/clean/"):
@@ -630,6 +635,12 @@ class Handler(BaseHTTPRequestHandler):
             STATE["clean_mode"] = data["mode"]
             f = buzzer_fields()
             return self._json({"ok": True, **{k: f[k] for k in ("clean_mode", "clean_count", "clean_bytes")}})
+
+        if path == "/api/labels":
+            for k in ("class", "id", "conf"):
+                if k in data:
+                    STATE["labels"][k] = bool(data[k])
+            return self._json({"ok": True, "labels": dict(STATE["labels"])})
 
         if path == "/api/buzzer/ui":
             if self.client_address[0] not in ("127.0.0.1", "::1"):

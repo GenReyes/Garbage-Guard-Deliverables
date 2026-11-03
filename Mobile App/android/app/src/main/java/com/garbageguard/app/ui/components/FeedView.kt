@@ -47,6 +47,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -141,41 +143,67 @@ fun FeedCanvas(
     onTap: (RoiPoint) -> Unit = {},
     image: ImageBitmap? = null,
     alignTop: Boolean = false,
+    /** Pinch zoom, for the fullscreen picture. Null keeps the picture fixed. */
+    zoom: FeedZoom? = null,
+    /** A tap on the picture while not drawing, such as hiding the side panels. */
+    onPictureTap: (() -> Unit)? = null,
 ) {
     // The drawing space is 160 wide. Its height follows the real picture
     // when there is one, so taps land on the same spot of the camera view.
     val fh = if (image != null && image.width > 0) FW * image.height / image.width else 100f
+    val drawing = drawPoints != null
+    val tapPoint by rememberUpdatedState(onTap)
+    val tapPicture by rememberUpdatedState(onPictureTap)
+    val drawingNow by rememberUpdatedState(drawing)
+    val touch = drawing || zoom != null || onPictureTap != null
     Canvas(
-        modifier = modifier.then(
-            if (drawPoints != null) Modifier.pointerInput(cover, fh) {
-                detectTapGestures { p ->
-                    val s = fitScale(size.width.toFloat(), size.height.toFloat(), fh, cover)
-                    val ox = (size.width - FW * s) / 2f
-                    val oy = (size.height - fh * s) / 2f
-                    val x = (p.x - ox) / (FW * s)
-                    val y = (p.y - oy) / (fh * s)
-                    if (x in 0f..1f && y in 0f..1f) onTap(RoiPoint(x, y))
-                }
-            } else Modifier
-        ),
+        modifier = modifier
+            .then(if (zoom != null) Modifier.clipToBounds() else Modifier)
+            .then(
+                if (touch) Modifier.pointerInput(cover, fh, zoom) {
+                    feedGestures(zoom, { drawingNow }) { screen ->
+                        // Undo the zoom first, then the fit, so the point is stored in
+                        // frame coordinates whatever the zoom was when it was tapped.
+                        val p = zoom?.toCanvas(screen) ?: screen
+                        if (drawingNow) {
+                            val s = fitScale(size.width.toFloat(), size.height.toFloat(), fh, cover)
+                            val ox = (size.width - FW * s) / 2f
+                            val oy = (size.height - fh * s) / 2f
+                            val x = (p.x - ox) / (FW * s)
+                            val y = (p.y - oy) / (fh * s)
+                            if (x in 0f..1f && y in 0f..1f) tapPoint(RoiPoint(x, y))
+                        } else {
+                            tapPicture?.invoke()
+                        }
+                    }
+                } else Modifier
+            ),
     ) {
-        val s = fitScale(size.width, size.height, fh, cover)
-        val ox = (size.width - FW * s) / 2f
-        val oy = if (alignTop) 0f else (size.height - fh * s) / 2f
-        if (image != null) {
-            // The Pi's frame already carries its boxes and the area outline.
-            drawImage(
-                image,
-                dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
-                dstSize = IntSize((FW * s).roundToInt(), (fh * s).roundToInt()),
-            )
-        }
+        val z = zoom?.scale ?: 1f
+        val pan = zoom?.pan ?: Offset.Zero
         withTransform({
-            translate(ox, oy)
-            scale(s, s, pivot = Offset.Zero)
+            translate(pan.x, pan.y)
+            scale(z, z, pivot = Offset.Zero)
         }) {
-            if (image == null) drawFrame(frame)
-            drawAreaInProgress(drawPoints, fh)
+            val s = fitScale(size.width, size.height, fh, cover)
+            val ox = (size.width - FW * s) / 2f
+            val oy = if (alignTop) 0f else (size.height - fh * s) / 2f
+            if (image != null) {
+                // The Pi's frame already carries its boxes and the area outline.
+                drawImage(
+                    image,
+                    dstOffset = IntOffset(ox.roundToInt(), oy.roundToInt()),
+                    dstSize = IntSize((FW * s).roundToInt(), (fh * s).roundToInt()),
+                )
+            }
+            withTransform({
+                translate(ox, oy)
+                scale(s, s, pivot = Offset.Zero)
+            }) {
+                if (image == null) drawFrame(frame)
+                // The outline being drawn keeps its width on screen however far in the picture is zoomed.
+                drawAreaInProgress(drawPoints, fh, 1f / z)
+            }
         }
     }
 }
@@ -188,16 +216,16 @@ private fun fitScale(w: Float, h: Float, fh: Float, cover: Boolean): Float {
     return if (cover) maxOf(a, b) else minOf(a, b)
 }
 
-private fun DrawScope.drawAreaInProgress(drawPoints: List<RoiPoint>?, fh: Float) {
+private fun DrawScope.drawAreaInProgress(drawPoints: List<RoiPoint>?, fh: Float, k: Float = 1f) {
     if (drawPoints.isNullOrEmpty()) return
     val closed = drawPoints.size >= 3
     val path = polygon(drawPoints, close = closed, fh = fh)
     if (closed) drawPath(path, COL_ROI.copy(alpha = 0.22f))
-    drawPath(path, COL_ROI, style = Stroke(width = 1.4f))
+    drawPath(path, COL_ROI, style = Stroke(width = 1.4f * k))
     drawPoints.forEach {
         val c = Offset(it.x * FW, it.y * fh)
-        drawCircle(COL_ROI, radius = 3f, center = c)
-        drawCircle(Color(0xFF16130F), radius = 3f, center = c, style = Stroke(width = 1f))
+        drawCircle(COL_ROI, radius = 3f * k, center = c)
+        drawCircle(Color(0xFF16130F), radius = 3f * k, center = c, style = Stroke(width = 1f * k))
     }
 }
 

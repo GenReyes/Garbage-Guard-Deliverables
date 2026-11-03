@@ -50,6 +50,8 @@ import com.garbageguard.app.ui.components.feedAspect
 import com.garbageguard.app.ui.components.pressable
 import com.garbageguard.app.ui.components.rememberLiveFrame
 import com.garbageguard.app.ui.components.scanLines
+import com.garbageguard.app.ui.components.ZoomReset
+import com.garbageguard.app.ui.components.rememberFeedZoom
 import com.garbageguard.app.ui.theme.Gg
 import kotlin.math.roundToInt
 
@@ -98,6 +100,8 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
     val p = percentOf(state)
     val image = rememberLiveFrame(vm.frameUrl)
     var rails by rememberSaveable { mutableStateOf(true) }
+    // Two fingers zoom the picture. The zoom stays while drawing, so a corner can be placed up close.
+    val zoom = rememberFeedZoom()
     val tone = when (level.lv) { Lv.OK -> c.ok; Lv.WARN -> c.warn; Lv.BAD -> c.bad; Lv.GRAY -> c.muted }
 
     WideMonitor(
@@ -118,7 +122,7 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                     RailLabel("DRAW AREA", GgIcons.Target, c.cloud)
                     RailReadout("${vm.drawPoints.size}", "POINTS", GgIcons.Layers, c.bottle)
                 }
-                RailGroup { RailNote("Tap the picture to outline the water. Apply when the shape is closed.") }
+                RailGroup { RailNote("Tap the picture to outline the water. Two fingers zoom in. Apply when the shape is closed.") }
             } else {
                 RailGauge(p / 100f, tone, "${state.smoothed}", "OF ${state.threshold}")
                 RailGroup {
@@ -190,10 +194,15 @@ fun FullscreenScreen(vm: AppViewModel, state: LiveState) {
                 Feel.play(view, Sfx.POINT)
                 vm.drawPoints.add(it)
             },
+            zoom = zoom,
+            // A tap on the picture hides the panels, and a second tap brings them back.
+            onPictureTap = {
+                Feel.play(view, Sfx.TAP)
+                rails = !rails
+            },
         )
         Box(Modifier.fillMaxSize().scanLines())
-        // A tap on the picture hides the panels, and a second tap brings them back.
-        if (!vm.drawing) Box(Modifier.fillMaxSize().pressable { rails = !rails })
+        ZoomReset(zoom)
         if (state.alertActive && !state.muted && online && !vm.drawing) AlertFlag()
         if (!online) OfflinePanel(state.conn == ConnState.NO_PI)
     }

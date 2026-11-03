@@ -106,6 +106,8 @@ fun SettingsScreen(vm: AppViewModel, state: LiveState) {
             }
         }
 
+        BoxLabelsCard(vm, state)
+
         GgCard {
             Hd(GgIcons.Poly, "Monitored area") {
                 Tag(if (hasArea) "Saved" else "Whole frame", if (hasArea) Tone.OK else Tone.WARN)

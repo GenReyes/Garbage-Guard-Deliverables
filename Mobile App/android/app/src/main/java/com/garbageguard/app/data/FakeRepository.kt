@@ -34,6 +34,7 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             screenMode = "off",
             buzzer = Buzzer(),
             clean = CleanCopies(mode = "all", count = 19, bytes = 19L * 61_000),
+            labels = BoxLabels(),
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
                 RoiPoint(0.55f, 0.92f), RoiPoint(0.08f, 0.82f),
@@ -390,6 +391,10 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
     }
 
     override fun cleanUrl(name: String): String? = snapshotUrl(name)
+
+    override suspend fun setLabels(labels: BoxLabels) {
+        _state.update { it.copy(labels = labels) }
+    }
 
     override suspend fun restart() {
         _state.update { it.copy(conn = ConnState.NO_PI) }
