@@ -23,6 +23,49 @@ import gg_window
 BASE_DIR = Path(__file__).resolve().parent
 STREAM_FPS = 12
 SNAPSHOT_NAME = re.compile(r"^[A-Za-z0-9_.-]+\.jpg$")
+THUMB_PX = 160
+THUMB_KEEP = 400
+
+_thumbs = {}
+_thumbs_lock = threading.Lock()
+
+
+def square_thumb(path, card=True):
+    """A small square JPEG cut from the middle of a snapshot, for history rows.
+
+    `card` drops the info strip that annotated snapshots carry under the
+    photo, so the thumbnail shows the water and not the strip. Clean copies
+    have no strip. Kept in memory by file and modification time, so
+    scrolling back up the history does not decode the full picture again.
+    """
+    import cv2
+    import numpy as np
+    key = (str(path), path.stat().st_mtime_ns, card)
+    with _thumbs_lock:
+        if key in _thumbs:
+            return _thumbs[key]
+    img = cv2.imdecode(np.fromfile(str(path), np.uint8), cv2.IMREAD_COLOR)
+    if img is None:
+        return None
+    h, w = img.shape[:2]
+    if card:
+        import gg_snapcard
+        strip = gg_snapcard.card_height(w)
+        if h - strip >= w // 2:
+            img, h = img[:h - strip], h - strip
+    side = min(h, w)
+    y, x = (h - side) // 2, (w - side) // 2
+    img = cv2.resize(img[y:y + side, x:x + side], (THUMB_PX, THUMB_PX),
+                     interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 75])
+    if not ok:
+        return None
+    jpg = buf.tobytes()
+    with _thumbs_lock:
+        if len(_thumbs) >= THUMB_KEEP:
+            _thumbs.pop(next(iter(_thumbs)))
+        _thumbs[key] = jpg
+    return jpg
 
 
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
@@ -190,7 +233,8 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
+            if "Cache-Control" not in (extra or {}):
+                self.send_header("Cache-Control", "no-store")
             for k, v in (extra or {}).items():
                 self.send_header(k, v)
             self.end_headers()
@@ -263,6 +307,8 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                     note_viewer(ip, client_kind(self.headers), headers=self.headers)
                 st = engine.snapshot_state()
                 st["viewers"] = viewers()
+                if hasattr(engine, "alerts_total"):
+                    st["alerts_total"] = engine.alerts_total()
                 st.update(screen.fields())
                 st.update(clock.fields())
                 st.update(buzzer.fields())
@@ -276,7 +322,10 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                 sig = engine.alerts_sig() if hasattr(engine, "alerts_sig") else None
                 if sig is not None and (query.get("sig") or [None])[0] == sig:
                     return self._json({"same": True, "sig": sig})
-                return self._json({"alerts": engine.recent_alerts(limit), "sig": sig})
+                out = {"alerts": engine.recent_alerts(limit), "sig": sig}
+                if hasattr(engine, "alerts_total"):
+                    out["total"] = engine.alerts_total()
+                return self._json(out)
 
             if path == "/frame.jpg":
                 jpg = engine.get_jpeg()
@@ -287,11 +336,12 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
             if path == "/stream.mjpg":
                 return self._stream()
 
+            thumb = (query.get("thumb") or ["0"])[0] == "1"
             if path.startswith("/snapshots/clean/"):
-                return self._snapshot(path[len("/snapshots/clean/"):], gg_clean.FOLDER)
+                return self._snapshot(path[len("/snapshots/clean/"):], gg_clean.FOLDER, thumb)
 
             if path.startswith("/snapshots/"):
-                return self._snapshot(path[len("/snapshots/"):])
+                return self._snapshot(path[len("/snapshots/"):], thumb=thumb)
 
             return self._send(404, "text/plain", "not found")
 
@@ -364,6 +414,13 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                                            threshold=data.get("threshold"))
                 buzzer.play("saved")
                 return self._json({"ok": True, "settings": s})
+
+            if path == "/api/labels":
+                if not hasattr(engine, "set_labels"):
+                    return self._json({"ok": False, "error": "Box labels are not available."})
+                labels = engine.set_labels(data)
+                buzzer.play("saved")
+                return self._json({"ok": True, "labels": labels})
 
             if path == "/api/view":
                 size = data.get("detect_size")
@@ -495,7 +552,7 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
 
             return self._send(404, "text/plain", "not found")
 
-        def _snapshot(self, name, sub=None):
+        def _snapshot(self, name, sub=None, thumb=False):
             if not SNAPSHOT_NAME.match(name):
                 return self._send(404, "text/plain", "not found")
             folder = Path(engine.snapshot_dir).resolve()
@@ -504,6 +561,12 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
             target = (folder / name).resolve()
             if target.parent != folder or not target.is_file():
                 return self._send(404, "text/plain", "not found")
+            if thumb:
+                jpg = square_thumb(target, card=not sub)
+                if jpg is None:
+                    return self._send(404, "text/plain", "not found")
+                return self._send(200, "image/jpeg", jpg,
+                                  {"Cache-Control": "max-age=86400"})
             return self._send(200, "image/jpeg", target.read_bytes())
 
         def _stream(self):

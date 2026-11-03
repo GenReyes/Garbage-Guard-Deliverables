@@ -414,6 +414,14 @@ main{flex:1;min-height:0;display:flex}
 #feed{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;
   font-size:0;color:transparent}
 #overlay{position:absolute;inset:0;width:100%;height:100%}
+.zoomer{position:absolute;inset:0;transform-origin:0 0}
+/* Pinch zoom. The page itself must not pinch or scroll under the fingers. */
+.fs-stage .screen,.zpic{touch-action:none}
+.zreset{position:absolute;left:10px;bottom:10px;z-index:6;display:flex;align-items:center;gap:5px;
+  padding:6px 11px;border-radius:10px;border:2px solid #F4EFE6;background:rgba(14,12,10,.78);
+  color:#F4EFE6;font:inherit;font-size:13px;font-weight:900;cursor:pointer;font-variant-numeric:tabular-nums}
+.zreset .ico{width:15px;height:15px}
+.zreset[hidden]{display:none}
 .scan{position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(rgba(255,255,255,.045) 0 1px, transparent 1px 3px)}
 .glare{position:absolute;top:0;bottom:0;width:26%;pointer-events:none;
@@ -736,19 +744,38 @@ main{flex:1;min-height:0;display:flex}
    stands out of the page, an unread "Limit reached" stands out furthest with
    a red edge, a stripe and a slow glow, and a read row is pressed into the
    page and fades back. */
-.lt{--cols:38px minmax(150px,1.05fr) minmax(170px,1.2fr) 70px 104px 56px;font-size:13px}
+.lt{--cols:52px 38px minmax(150px,1.05fr) minmax(170px,1.2fr) 70px 84px 56px;font-size:13px}
 .lh,.lr{display:grid;grid-template-columns:var(--cols);align-items:center}
 .lh{position:sticky;top:0;z-index:3;padding:7px 16px 7px 12px;margin-bottom:6px;
   background:var(--sunk);border-bottom:2px solid var(--edge);
   font-size:10.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .lh > span{display:flex;align-items:center;gap:5px;white-space:nowrap;padding:0 8px}
 .lh .ico{width:13px;height:13px;color:var(--teal)}
-.lh > span:nth-child(1) .ico{color:var(--teal)}
-.lh > span:nth-child(2) .ico{color:var(--indigo)}
-.lh > span:nth-child(3) .ico{color:var(--purple)}
-.lh > span:nth-child(4) .ico{color:var(--orange)}
-.lh > span:nth-child(5) .ico{color:var(--c-bottle)}
-.lh > span:nth-child(6) .ico{color:var(--muted)}
+.lh > span:nth-child(2) .ico{color:var(--teal)}
+.lh > span:nth-child(3) .ico{color:var(--indigo)}
+.lh > span:nth-child(4) .ico{color:var(--purple)}
+.lh > span:nth-child(5) .ico{color:var(--orange)}
+.lh > span:nth-child(6) .ico{color:var(--c-bottle)}
+.lh > span:nth-child(7) .ico{color:var(--muted)}
+.lh .c-no{justify-content:flex-end;padding-right:4px}
+/* The record's place in the whole log: the newest of 300 reads 300. */
+.lr .c-no{text-align:right;padding-right:4px;font-size:12px;font-weight:900;color:var(--muted)}
+/* Snapshot thumbnail. The eye sits on a small light disc so the picture
+   around it stays readable, and comes up fully on hover or keyboard focus. */
+.thumb{position:relative;display:block;width:40px;height:40px;padding:0;border:2px solid var(--edge);
+  border-radius:10px;overflow:hidden;background:#0B0A09;cursor:pointer;box-shadow:var(--hard-sm)}
+.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.thumb .th-eye{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;
+  display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.55);color:#16130F;
+  opacity:.72;transition:opacity .15s ease, background .15s ease, transform .15s ease}
+.thumb .th-eye .ico{width:14px;height:14px}
+.thumb:hover .th-eye,.thumb:focus-visible .th-eye{opacity:1;background:rgba(255,255,255,.94);transform:scale(1.1)}
+.thumb:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+[data-theme="dark"] .thumb .th-eye{background:rgba(14,12,10,.5);color:#F4EFE6}
+[data-theme="dark"] .thumb:hover .th-eye,[data-theme="dark"] .thumb:focus-visible .th-eye{background:rgba(14,12,10,.88)}
+.lr .c-pic{padding-top:2px;padding-bottom:2px;overflow:visible}
+#logMore{display:flex;justify-content:center;padding:2px 0 8px;font-size:11.5px;font-weight:800;color:var(--muted)}
+#logMore[hidden]{display:none}
 .lh .c-rd{justify-content:center;padding:0}
 .lh .c-n{justify-content:flex-end}
 .lh .c-act{justify-content:center}
@@ -1037,8 +1064,8 @@ dialog::backdrop{background:rgba(10,8,6,.62)}
    beside it instead of a bar underneath, so nothing shrinks the photo. */
 #zoom[open]{display:flex;flex-direction:row}
 #zoom::backdrop{background:#0B0A09}
-.zpic{flex:none;height:100%;max-width:calc(100vw - 92px);display:grid;place-items:center;min-width:0}
-#zImg{display:block;height:100vh;width:auto;max-width:calc(100vw - 92px);object-fit:contain}
+.zpic{position:relative;flex:none;height:100%;max-width:calc(100vw - 92px);display:grid;place-items:center;min-width:0;overflow:hidden}
+#zImg{display:block;height:100vh;width:auto;max-width:calc(100vw - 92px);object-fit:contain;transform-origin:0 0}
 .zbar{flex:1;min-width:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;padding:10px 7px;background:var(--raised);border-left:2px solid var(--edge);color:var(--text);
   text-align:center}
@@ -1517,8 +1544,10 @@ body .fbar.quick button{padding:0 9px}
                 title="Fullscreen"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c tl" d="M9.5 3.5H3.5v6"/><path class="c tr" d="M14.5 3.5h6v6"/><path class="c br" d="M20.5 14.5v6h-6"/><path class="c bl" d="M3.5 14.5v6h6"/></svg></button>
       </div>
       <div class="screen" id="screen">
-        <img id="feed" alt="Live camera view with detections">
-        <svg id="overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+        <div class="zoomer" id="feedZoom">
+          <img id="feed" alt="Live camera view with detections">
+          <svg id="overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+        </div>
         <div class="scan"></div><div class="glare"></div>
         <div class="flag" id="flag"><svg class="ico"><use href="#i-bell"/></svg>Accumulation alert</div>
         <div class="off" id="offline"><svg class="ico"><use href="#i-nolink"/></svg>No camera signal</div>
@@ -1634,6 +1663,7 @@ body .fbar.quick button{padding:0 9px}
       <div class="tablewrap">
         <div class="lt" role="table" aria-label="Event history">
           <div class="lh" role="row">
+            <span role="columnheader" class="c-no" title="Record number, the newest is the highest">#</span>
             <span role="columnheader" class="c-rd" title="Unread / read"><svg class="ico"><use href="#i-mail"/></svg></span>
             <span role="columnheader"><svg class="ico"><use href="#i-cal"/></svg>Time</span>
             <span role="columnheader"><svg class="ico"><use href="#i-tag"/></svg>Event</span>
@@ -1642,17 +1672,16 @@ body .fbar.quick button{padding:0 9px}
             <span role="columnheader" class="c-act"><svg class="ico"><use href="#i-act"/></svg></span>
           </div>
           <div id="logs" role="rowgroup"></div>
+          <div id="logMore" hidden>Scroll for older records</div>
         </div>
         <div class="empty" id="noLogs"><svg class="ico"><use href="#i-clock"/></svg>
           <span id="noLogsText">No events yet. Alerts, captures and tests appear here.</span></div>
       </div>
       <div class="pager">
-        <button class="btn sm" id="newer" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Newer</button>
-        <button class="btn sm" id="older" type="button">Older<svg class="ico a-right"><use href="#i-next"/></svg></button>
         <span class="where" id="where"></span>
         <span class="sp"></span>
         <span class="hint" style="margin:0"><svg class="ico"><use href="#i-eye"/></svg>
-          Tap View to open a snapshot.</span>
+          Tap a picture to open the snapshot.</span>
       </div>
     </div>
   </section>
@@ -1757,6 +1786,13 @@ body .fbar.quick button{padding:0 9px}
             <button type="button" data-size="960" aria-pressed="false" title="Balanced, the default">960</button>
             <button type="button" data-size="1280" aria-pressed="false" title="Smallest items, slowest">1280</button>
           </div></div>
+        <div class="pfield"><label><svg class="ico"><use href="#i-tag"/></svg>Box labels</label>
+          <div class="seg" id="lblPick" role="group" aria-label="Box labels, pick any">
+            <button type="button" data-lbl="id" aria-pressed="false" title="Tracking number, e.g. #53">ID</button>
+            <button type="button" data-lbl="class" aria-pressed="false" title="bottle, bag or food_container">Class</button>
+            <button type="button" data-lbl="conf" aria-pressed="false" title="How sure the model is, e.g. 50%">Conf.</button>
+          </div></div>
+        <p class="hint" id="lblNow"><svg class="ico"><use href="#i-tag"/></svg><span>–</span></p>
         <p class="hint" id="camNow"><svg class="ico"><use href="#i-signal"/></svg><span>–</span></p>
         <p class="hint bad" id="camNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
@@ -1855,6 +1891,7 @@ body .fbar.quick button{padding:0 9px}
       </div>
       <div class="fs-stage" id="fsStage">
         <div class="fs-tip" id="fsTip"><svg class="ico"><use href="#i-pen"/></svg><span id="fsTipTxt"></span></div>
+        <button class="zreset" id="fsZoomReset" type="button" hidden title="Back to the whole picture"><svg class="ico"><use href="#i-refresh"/></svg><span>1×</span></button>
       </div>
       <div class="fs-keys fs-r">
         <button class="hw teal fk" id="fsCapture" type="button">
@@ -1921,12 +1958,13 @@ body .fbar.quick button{padding:0 9px}
 </dialog>
 
 <dialog id="zoom" aria-label="Snapshot, full size">
-  <div class="zpic"><img id="zImg" alt="Saved snapshot, full size"></div>
+  <div class="zpic"><img id="zImg" alt="Saved snapshot, full size">
+    <button class="zreset" id="zZoomReset" type="button" hidden title="Back to the whole picture"><svg class="ico"><use href="#i-refresh"/></svg><span>1×</span></button></div>
   <aside class="zbar">
     <button class="btn ink" id="zClose" data-snd="back" type="button"><svg class="ico a-left"><use href="#i-prev"/></svg>Close</button>
     <span class="ev" id="zEv"></span>
     <div class="zinfo" id="zInfo"></div>
-    <span class="zhint">Tap anywhere to go back</span>
+    <span class="zhint">Pinch to zoom. Tap to go back.</span>
   </aside>
 </dialog>
 
@@ -2016,7 +2054,7 @@ const EVENTS = {accumulation:["Limit reached","i-bell"], suppressed:["Suppressed
                 muted:["Alert muted","i-belloff"], auto_muted:["Auto-muted","i-bellauto"], unmuted:["Alert unmuted","i-bellon"],
                 low_battery_shutdown:["Low battery shutdown","i-batt"],
                 manual_shutdown:["Manual shutdown","i-power"]};
-let PAGE = 5, draft=null, editing=false, last=null, rows=[], view=[], page=0, prevCounts={};
+let BATCH = 30, upTo = BATCH, zoomK = 1, draft=null, editing=false, last=null, rows=[], view=[], prevCounts={};
 let kind = "all";
 
 let deniedAt = 0;
@@ -2078,10 +2116,10 @@ function drawOverlay(){
   const c = "#F0B429";
   const xy = pts.map(p => (p[0]*1000).toFixed(1)+","+(p[1]*1000).toFixed(1)).join(" ");
   const shape = pts.length>=3
-    ? `<polygon points="${xy}" fill="${c}" fill-opacity=".2" stroke="${c}" stroke-width="3" vector-effect="non-scaling-stroke"/>`
-    : `<polyline points="${xy}" fill="none" stroke="${c}" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+    ? `<polygon points="${xy}" fill="${c}" fill-opacity=".2" stroke="${c}" stroke-width="${(3/zoomK).toFixed(2)}" vector-effect="non-scaling-stroke"/>`
+    : `<polyline points="${xy}" fill="none" stroke="${c}" stroke-width="${(3/zoomK).toFixed(2)}" vector-effect="non-scaling-stroke"/>`;
   const dots = pts.map(p =>
-    `<circle cx="${(p[0]*1000).toFixed(1)}" cy="${(p[1]*1000).toFixed(1)}" r="9" fill="${c}" stroke="#16130F" stroke-width="3" vector-effect="non-scaling-stroke"/>`).join("");
+    `<circle cx="${(p[0]*1000).toFixed(1)}" cy="${(p[1]*1000).toFixed(1)}" r="${(9/zoomK).toFixed(2)}" fill="${c}" stroke="#16130F" stroke-width="${(3/zoomK).toFixed(2)}" vector-effect="non-scaling-stroke"/>`).join("");
   svg.innerHTML = shape + dots;
 }
 
@@ -2099,12 +2137,16 @@ function setEditing(on, seed){
   drawOverlay();
 }
 
-$("overlay").addEventListener("pointerdown", e => {
-  if(!editing) return;
-  const r = e.currentTarget.getBoundingClientRect();
-  draft.push([(e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height]);
+/* A point is placed on a tap, not on touch-down, so the first finger of a
+   pinch does not drop a stray point. The overlay's box is read after the
+   zoom transform, so the point is stored in frame coordinates (0 to 1). */
+function placePoint(e){
+  const r = $("overlay").getBoundingClientRect();
+  draft.push([Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)),
+              Math.max(0, Math.min(1, (e.clientY-r.top)/r.height))]);
+  if(KIOSK && buzzUi) uiSnd("point");
   setEditing(true, draft);
-});
+}
 
 async function post(path, body){
   const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
@@ -2147,11 +2189,11 @@ $("save").onclick = async () => {
   if(j.ok){ delete $("conf").dataset.dirty; delete $("thresh").dataset.dirty;
             toast("Settings saved","i-save"); refresh(); }
 };
-$("test").onclick = async () => { await post("/api/test_alert"); toast("Test alert logged","i-bell"); page=0; loadLogs(); };
+$("test").onclick = async () => { await post("/api/test_alert"); toast("Test alert logged","i-bell"); loadLogs(); };
 $("capture").onclick = async () => {
   const j = await post("/api/capture");
   toast(j.ok ? "Snapshot saved" : "No camera frame yet", j.ok ? "i-shutter" : "i-warn");
-  page = 0; loadLogs();
+  loadLogs();
 };
 
 const pct = v => v==null ? "–" : Math.round(v*100)+"%";
@@ -2249,6 +2291,111 @@ $("fsAutoBtn").onclick = () => setAuto(!(last && last.auto_mute), $("fsMuteFor")
 $("muteFor").onchange = () => onPick($("muteFor"));
 $("fsMuteFor").onchange = () => onPick($("fsMuteFor"));
 
+/* ---------------- pinch zoom ---------------- */
+/* Two fingers zoom and pan, one finger pans once zoomed, and a short still
+   touch stays a tap. Only the wrapper around the picture moves, so the
+   overlay inside it measures its own on-screen box and drawing keeps working
+   at any zoom. A mouse wheel zooms too, for a laptop. */
+const ZOOM_MAX = 6, TAP_PX = 10, ZTAP_MS = 450, DBL_MS = 320;
+function makeZoom(stage, target, opt){
+  const z = {s: 1, x: 0, y: 0}, pts = new Map();
+  let g = null, a = null, lastTap = 0;
+  const box = () => {
+    const r = target.getBoundingClientRect();
+    return {l: r.left - z.x, t: r.top - z.y, w: r.width / z.s, h: r.height / z.s};
+  };
+  function set(s, x, y, b){
+    z.s = Math.min(ZOOM_MAX, Math.max(1, s));
+    if(z.s < 1.03){ z.s = 1; z.x = 0; z.y = 0; }
+    else {
+      z.x = Math.min(0, Math.max(b.w * (1 - z.s), x));
+      z.y = Math.min(0, Math.max(b.h * (1 - z.s), y));
+    }
+    target.style.transform = z.s > 1 ? `translate(${z.x}px,${z.y}px) scale(${z.s})` : "";
+    opt.button.hidden = z.s <= 1;
+    opt.button.querySelector("span").textContent = z.s.toFixed(1) + "×";
+    if(opt.change) opt.change(z.s);
+  }
+  function zoomAt(cx, cy, s){
+    const b = box(), ns = Math.min(ZOOM_MAX, Math.max(1, s));
+    const px = cx - b.l, py = cy - b.t;
+    set(ns, px - (px - z.x) * ns / z.s, py - (py - z.y) * ns / z.s, b);
+  }
+  function anchor(){
+    const p = [...pts.values()];
+    a = {s: z.s, x: z.x, y: z.y, b: box(), px: p[0].x, py: p[0].y};
+    if(p.length > 1){
+      a.d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+      a.mx = (p[0].x + p[1].x) / 2; a.my = (p[0].y + p[1].y) / 2;
+    }
+  }
+  stage.addEventListener("pointerdown", e => {
+    if(e.button > 0 || e.target.closest("button")) return;
+    if(!pts.size) g = {multi: false, moved: false, t0: e.timeStamp, x0: e.clientX, y0: e.clientY, ev: e};
+    pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if(pts.size > 1) g.multi = true;
+    anchor();
+  });
+  window.addEventListener("pointermove", e => {
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if(Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > TAP_PX) g.moved = true;
+    if(!opt.can()) return;
+    const p = [...pts.values()];
+    if(p.length > 1 && a.d){
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      const mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
+      const ns = Math.min(ZOOM_MAX, Math.max(1, a.s * d / a.d));
+      // The spot that was under the fingers when they landed stays under them.
+      const cx = (a.mx - a.b.l - a.x) / a.s, cy = (a.my - a.b.t - a.y) / a.s;
+      set(ns, mx - a.b.l - cx * ns, my - a.b.t - cy * ns, a.b);
+    } else if(p.length === 1 && z.s > 1 && g.moved){
+      set(z.s, a.x + e.clientX - a.px, a.y + e.clientY - a.py, a.b);
+    }
+  });
+  const up = e => {
+    if(!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if(pts.size) return anchor();
+    if(e.type !== "pointerup" || g.multi || g.moved || e.timeStamp - g.t0 > ZTAP_MS) return;
+    const dbl = e.timeStamp - lastTap < DBL_MS;
+    lastTap = dbl ? 0 : e.timeStamp;
+    opt.tap(g.ev, dbl, z.s > 1);
+  };
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
+  stage.addEventListener("wheel", e => {
+    if(!opt.can()) return;
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, z.s * (e.deltaY < 0 ? 1.25 : 0.8));
+  }, {passive: false});
+  opt.button.addEventListener("click", () => set(1, 0, 0));
+  return {reset: () => set(1, 0, 0), zoomAt};
+}
+
+/* Live feed: zoom only in fullscreen. Taps still place points while drawing,
+   in or out of fullscreen. Outside drawing, a double tap zooms in or back out. */
+const feedZoom = makeZoom($("screen"), $("feedZoom"), {
+  button: $("fsZoomReset"),
+  can: () => fsOn,
+  // Points keep their on-screen size at any zoom.
+  change(s){ if(s !== zoomK){ zoomK = s; drawOverlay(); } },
+  tap(e, dbl, zoomed){
+    if(editing){ if(e.target.closest("#overlay")) placePoint(e); return; }
+    if(fsOn && dbl) zoomed ? feedZoom.reset() : feedZoom.zoomAt(e.clientX, e.clientY, 2.5);
+  }
+});
+/* Full-size snapshot: a tap goes back as before, unless zoomed in, where a
+   double tap returns to the whole picture instead. */
+const picZoom = makeZoom(document.querySelector("#zoom .zpic"), $("zImg"), {
+  button: $("zZoomReset"),
+  can: () => $("zoom").open,
+  tap(e, dbl, zoomed){
+    if(!zoomed){ if(KIOSK && buzzUi) uiSnd("back"); return $("zoom").close(); }
+    if(dbl) picZoom.reset();
+  }
+});
+
 /* ---------------- fullscreen ---------------- */
 let fsOn = false;
 
@@ -2262,6 +2409,7 @@ function fitFs(){
   if(w > room){ w = room; h = Math.round(w / feedAr); }
   st.style.width = w + "px";
   st.style.height = h + "px";
+  feedZoom.reset();
 }
 window.addEventListener("resize", fitFs);
 
@@ -2292,6 +2440,7 @@ function closeFs(){
   if(document.fullscreenElement){
     try{ document.exitFullscreen(); }catch(e){}
   }
+  feedZoom.reset();
   setTimeout(() => {
     fsMoveScreen(false);
     root.hidden = true;
@@ -2441,6 +2590,10 @@ function showPic(){
 }
 document.querySelectorAll("#vPic button").forEach(b => b.addEventListener("click", () => {
   picMode = b.dataset.pic; showPic();
+  document.querySelectorAll("#logs .thumb").forEach(t => {
+    const a = view[Number(t.dataset.view)];
+    if(a) t.querySelector("img").src = thumbSrc(a);
+  });
 }));
 
 const mb = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(1) + " MB"
@@ -2506,7 +2659,8 @@ function openViewer(i){
 }
 $("vClose").onclick = () => $("viewer").close();
 $("vOpen").onclick = () => $("zoom").showModal();
-$("zoom").addEventListener("click", () => $("zoom").close());
+$("zoom").addEventListener("click", e => { if(!e.target.closest(".zpic")) $("zoom").close(); });
+$("zoom").addEventListener("close", () => picZoom.reset());
 $("viewer").addEventListener("click", e => { if(e.target===$("viewer")) $("viewer").close(); });
 
 /* ---------------- history filter ---------------- */
@@ -2575,7 +2729,7 @@ function paintScope(n){
 }
 
 function applyFilter(reset){
-  if(reset !== false) page = 0;
+  if(reset !== false){ upTo = BATCH; document.querySelector(".tablewrap").scrollTop = 0; }
   renderPage();
 }
 
@@ -2623,57 +2777,75 @@ clampDates("from"); paintQuick();
 $("dFrom").onchange = () => { clampDates("from"); paintQuick(); applyFilter(); };
 $("dTo").onchange = () => { clampDates("to"); paintQuick(); applyFilter(); };
 
-function renderPage(){
-  view = shown();
-  const pages = Math.max(1, Math.ceil(view.length/PAGE));
-  if(page > pages-1) page = pages-1;
-  if(page < 0) page = 0;
-  const start = page*PAGE, slice = view.slice(start, start+PAGE);
-  $("noLogs").style.display = view.length ? "none" : "flex";
-  $("noLogsText").textContent = rows.length
-    ? "No records match. Change the filter or the dates."
-    : "No events yet. Alerts, captures and tests appear here.";
-  $("logs").innerHTML = slice.map((a,k) => {
-    const i = start+k, ev = EVENTS[a.event] || [a.event||"Unknown","i-box"];
-    const urgent = !a.read && a.event === "accumulation";
-    return `<div class="lr ${a.event||""} ${a.read ? "read" : "unread"} ${urgent ? "urgent" : ""}" role="row">
+/* History scrolls without pages. The Pi sends the whole log at once, so a
+   batch is only how many rows are drawn; reaching the bottom draws the next
+   batch. Each row's number is its place in the whole log, so it does not
+   change with the filter or with how far the list has been scrolled. */
+function rowHtml(a, i){
+  const ev = EVENTS[a.event] || [a.event||"Unknown","i-box"];
+  const urgent = !a.read && a.event === "accumulation";
+  return `<div class="lr ${a.event||""} ${a.read ? "read" : "unread"} ${urgent ? "urgent" : ""}" role="row">
+      <div class="c-no" role="cell">${a.no}</div>
       <div class="c-rd" role="cell"><button class="dot" type="button" data-read="${i}"
           aria-label="${a.read ? "Mark as unread" : "Mark as read"}" title="${a.read ? "Mark as unread" : "Mark as read"}"></button></div>
       <div role="cell">${stamp(a.timestamp).short}</div>
       <div role="cell"><span class="ev ${a.event||""}"><svg class="ico"><use href="#${ev[1]}"/></svg>${ev[0]}</span></div>
       <div class="c-n" role="cell">${NO_COUNT.includes(a.event)
             ? `<svg class="ico"><use href="#${ev[1]}"/></svg>` : a.smoothed_count}</div>
-      <div role="cell">${a.snapshot
-            ? `<button class="btn sm" type="button" data-view="${i}" data-snd="open"><svg class="ico a-pop"><use href="#i-eye"/></svg>View</button>`
+      <div class="c-pic" role="cell">${a.snapshot
+            ? `<button class="thumb" type="button" data-view="${i}" data-snd="open" aria-label="View snapshot ${a.no}" title="View snapshot"><img src="${thumbSrc(a)}" alt="" loading="lazy" decoding="async"><span class="th-eye"><svg class="ico"><use href="#i-eye"/></svg></span></button>`
             : `<span class="noimg">No image</span>`}</div>
       <div class="c-act" role="cell"><button class="btn sm danger" type="button" data-del="${i}"
             aria-label="Delete this record"><svg class="ico a-tilt"><use href="#i-trash"/></svg></button></div></div>`;
-  }).join("");
-  $("where").textContent = view.length ? `${start+1}–${Math.min(start+PAGE, view.length)} of ${view.length}` : "";
-  $("newer").disabled = page <= 0;
-  $("older").disabled = page >= pages-1;
+}
+
+function thumbSrc(a){
+  return (picMode === "clean" && a.clean ? "/snapshots/clean/" + encodeURIComponent(a.clean)
+          : "/snapshots/" + encodeURIComponent(a.snapshot)) + "?thumb=1";
+}
+
+function paintWhere(){
+  const n = Math.min(upTo, view.length);
+  $("where").textContent = view.length ? `${n} of ${view.length} shown` : "";
+  $("logMore").hidden = n >= view.length;
+}
+
+function renderPage(){
+  view = shown();
+  $("noLogs").style.display = view.length ? "none" : "flex";
+  $("noLogsText").textContent = rows.length
+    ? "No records match. Change the filter or the dates."
+    : "No events yet. Alerts, captures and tests appear here.";
+  $("logs").innerHTML = view.slice(0, upTo).map(rowHtml).join("");
+  paintWhere();
   $("logCount").textContent = unreadCount() ? `(${unreadCount()})` : "";
   $("markAll").disabled = !view.some(a => !a.read);
   $("delShown").disabled = !view.length;
   paintScope(view.length);
-  requestAnimationFrame(fitRows);
+  requestAnimationFrame(moreIfRoom);
 }
 
 function unreadCount(){ return rows.reduce((n,r) => n + (r.read ? 0 : 1), 0); }
 
-function fitRows(){
-  const wrap = document.querySelector(".tablewrap");
-  const head = wrap.querySelector(".lh");
-  const row = wrap.querySelector(".lr");
-  if(!row || !wrap.clientHeight) return;
-  const n = Math.max(3, Math.floor((wrap.clientHeight - head.offsetHeight - 14) / (row.offsetHeight + 11)));
-  if(n !== PAGE){ PAGE = n; renderPage(); }
+function moreRows(){
+  const from = Math.min(upTo, view.length);
+  if(from >= view.length) return false;
+  upTo = from + BATCH;
+  $("logs").insertAdjacentHTML("beforeend", view.slice(from, upTo).map((a, k) => rowHtml(a, from + k)).join(""));
+  paintWhere();
+  return true;
 }
-window.addEventListener("resize", () => requestAnimationFrame(fitRows));
+/* A tall screen can fit the first batch with no scrollbar, and then there is
+   no scrolling to ask for more, so keep adding while the list is short. */
+function moreIfRoom(){
+  const wrap = document.querySelector(".tablewrap");
+  if(wrap.clientHeight && wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 240 && moreRows())
+    requestAnimationFrame(moreIfRoom);
+}
+document.querySelector(".tablewrap").addEventListener("scroll", moreIfRoom, {passive: true});
+window.addEventListener("resize", () => requestAnimationFrame(moreIfRoom));
 
-$("newer").onclick = () => { if(page>0){ page--; renderPage(); } };
-$("older").onclick = () => { if((page+1)*PAGE < view.length){ page++; renderPage(); } };
-$("refreshLogs").onclick = () => { page=0; loadLogs(true); toast("History refreshed","i-refresh"); };
+$("refreshLogs").onclick = () => { loadLogs(true); toast("History refreshed","i-refresh"); };
 
 let logSig = "";
 async function loadLogs(force){
@@ -2682,6 +2854,8 @@ async function loadLogs(force){
     if(j.same) return;
     logSig = j.sig || "";
     rows = j.alerts || [];
+    const total = Math.max(rows.length, j.total || 0);
+    rows.forEach((a, i) => { a.no = total - i; });
     renderPage();
   }catch(e){}
 }
@@ -3172,12 +3346,12 @@ function uiSound(t){
 }
 document.addEventListener("pointerdown", e => {
   if(!KIOSK || !buzzUi) return;
-  if(e.target.closest("#overlay")) return editing ? uiSnd("point") : undefined;
+  if(e.target.closest("#overlay")) return;
   const t = e.target.closest("[data-snd], button, .sw, a, .logo");
   if(t && t.id === "apply" && !(editing && draft && draft.length >= 3)) return;
   if(t && t.id === "edit" && !(last && last.roi && last.roi.length)) return;
   if(t) return uiSnd(uiSound(t));
-  if(e.target.matches("dialog[open]") || e.target.closest("#zoom")) uiSnd("back");
+  if(e.target.matches("dialog[open]") || (e.target.closest("#zoom") && !e.target.closest(".zpic"))) uiSnd("back");
 }, true);
 
 $("settings").addEventListener("click", e => {
@@ -3206,6 +3380,13 @@ $("pwrSave").onclick = async () => {
     if(st && sz && (st !== (cur.stream_wanted || cur.stream) || Number(sz) !== cur.detect_size))
       await post("/api/view", {stream: st, detect_size: Number(sz)});
   }
+  if(!$("camCard").classList.contains("wait") && last && last.labels){
+    const want = pickedLabels();
+    if(LBL.some(k => want[k] !== !!last.labels[k])){
+      const j = await post("/api/labels", want);
+      if(j && j.ok === false) toast(j.error || "Box labels could not be saved", "i-warn");
+    }
+  }
   if(!$("mdlCard").classList.contains("wait")){
     const pick = (document.querySelector("#mdlPick [aria-pressed=true]") || {dataset: {}}).dataset.model;
     const cur = last || {};
@@ -3220,6 +3401,25 @@ function pickView(attr, v){
   document.querySelectorAll(`#cam${attr === "stream" ? "Stream" : "Size"} button`).forEach(b =>
     b.setAttribute("aria-pressed", b.dataset[attr] === String(v) ? "true" : "false"));
 }
+/* Box labels: any mix of ID, class and confidence, always in that order.
+   None leaves the colored outline, and the color bar under the feed is the
+   legend for it. The Pi draws the boxes, so the app shows the same labels. */
+const LBL = ["id", "class", "conf"];
+function pickedLabels(){
+  const out = {};
+  document.querySelectorAll("#lblPick button").forEach(b => { out[b.dataset.lbl] = b.getAttribute("aria-pressed") === "true"; });
+  return out;
+}
+function paintLabels(l){
+  document.querySelectorAll("#lblPick button").forEach(b =>
+    b.setAttribute("aria-pressed", l[b.dataset.lbl] ? "true" : "false"));
+  const text = [l.id && "#53", l.class && "food_container", l.conf && "50%"].filter(Boolean).join(" ");
+  $("lblNow").querySelector("span").textContent = text ? `Boxes read "${text}"` : "Outline only, color shows the class";
+}
+document.querySelectorAll("#lblPick button").forEach(b => b.addEventListener("click", () => {
+  b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  paintLabels(pickedLabels());
+}));
 function fillView(s){
   const card = $("camCard");
   card.classList.toggle("wait", s.stream == null);
@@ -3233,7 +3433,9 @@ function fillView(s){
   const note = $("camNote");
   note.hidden = !s.stream_note;
   note.querySelector("span").textContent = s.stream_note || "";
+  $("lblPick").closest(".pfield").hidden = $("lblNow").hidden = !s.labels;
   if(pwrDirty) return;
+  if(s.labels) paintLabels(s.labels);
   pickView("stream", s.stream_wanted || s.stream);
   pickView("size", s.detect_size);
 }

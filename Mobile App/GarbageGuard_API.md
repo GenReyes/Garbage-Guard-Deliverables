@@ -131,8 +131,15 @@ reply carries a `sig` that changes whenever a record is added, deleted or
 marked read. Send it back as `&sig=...` and, if nothing changed, the reply is
 just `{"same": true, "sig": "..."}`, so polling stays cheap.
 
+`total` is the number of records in the whole log, whatever `limit` is. A
+row's record number is `total` minus its index in this newest-first list, so
+the newest of 300 records is 300. The short `same` reply has no `total`; keep
+the last one. `/api/state` carries the same count as `alerts_total`, and it
+is synced to Firebase (`/gg/state/alerts_total`).
+
 ```json
 {
+  "total": 300,
   "alerts": [
     {
       "id": 42,
@@ -209,6 +216,10 @@ works well on a phone held sideways. If you crop thumbnails, crop from the
 top so the photo stays in view.
 
 Returns 404 for any name that is not a saved snapshot.
+
+Add `?thumb=1` for a 160 x 160 square cut from the middle of the photo, with
+the info strip left out. The dashboard's History uses it for the picture in
+each row; `/snapshots/clean/<name>?thumb=1` works the same way.
 
 ---
 
@@ -725,6 +736,31 @@ All fields are optional.
 Reply: `{"ok": true, "stream": "main", "detect_size": 960, "crop": true}`.
 The state (`/api/state`) also carries `stream`, `stream_note`,
 `frame_size`, `detect_size`, `crop` and `detect_box`. Firebase command: `view`.
+
+### `POST /api/labels`
+
+Which text the Pi writes over each detection box. The Pi draws the boxes
+into the picture, so the dashboard, the app and saved snapshots all show the
+same labels. Any subset of the three parts:
+
+```json
+{"id": false, "class": false, "conf": true}
+```
+
+Reply: `{"ok": true, "labels": {"id": false, "class": false, "conf": true}}`.
+Parts left out keep their setting. The text is always in the order ID,
+class, confidence, with confidence as a percentage:
+
+| `id` | `class` | `conf` | Box reads |
+|---|---|---|---|
+| no | no | yes (default) | `50%` |
+| yes | yes | yes | `#53 food_container 50%` |
+| no | no | no | outline only |
+
+The box color still tells the class apart, and the color bar under the feed
+is the legend. The state carries `labels` with all three parts, synced to
+Firebase (`/gg/state/labels`). Firebase command: `labels`, with the same
+object.
 
 ### `POST /api/model`
 

@@ -59,7 +59,11 @@ DB_PATH = BASE_DIR / "garbageguard.db"
 SNAPSHOT_DIR = BASE_DIR / "snapshots"
 SETTINGS_PATH = BASE_DIR / "gg_settings.json"
 
+LABEL_PARTS = ("id", "class", "conf")
+DEFAULT_LABELS = {"id": False, "class": False, "conf": True}
+
 DEFAULT_SETTINGS = {"conf": 0.40, "threshold": 20, "roi": [],
+                    "labels": dict(DEFAULT_LABELS),
                     "auto_mute": False, "auto_mute_s": 900,
                     **gg_screen.DEFAULTS, **gg_power.DEFAULTS, **gg_buzzer.DEFAULTS,
                     **gg_clean.DEFAULTS, **gg_view.DEFAULTS, **gg_model.DEFAULTS}
@@ -147,6 +151,31 @@ def draw_roi(frame, roi_pixels):
                   max(2, round(2 * ink_scale(frame))))
 
 
+def clean_labels(labels):
+    """The three label parts as booleans, missing ones at their defaults."""
+    out = dict(DEFAULT_LABELS)
+    if isinstance(labels, dict):
+        out.update({k: bool(labels[k]) for k in LABEL_PARTS if k in labels})
+    return out
+
+
+def box_label(number, name, conf, labels):
+    """Text over a box, always in the order ID, class, confidence.
+
+    Full labels ("#53 food_container 0.50") are wider than most boxes at the
+    creek and stack over each other, so only the parts switched on are drawn.
+    The box color already tells the class apart.
+    """
+    parts = []
+    if labels.get("id") and number > 0:
+        parts.append(f"#{number}")
+    if labels.get("class"):
+        parts.append(name)
+    if labels.get("conf"):
+        parts.append(f"{round(conf * 100)}%")
+    return " ".join(parts)
+
+
 def draw_detection(frame, box, label, color, inside):
     k = ink_scale(frame)
     x1, y1, x2, y2 = [int(v) for v in box]
@@ -154,6 +183,8 @@ def draw_detection(frame, box, label, color, inside):
         cv2.rectangle(frame, (x1, y1), (x2, y2), (120, 120, 120), max(1, round(k)))
         return
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, max(2, round(2 * k)))
+    if not label:
+        return
     size, weight = 0.45 * k, max(1, round(k))
     (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, size, weight)
     pad = round(3 * k)
@@ -330,6 +361,7 @@ class Engine:
                 "rearm": self.counter.off,
                 "conf": self.settings["conf"],
                 "roi": list(self.settings["roi"]),
+                "labels": clean_labels(self.settings.get("labels")),
                 "latency_ms": round(self.latency_ms, 1),
                 "avg_latency_ms": round(avg, 1),
                 "fps": round(proc_fps, 1),
@@ -450,6 +482,16 @@ class Engine:
                 self.counter.set_threshold(t)
             save_settings(self.settings)
             return dict(self.settings)
+
+    def set_labels(self, labels):
+        """Switch label parts on or off. Parts left out keep their setting."""
+        with self.lock:
+            cur = clean_labels(self.settings.get("labels"))
+            if isinstance(labels, dict):
+                cur.update({k: bool(labels[k]) for k in LABEL_PARTS if k in labels})
+            self.settings["labels"] = cur
+            save_settings(self.settings)
+            return dict(cur)
 
     def set_view(self, stream=None, detect_size=None, crop=None):
         with self.lock:
@@ -579,6 +621,12 @@ class Engine:
             " FROM alerts").fetchone()
         conn.close()
         return f"{n}.{top}.{unread}.{len(jpg_names(SNAPSHOT_DIR))}"
+
+    def alerts_total(self):
+        conn = open_db()
+        n = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+        conn.close()
+        return int(n)
 
     def recent_alerts(self, limit=50):
         """Newest records first. A limit of 0 or less returns every record."""
@@ -836,10 +884,10 @@ class Engine:
             roi_show = scale_polygon(roi_norm, annotated.shape[1], annotated.shape[0])
             draw_roi(annotated, np.array(roi_show, dtype=np.int32)
                      if roi_show is not None else None)
+            labels = clean_labels(self.settings.get("labels"))
             for d, inside, n in zip(dets, flags, numbers):
-                tag = f"#{n} " if n > 0 else ""
                 draw_detection(annotated, gg_view.scale_box(d["box"], f),
-                               f"{tag}{d['name']} {d['conf']:.2f}",
+                               box_label(n, d["name"], d["conf"], labels),
                                CLASS_COLORS.get(d["name"], DEFAULT_COLOR), inside)
 
             step = self.counter.update(raw_count)

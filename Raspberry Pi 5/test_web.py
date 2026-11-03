@@ -81,6 +81,19 @@ class FakeEngine:
     def update_settings(self, conf=None, threshold=None):
         return dict(self.settings)
 
+    def set_labels(self, labels):
+        self.labels = {**getattr(self, "labels", {}), **labels}
+        return self.labels
+
+    def alerts_total(self):
+        return 300
+
+    def recent_alerts(self, limit=50):
+        return [{"id": 300 - i} for i in range(int(limit))]
+
+    def alerts_sig(self):
+        return "s1"
+
 
 class FakeUps:
     def status(self):
@@ -215,6 +228,33 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(get("/snapshots/capture_1.jpg"), (200, b"BOXES"))
         self.assertEqual(get("/snapshots/clean/missing.jpg")[0], 404)
         self.assertEqual(get("/snapshots/clean/..%2Fcapture_1.jpg")[0], 404)
+
+    def test_labels_endpoint(self):
+        code, res = self.call("/api/labels", {"id": True})
+        self.assertEqual((code, res["ok"], res["labels"]), (200, True, {"id": True}))
+
+    def test_alerts_and_state_carry_the_total(self):
+        code, res = self.call("/api/alerts?limit=2")
+        self.assertEqual((res["total"], len(res["alerts"])), (300, 2))
+        self.assertEqual(self.call("/api/state")[1]["alerts_total"], 300)
+        self.assertNotIn("total", self.call("/api/alerts?limit=2&sig=s1")[1])
+
+    def test_square_thumbnail(self):
+        try:
+            import cv2
+            import numpy as np
+        except ImportError:
+            self.skipTest("numpy and OpenCV are needed")
+        import os
+        import tempfile
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        cv2.imwrite(os.path.join(d.name, "alert_1.jpg"), np.zeros((540, 960, 3), np.uint8))
+        self.engine.snapshot_dir = d.name
+        with urllib.request.urlopen(self.base + "/snapshots/alert_1.jpg?thumb=1", timeout=5) as r:
+            img = cv2.imdecode(np.frombuffer(r.read(), np.uint8), cv2.IMREAD_COLOR)
+            self.assertEqual(r.headers.get_all("Cache-Control"), ["max-age=86400"])
+        self.assertEqual(img.shape[:2], (w.THUMB_PX, w.THUMB_PX))
 
     def test_state_carries_clock(self):
         code, st = self.call("/api/state")
