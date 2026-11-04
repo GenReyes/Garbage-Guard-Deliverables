@@ -66,7 +66,7 @@ hold secrets or change per device:
 - **`gg_settings.json`** — detection confidence, accumulation threshold,
   the ROI polygon, and the stream settings (`stream` main or sub,
   `detect_size` 640/960/1280, `crop` true or false). Also `model`, the
-  model folder picked in Settings (the field unit runs v8; v7 is the fallback). Generated automatically the first time the script
+  model folder picked in Settings (the field unit holds v8 and v9; v8 is the fallback). Generated automatically the first time the script
   runs, then it persists across restarts.
 
 Both are listed in the repo's `.gitignore`. If you clone this fresh, the
@@ -386,12 +386,12 @@ rather than a guess.
 
 - Python 3 with a virtual environment at `~/gg-env` containing `ultralytics`,
   OpenCV, and `lap`
-- The NCNN model folder, `garbageguard_v7_best_ncnn_model/` (not in this
-  repo — it's a 9.3 MB binary; make it on the Pi with
-  `yolo export model=garbageguard_v7_best.pt format=ncnn imgsz=640`, or copy
+- The NCNN model folder, `garbageguard_v8_best_ncnn_model/` (not in this
+  repo, it's a binary; make it on the Pi with
+  `yolo export model=garbageguard_v8_best.pt format=ncnn imgsz=960`, or copy
   it over directly). It is the fallback, so keep it even when another model
-  is in use. The field unit also holds `garbageguard_v8_best_ncnn_model/`,
-  which it runs now. `--model <folder>` picks a model for one run
+  is in use. The field unit also holds `garbageguard_v9_best_ncnn_model/`.
+  `--model <folder>` picks a model for one run
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.

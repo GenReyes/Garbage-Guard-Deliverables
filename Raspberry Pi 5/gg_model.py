@@ -9,7 +9,7 @@ from list_models(), never a path, so nothing outside this folder can be loaded.
 import re
 from pathlib import Path
 
-DEFAULT = "garbageguard_v7_best_ncnn_model"
+DEFAULT = "garbageguard_v8_best_ncnn_model"
 DEFAULTS = {"model": DEFAULT}
 CLASSES = ("bottle", "bag", "food_container")
 

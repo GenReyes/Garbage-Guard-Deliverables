@@ -77,25 +77,25 @@ class CleanSettings(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_keeps_installed_choice(self):
-        make(self.base, "garbageguard_v7_best_ncnn_model")
         make(self.base, "garbageguard_v8_best_ncnn_model")
-        s = gg_model.clean_settings({"model": "garbageguard_v8_best_ncnn_model"}, self.base)
-        self.assertEqual(s["model"], "garbageguard_v8_best_ncnn_model")
+        make(self.base, "garbageguard_v9_best_ncnn_model")
+        s = gg_model.clean_settings({"model": "garbageguard_v9_best_ncnn_model"}, self.base)
+        self.assertEqual(s["model"], "garbageguard_v9_best_ncnn_model")
 
     def test_missing_choice_falls_back_to_default(self):
-        make(self.base, "garbageguard_v7_best_ncnn_model")
-        s = gg_model.clean_settings({"model": "garbageguard_v8_best_ncnn_model"}, self.base)
+        make(self.base, "garbageguard_v8_best_ncnn_model")
+        s = gg_model.clean_settings({"model": "garbageguard_v9_best_ncnn_model"}, self.base)
         self.assertEqual(s["model"], gg_model.DEFAULT)
 
     def test_path_like_choice_falls_back(self):
-        make(self.base, "garbageguard_v7_best_ncnn_model")
+        make(self.base, "garbageguard_v8_best_ncnn_model")
         s = gg_model.clean_settings({"model": "../x"}, self.base)
         self.assertEqual(s["model"], gg_model.DEFAULT)
 
     def test_default_missing_uses_first_installed(self):
-        make(self.base, "garbageguard_v8_best_ncnn_model")
+        make(self.base, "garbageguard_v9_best_ncnn_model")
         s = gg_model.clean_settings({"model": "nope"}, self.base)
-        self.assertEqual(s["model"], "garbageguard_v8_best_ncnn_model")
+        self.assertEqual(s["model"], "garbageguard_v9_best_ncnn_model")
 
     def test_nothing_installed_keeps_default(self):
         s = gg_model.clean_settings({}, self.base)
@@ -149,7 +149,7 @@ def _live():
 
 
 class EngineSwitch(unittest.TestCase):
-    V7, V8 = "garbageguard_v7_best_ncnn_model", "garbageguard_v8_best_ncnn_model"
+    DEF, OTHER = "garbageguard_v8_best_ncnn_model", "garbageguard_v9_best_ncnn_model"
 
     def setUp(self):
         self.g = _live()
@@ -164,78 +164,78 @@ class EngineSwitch(unittest.TestCase):
             old = getattr(self.g, name)
             setattr(self.g, name, value)
             self.addCleanup(setattr, self.g, name, old)
-        make(self.dir, self.V7)
-        make(self.dir, self.V8)
+        make(self.dir, self.DEF)
+        make(self.dir, self.OTHER)
         self.g.SNAPSHOT_DIR.mkdir()
         self.g.init_database()
         self.settings = self.g.load_settings()
-        self.e = self.g.Engine("0", str(self.dir / self.V7), self.settings)
+        self.e = self.g.Engine("0", str(self.dir / self.DEF), self.settings)
         self.model = self.e._first_model()
 
     def saved(self):
         return self.g.load_settings()["model"]
 
-    def test_default_is_v7(self):
-        self.assertEqual(self.settings["model"], self.V7)
-        self.assertEqual(self.e.snapshot_state()["model"], self.V7)
+    def test_default_is_v8(self):
+        self.assertEqual(self.settings["model"], self.DEF)
+        self.assertEqual(self.e.snapshot_state()["model"], self.DEF)
 
-    def test_switch_to_v8_and_back(self):
-        self.assertTrue(self.e.set_model(self.V8)["ok"])
+    def test_switch_to_v9_and_back(self):
+        self.assertTrue(self.e.set_model(self.OTHER)["ok"])
         self.assertTrue(self.e.model_flag.is_set())
         self.assertTrue(self.e.snapshot_state()["model_loading"])
         m = self.e._swap_model(self.model)
-        self.assertEqual(m.path, self.V8)
+        self.assertEqual(m.path, self.OTHER)
         st = self.e.snapshot_state()
-        self.assertEqual((st["model"], st["model_note"], st["model_loading"]), (self.V8, "", False))
-        self.assertEqual(self.saved(), self.V8)
-        self.e.set_model(self.V7)
-        self.assertEqual(self.e._swap_model(m).path, self.V7)
-        self.assertEqual(self.saved(), self.V7)
+        self.assertEqual((st["model"], st["model_note"], st["model_loading"]), (self.OTHER, "", False))
+        self.assertEqual(self.saved(), self.OTHER)
+        self.e.set_model(self.DEF)
+        self.assertEqual(self.e._swap_model(m).path, self.DEF)
+        self.assertEqual(self.saved(), self.DEF)
 
     def test_unknown_or_path_like_name_is_refused(self):
-        for bad in ("garbageguard_v9_best_ncnn_model", "../x", str(self.dir / self.V8)):
+        for bad in ("garbageguard_v10_best_ncnn_model", "../x", str(self.dir / self.OTHER)):
             res = self.e.set_model(bad)
             self.assertFalse(res["ok"])
             self.assertFalse(self.e.model_flag.is_set())
-        self.assertEqual(self.saved(), self.V7)
+        self.assertEqual(self.saved(), self.DEF)
 
     def test_folder_removed_after_choosing_keeps_old_model(self):
-        self.e.set_model(self.V8)
-        for f in (self.dir / self.V8).iterdir():
+        self.e.set_model(self.OTHER)
+        for f in (self.dir / self.OTHER).iterdir():
             f.unlink()
         m = self.e._swap_model(self.model)
         self.assertIs(m, self.model)
         st = self.e.snapshot_state()
-        self.assertEqual(st["model"], self.V7)
-        self.assertIn("still using v7", st["model_note"])
-        self.assertEqual(self.saved(), self.V7)
+        self.assertEqual(st["model"], self.DEF)
+        self.assertIn("still using v8", st["model_note"])
+        self.assertEqual(self.saved(), self.DEF)
 
     def test_broken_model_keeps_old_model(self):
-        broken = "garbageguard_v9broken_best_ncnn_model"
+        broken = "garbageguard_v10broken_best_ncnn_model"
         make(self.dir, broken)
         self.e._models = ([], 0.0)
         self.assertTrue(self.e.set_model(broken)["ok"])
         m = self.e._swap_model(self.model)
         self.assertIs(m, self.model)
-        self.assertIn("Could not load v9broken, still using v7", self.e.model_note)
-        self.assertEqual(self.saved(), self.V7)
+        self.assertIn("Could not load v10broken, still using v8", self.e.model_note)
+        self.assertEqual(self.saved(), self.DEF)
 
     def test_wrong_classes_refused(self):
-        wrong = "garbageguard_v9wrong_best_ncnn_model"
+        wrong = "garbageguard_v10wrong_best_ncnn_model"
         make(self.dir, wrong)
         self.e.set_model(wrong)
         m = self.e._swap_model(self.model)
         self.assertIs(m, self.model)
         self.assertIn("instead of bottle, bag, food_container", self.e.model_note)
 
-    def test_saved_v8_that_fails_at_start_falls_back_to_v7(self):
-        bad = "garbageguard_v9broken_best_ncnn_model"
+    def test_saved_model_that_fails_at_start_falls_back_to_v8(self):
+        bad = "garbageguard_v10broken_best_ncnn_model"
         make(self.dir, bad)
         e = self.g.Engine("0", str(self.dir / bad), self.g.load_settings())
         m = e._first_model()
-        self.assertEqual(m.path, self.V7)
-        self.assertEqual(e.model_name, self.V7)
-        self.assertIn("using v7", e.model_note)
+        self.assertEqual(m.path, self.DEF)
+        self.assertEqual(e.model_name, self.DEF)
+        self.assertIn("using v8", e.model_note)
 
 
 if __name__ == "__main__":

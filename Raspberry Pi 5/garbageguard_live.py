@@ -553,9 +553,9 @@ class Engine:
             return self._load_model(self.model_path)
         except Exception as e:
             bad = gg_model.label(self.model_name)
-            print(f"[MODEL] Could not load {bad} ({e}). Starting with v7.", flush=True)
+            print(f"[MODEL] Could not load {bad} ({e}). Starting with {gg_model.label(gg_model.DEFAULT)}.", flush=True)
             with self.lock:
-                self.model_note = f"Could not load {bad} at start, using v7: {_short(e)}"
+                self.model_note = f"Could not load {bad} at start, using {gg_model.label(gg_model.DEFAULT)}: {_short(e)}"
                 self.model_path = str(default)
                 self.model_name = default.name
                 self.settings["model"] = default.name
@@ -999,7 +999,7 @@ def main():
     ap = argparse.ArgumentParser(description="Garbage-Guard live detection")
     ap.add_argument("--source", default=SOURCE)
     ap.add_argument("--model", default=None,
-                    help="model folder to start with (default: the one picked in Settings, v7)")
+                    help="model folder to start with (default: the one picked in Settings, v8)")
     ap.add_argument("--conf", type=float, default=None)
     ap.add_argument("--threshold", type=int, default=None)
     ap.add_argument("--stream", choices=("main", "sub"), default=None,
