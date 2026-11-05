@@ -1169,6 +1169,7 @@ a.btn{text-decoration:none}
 #settings .setcol .card-pow .hint{flex:none;overflow:visible}
 #settings .setcol .c-qt .hint.gen{display:none}
 #settings .setcol .c-qt .pair2{grid-template-columns:1fr 1fr}
+#settings .c-qt .pfield.dim{opacity:.45;filter:grayscale(1);pointer-events:none}
 #settings .setcol .c-qt .pair2{gap:5px}
 #settings .setcol .c-qt .stp .step{width:22px;font-size:16px}
 #settings .setcol .c-qt .stp input[data-time]{font-size:11px;letter-spacing:-.02em;padding:0}
@@ -1733,6 +1734,7 @@ body .fbar.quick button{padding:0 9px}
         <p class="hint"><svg class="ico"><use href="#i-ok"/></svg>Tap to wake. The first tap only wakes.</p>
         <p class="hint bad" id="scrNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
+      <div class="setcol">
       <section class="card card-pow c-pow" id="powCard">
         <div class="hd"><svg class="ico"><use href="#i-power"/></svg><h2>Power</h2>
           <span class="chip" id="powChip" hidden><svg class="ico"><use href="#i-batt"/></svg><span></span></span></div>
@@ -1753,6 +1755,30 @@ body .fbar.quick button{padding:0 9px}
         <button class="btn danger wide" id="pwrOff" type="button"><svg class="ico"><use href="#i-power"/></svg>Shut down now</button>
         <p class="hint"><svg class="ico"><use href="#i-warn"/></svg>Start the Pi again with the UPS HAT switch.</p>
       </section>
+      <section class="card card-pow c-qt wait" id="quietCard">
+        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
+        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
+        <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
+          <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
+        <div class="pair2" id="bzQuietRows">
+        <div class="pfield" id="bzFromRow"><label for="bzFrom"><svg class="ico"><use href="#i-sunmoon"/></svg>From</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzFrom" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        <div class="pfield" id="bzToRow"><label for="bzTo"><svg class="ico"><use href="#i-sunmoon"/></svg>Until</label>
+          <div class="well stp">
+            <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
+            <input id="bzTo" type="text" data-time="1" readonly><span class="u"></span>
+            <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
+          </div></div>
+        </div>
+        <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
+        <span class="grow"></span>
+        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence the buzzer. Tests use the saved settings.</p>
+      </section>
+      </div>
       <section class="card card-pow c-snd wait" id="sndCard">
         <div class="hd"><svg class="ico"><use href="#i-bellon"/></svg><h2>Buzzer</h2>
           <span class="chip off" id="bzChip"><span>OFFLINE</span></span></div>
@@ -1831,29 +1857,6 @@ body .fbar.quick button{padding:0 9px}
         <p class="hint" id="mdlState" hidden><svg class="ico"><use href="#i-up"/></svg><span></span></p>
         <button class="btn sm teal" id="mdlUp" type="button" disabled><svg class="ico a-pop"><use href="#i-up"/></svg>Upload</button>
         <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>Export with yolo export format=ncnn imgsz=960, the size v8 and v9 use.</p>
-      </section>
-      <section class="card card-pow c-qt wait" id="quietCard">
-        <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
-        <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
-        <div class="prow"><label><svg class="ico"><use href="#i-belloff"/></svg>Quiet hours</label>
-          <button class="sw lt" id="bzQuiet" type="button" role="switch" aria-checked="false"><i></i></button></div>
-        <div class="pair2" id="bzQuietRows">
-        <div class="pfield" id="bzFromRow"><label for="bzFrom"><svg class="ico"><use href="#i-sunmoon"/></svg>From</label>
-          <div class="well stp">
-            <button class="step" type="button" data-for="bzFrom" data-d="-30" aria-label="Earlier">−</button>
-            <input id="bzFrom" type="text" data-time="1" readonly><span class="u"></span>
-            <button class="step" type="button" data-for="bzFrom" data-d="30" aria-label="Later">+</button>
-          </div></div>
-        <div class="pfield" id="bzToRow"><label for="bzTo"><svg class="ico"><use href="#i-sunmoon"/></svg>Until</label>
-          <div class="well stp">
-            <button class="step" type="button" data-for="bzTo" data-d="-30" aria-label="Earlier">−</button>
-            <input id="bzTo" type="text" data-time="1" readonly><span class="u"></span>
-            <button class="step" type="button" data-for="bzTo" data-d="30" aria-label="Later">+</button>
-          </div></div>
-        </div>
-        <p class="hint" id="bzQuietNote" hidden><svg class="ico"><use href="#i-clock"/></svg><span></span></p>
-        <span class="grow"></span>
-        <p class="hint gen"><svg class="ico"><use href="#i-ok"/></svg>Quiet hours silence the buzzer. Tests use the saved settings.</p>
       </section>
       </div>
     </div>
@@ -3352,8 +3355,12 @@ function showBuzzRows(){
   chip.classList.toggle("off", !on);
   chip.querySelector("span").textContent = on ? "ON" : "OFF";
   $("bzRepRow").style.display = swOn($("bzRep")) ? "" : "none";
-  const q = swOn($("bzQuiet")) ? "" : "none";
-  $("bzFromRow").style.display = q; $("bzToRow").style.display = q;
+  // The hours stay on show with quiet hours off, greyed and locked, so the saved times can be read.
+  const q = swOn($("bzQuiet"));
+  ["bzFromRow", "bzToRow"].forEach(id => {
+    $(id).classList.toggle("dim", !q);
+    $(id).querySelectorAll("button").forEach(b => { b.disabled = !q; });
+  });
 }
 document.querySelectorAll("#bzVol button").forEach(b => b.addEventListener("click", () => pickVol(b.dataset.vol)));
 ["bzOn", "bzAlerts", "bzCount", "bzUi", "bzRep", "bzQuiet"].forEach(id =>

@@ -32,6 +32,9 @@ in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
   `model_label` and `model_loading`. Uploads work only on the same network;
   there is no Firebase upload.
 - 23 new tests in `test_model.py` and `test_web.py`.
+- Settings layout: Quiet hours sits under Power, so Camera stream and Model
+  share the last column. The quiet hours stay on show when switched off,
+  greyed and locked, instead of disappearing.
 
 ### App
 
@@ -42,6 +45,8 @@ in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
   to the Pi's Wi-Fi to upload a model."
 - The demo takes an upload too: it pretends to send and load the model, and
   a version with "broken" in its name shows the failed-load path.
+- Quiet hours keep showing their times when switched off, greyed and locked,
+  as on the dashboard.
 - `Garbage-Guard v15.apk` replaces v14.
 
 ## App version 13: draw the monitored area from fullscreen (2026-10-31)

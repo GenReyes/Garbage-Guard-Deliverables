@@ -3,6 +3,9 @@ package com.garbageguard.app.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.draw.alpha
+import com.garbageguard.app.ui.components.blockTouches
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -141,26 +144,31 @@ fun BuzzerCard(vm: AppViewModel, state: LiveState) {
             SettingRow("Quiet hours", "A daily window with no buzzer", GgIcons.Moon) {
                 AutoSwitch(quiet, { vm.editBuzzer("quiet_on", !quiet, b.quietOn) }, label = null, icon = null)
             }
-            if (quiet) {
-                val from = word("quiet_from", b.quietFrom)
-                val to = word("quiet_to", b.quietTo)
-                Field(GgIcons.Moon, "Quiet from") {
-                    Stepper(
-                        0, "", text = clock12(from),
-                        onMinus = { vm.editBuzzer("quiet_from", shiftTime(from, -30), b.quietFrom) },
-                        onPlus = { vm.editBuzzer("quiet_from", shiftTime(from, 30), b.quietFrom) },
-                        lock = "buzzer",
-                    )
+            // The hours stay on show with quiet hours off, greyed and locked, so the saved times can be read.
+            Box {
+                Column(Modifier.alpha(if (quiet) 1f else 0.45f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val from = word("quiet_from", b.quietFrom)
+                    val to = word("quiet_to", b.quietTo)
+                    Field(GgIcons.Moon, "Quiet from") {
+                        Stepper(
+                            0, "", text = clock12(from),
+                            onMinus = { vm.editBuzzer("quiet_from", shiftTime(from, -30), b.quietFrom) },
+                            onPlus = { vm.editBuzzer("quiet_from", shiftTime(from, 30), b.quietFrom) },
+                            lock = "buzzer",
+                        )
+                    }
+                    Field(GgIcons.Sun, "Quiet until") {
+                        Stepper(
+                            0, "", text = clock12(to),
+                            onMinus = { vm.editBuzzer("quiet_to", shiftTime(to, -30), b.quietTo) },
+                            onPlus = { vm.editBuzzer("quiet_to", shiftTime(to, 30), b.quietTo) },
+                            lock = "buzzer",
+                        )
+                    }
+                    Hint("Quiet hours follow the Pi's clock, in Philippine time.", icon = GgIcons.Clock)
                 }
-                Field(GgIcons.Sun, "Quiet until") {
-                    Stepper(
-                        0, "", text = clock12(to),
-                        onMinus = { vm.editBuzzer("quiet_to", shiftTime(to, -30), b.quietTo) },
-                        onPlus = { vm.editBuzzer("quiet_to", shiftTime(to, 30), b.quietTo) },
-                        lock = "buzzer",
-                    )
-                }
-                Hint("Quiet hours follow the Pi's clock, in Philippine time.", icon = GgIcons.Clock)
+                // Over the greyed hours, a cover takes the taps so the steppers cannot be changed.
+                if (!quiet) Box(Modifier.matchParentSize().blockTouches())
             }
         }
 
