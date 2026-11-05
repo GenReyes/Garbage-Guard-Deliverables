@@ -131,8 +131,13 @@ def load_settings():
 
 
 def save_settings(s):
+    tmp = SETTINGS_PATH.with_suffix(".json.tmp")
     try:
-        SETTINGS_PATH.write_text(json.dumps(s, indent=2))
+        with open(tmp, "w") as f:
+            f.write(json.dumps(s, indent=2))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, SETTINGS_PATH)
     except OSError:
         pass
 
