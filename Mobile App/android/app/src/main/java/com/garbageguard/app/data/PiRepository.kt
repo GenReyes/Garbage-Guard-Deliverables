@@ -17,6 +17,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 /**
  * The real Pi over the local network. Plain HTTP to the server in
@@ -364,6 +365,95 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
         pollState()
     }
 
+    // ---------- detection model ----------
+
+    override val canUploadModel: Boolean get() = true
+
+    override suspend fun setModel(name: String) {
+        post("/api/model", JSONObject().put("model", name))
+        pollState()
+    }
+
+    override suspend fun uploadModel(
+        version: String,
+        size: Long,
+        open: () -> java.io.InputStream,
+        progress: (Long, Long) -> Unit,
+    ): UploadReply = withContext(Dispatchers.IO) {
+        val base = baseUrl
+        if (base.isEmpty()) return@withContext UploadReply(false, "The app is not connected to a Pi.")
+        val url = URL(base + "/api/model/upload?version=" + URLEncoder.encode(version, "UTF-8"))
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("X-GG-Client", "android")
+            identity.forEach { (name, value) -> conn.setRequestProperty(name, value) }
+            conn.setRequestProperty("X-GG-Mode", if (foreground) "foreground" else "background")
+            conn.setRequestProperty("Content-Type", "application/zip")
+            conn.connectTimeout = 4000
+            // The Pi answers once the zip is unpacked, which takes a few seconds for a big model.
+            conn.readTimeout = 120_000
+            conn.doOutput = true
+            conn.setFixedLengthStreamingMode(size)
+            open().use { input ->
+                conn.outputStream.use { out ->
+                    val buf = ByteArray(64 * 1024)
+                    var sent = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        out.write(buf, 0, n)
+                        sent += n
+                        progress(sent, size)
+                    }
+                }
+            }
+            val code = conn.responseCode
+            val body = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                ?.bufferedReader()?.use { it.readText() }.orEmpty()
+            val o = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+            if (code in 200..299 && o.optBoolean("ok", false)) {
+                pollState()
+                UploadReply(true, "Uploaded", text(o, "installed").ifEmpty { null }, text(o, "label").ifEmpty { null })
+            } else {
+                UploadReply(false, text(o, "message").ifEmpty { text(o, "error") }
+                    .ifEmpty { "The Pi refused the upload (HTTP $code)." })
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            UploadReply(false, "The upload was cut off (${e.message ?: e.javaClass.simpleName}). Check the Wi-Fi and try again.")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    internal fun parseModel(o: JSONObject): ModelInfo? {
+        val name = text(o, "model")
+        if (name.isEmpty()) return null
+        val installed = mutableListOf<ModelEntry>()
+        val list = o.optJSONArray("models")
+        // Firebase may hand a list back as an object keyed 0, 1, 2.
+        val items = list?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }
+            ?: o.optJSONObject("models")?.let { m -> m.keys().asSequence().sorted().mapNotNull { m.optJSONObject(it) }.toList() }
+            ?: emptyList()
+        for (m in items) {
+            val n = text(m, "name")
+            if (n.isNotEmpty()) installed += ModelEntry(n, text(m, "label").ifEmpty { modelLabel(n) })
+        }
+        val prev = text(o, "model_prev").ifEmpty { null }
+        return ModelInfo(
+            name = name,
+            label = text(o, "model_label").ifEmpty { modelLabel(name) },
+            loading = o.optBoolean("model_loading", false),
+            wanted = text(o, "model_wanted").ifEmpty { null },
+            note = text(o, "model_note").ifEmpty { null },
+            prev = prev,
+            prevLabel = prev?.let { text(o, "model_prev_label").ifEmpty { modelLabel(it) } },
+            installed = installed,
+        )
+    }
+
     internal fun labelsJson(l: BoxLabels): JSONObject =
         JSONObject().put("class", l.className).put("id", l.trackId).put("conf", l.confidence)
 
@@ -557,6 +647,7 @@ class PiRepository(private val scope: CoroutineScope) : GgRepository {
             clean = parseClean(o),
             alertsTotal = if (o.has("alerts_total") && !o.isNull("alerts_total")) o.optInt("alerts_total") else null,
             labels = parseLabels(o),
+            model = parseModel(o),
         )
     }
 

@@ -65,7 +65,58 @@ data class LiveState(
     val alertsTotal: Int? = null,
     /** What the Pi writes on each detection box. Null on an older Pi without the setting. */
     val labels: BoxLabels? = null,
+    /** The detection model the Pi runs, and the one before it. Null on an older Pi. */
+    val model: ModelInfo? = null,
 )
+
+/** One installed model folder from "models" in GET /api/state. */
+data class ModelEntry(val name: String, val label: String)
+
+/**
+ * The model fields of GET /api/state: "model", "model_label",
+ * "model_loading", "model_wanted", "model_note", "model_prev",
+ * "model_prev_label" and "models". [prev] is the model that ran before the
+ * last switch, null when it is gone or is the one running now.
+ */
+data class ModelInfo(
+    val name: String,
+    val label: String,
+    val loading: Boolean = false,
+    val wanted: String? = null,
+    val note: String? = null,
+    val prev: String? = null,
+    val prevLabel: String? = null,
+    val installed: List<ModelEntry> = emptyList(),
+) {
+    /** The version being loaded, when it is not the one already running. */
+    val loadingLabel: String?
+        get() = if (!loading || wanted == null || wanted == name) null
+        else installed.firstOrNull { it.name == wanted }?.label ?: modelLabel(wanted)
+}
+
+/** What the Pi answered to POST /api/model/upload. */
+data class UploadReply(val ok: Boolean, val message: String, val installed: String? = null, val label: String? = null)
+
+/** The Pi takes at most this many bytes in one upload. */
+const val MODEL_UPLOAD_MAX = 64L * 1024 * 1024
+
+/**
+ * The version name as the Pi will store it, or null when the Pi would refuse
+ * it: letters, digits, dot, dash and underscore, up to 24, with a v in front
+ * of a name that starts with a digit. The same rule as gg_model.version_name.
+ */
+fun modelVersion(raw: String): String? {
+    val t = raw.trim()
+    if (!Regex("^[A-Za-z0-9._-]{1,24}$").matches(t) || t == "." || t == "..") return null
+    return if (t[0].isDigit()) "v$t" else t
+}
+
+/** "garbageguard_v9_best_ncnn_model" reads "v9", as gg_model.label does. */
+fun modelLabel(name: String): String =
+    Regex("^garbageguard_(.+?)(?:_best)?_ncnn_model$").find(name)?.groupValues?.get(1) ?: name
+
+/** The folder name the Pi gives a version. */
+fun modelFolder(version: String): String = "garbageguard_${version}_best_ncnn_model"
 
 /**
  * The text the Pi burns above each detection box, the "labels" object of

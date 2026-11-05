@@ -9,6 +9,7 @@ import com.garbageguard.app.ui.components.LockPhase
 import com.garbageguard.app.ui.components.Lock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,6 +27,19 @@ import com.garbageguard.app.data.EventType
 import com.garbageguard.app.data.FakeRepository
 import com.garbageguard.app.data.GgRepository
 import com.garbageguard.app.data.LiveState
+import com.garbageguard.app.data.MODEL_UPLOAD_MAX
+import com.garbageguard.app.data.UploadReply
+import com.garbageguard.app.data.modelFolder
+import com.garbageguard.app.data.modelLabel
+import com.garbageguard.app.data.modelVersion
+import android.net.Uri
+import android.provider.OpenableColumns
+import java.io.File
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import com.garbageguard.app.data.NetDetails
 import com.garbageguard.app.data.PiRepository
 import android.Manifest
@@ -647,6 +661,175 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         key = LOCK_LABELS,
     ) { repo.setLabels(labels) }
 
+    // ---------- detection model ----------
+
+    enum class UploadPhase { IDLE, SENDING, LOADING, DONE_OK, DONE_FAIL }
+
+    /** The version name typed for the next upload. */
+    var modelVersionText by mutableStateOf("")
+        private set
+    /** The .zip picked with the system file picker, its name and size. */
+    var modelUri by mutableStateOf<Uri?>(null)
+        private set
+    var modelFileName by mutableStateOf("")
+        private set
+    var modelFileSize by mutableLongStateOf(-1L)
+        private set
+    var uploadPhase by mutableStateOf(UploadPhase.IDLE)
+        private set
+    var uploadPct by mutableIntStateOf(0)
+        private set
+    var uploadMessage by mutableStateOf("")
+        private set
+
+    /** The folder being loaded after an upload or "Go back", and when it was asked for. */
+    private var modelWait: String? = null
+    private var modelWaitSince = 0L
+    private var modelSawLoading = false
+
+    /** Upload goes only to the Pi's own network; Firebase cannot carry a model. */
+    val canUploadModel: Boolean get() = repo.canUploadModel && !remote
+
+    fun changeModelVersion(text: String) {
+        modelVersionText = text.take(24)
+    }
+
+    /** What the system file picker returned. Null when the person backed out. */
+    fun chooseModelFile(uri: Uri?) {
+        if (uri == null) return
+        var name = ""
+        var size = -1L
+        try {
+            appContext.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    name = c.getString(0).orEmpty()
+                    if (!c.isNull(1)) size = c.getLong(1)
+                }
+            }
+        } catch (_: Exception) {
+        }
+        modelUri = uri
+        modelFileName = name.ifEmpty { "model.zip" }
+        modelFileSize = size
+        if (uploadPhase == UploadPhase.DONE_OK || uploadPhase == UploadPhase.DONE_FAIL) uploadPhase = UploadPhase.IDLE
+        // garbageguard_v10_best_ncnn_model.zip fills in v10.
+        if (modelVersionText.isBlank()) {
+            Regex("garbageguard_([A-Za-z0-9.-]+?)(?:_best)?_ncnn_model").find(name)?.let { modelVersionText = it.groupValues[1] }
+        }
+    }
+
+    /** Why Upload cannot be pressed yet, or null when it can. */
+    fun modelProblem(state: LiveState): String? {
+        val m = state.model ?: return "The Pi has not sent its model yet."
+        if (modelUri == null) return "Choose the model .zip first."
+        if (!modelFileName.endsWith(".zip", ignoreCase = true)) return "$modelFileName is not a .zip."
+        val ver = modelVersion(modelVersionText)
+            ?: return "Type a version name: letters, digits, dot, dash or underscore, up to 24."
+        if (m.installed.any { it.label == ver }) return "$ver is already on the Pi. Pick another name."
+        if (modelFileSize > MODEL_UPLOAD_MAX) return "The file is over 64 MB, the Pi takes at most 64 MB."
+        return null
+    }
+
+    fun uploadModel() {
+        val s = state.value
+        val uri = modelUri ?: return
+        if (uploadPhase == UploadPhase.SENDING || s.model?.loading == true) return
+        modelProblem(s)?.let { showToast(it); Feel.event(Sfx.DENIED); return }
+        val ver = modelVersion(modelVersionText) ?: return
+        uploadPhase = UploadPhase.SENDING
+        uploadPct = 0
+        uploadMessage = "Uploading $ver: 0%"
+        viewModelScope.launch {
+            // A copy in the app's cache gives the exact length the Pi needs up front.
+            val copy = File(appContext.cacheDir, "model_upload.zip")
+            val reply = try {
+                withContext(Dispatchers.IO) {
+                    appContext.contentResolver.openInputStream(uri)?.use { input ->
+                        copy.outputStream().use { input.copyTo(it) }
+                    } ?: throw IllegalStateException("the file could not be opened")
+                }
+                if (copy.length() > MODEL_UPLOAD_MAX) {
+                    UploadReply(false, "The file is over 64 MB, the Pi takes at most 64 MB.")
+                } else {
+                    repo.uploadModel(ver, copy.length(), { copy.inputStream() }) { sent, total ->
+                        val pct = if (total > 0) (sent * 100 / total).toInt() else 0
+                        if (pct != uploadPct) {
+                            uploadPct = pct
+                            uploadMessage = "Uploading $ver: $pct%"
+                        }
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                UploadReply(false, "The file could not be read: ${e.message ?: e.javaClass.simpleName}")
+            } finally {
+                withContext(NonCancellable + Dispatchers.IO) { copy.delete() }
+            }
+            if (reply.ok) {
+                waitForModel(reply.installed ?: modelFolder(ver), reply.label ?: ver)
+                modelUri = null
+                modelFileName = ""
+                modelFileSize = -1L
+                modelVersionText = ""
+                Feel.event(Sfx.SAVED)
+            } else {
+                uploadPhase = UploadPhase.DONE_FAIL
+                uploadMessage = reply.message
+                Feel.event(Sfx.DENIED)
+            }
+        }
+    }
+
+    /** Back to the model that ran before the last switch. */
+    fun goBackModel() {
+        val m = state.value.model ?: return
+        val prev = m.prev ?: return
+        if (m.loading || uploadPhase == UploadPhase.SENDING) return
+        val label = m.prevLabel ?: modelLabel(prev)
+        launchAction("Going back to $label", key = LOCK_MODEL) {
+            val outcome = coroutineContext[Outcome]
+            repo.setModel(prev)
+            if (outcome?.failed != true) waitForModel(prev, label)
+        }
+    }
+
+    private fun waitForModel(name: String, label: String) {
+        modelWait = name
+        modelWaitSince = System.currentTimeMillis()
+        modelSawLoading = false
+        uploadPhase = UploadPhase.LOADING
+        uploadMessage = "Loading $label\u2026"
+    }
+
+    /** Watches the state for the end of a load the app asked for, then says how it went. */
+    private fun onModelState(s: LiveState) {
+        val wait = modelWait ?: return
+        val m = s.model ?: return
+        if (m.loading) {
+            modelSawLoading = true
+            return
+        }
+        // A poll sent before the Pi took the request still shows the old model; give it a moment.
+        if (!modelSawLoading && m.name != wait && System.currentTimeMillis() - modelWaitSince < 5000) return
+        modelWait = null
+        val label = modelLabel(wait)
+        if (m.name == wait) {
+            uploadPhase = UploadPhase.DONE_OK
+            uploadMessage = "Now running ${m.label}."
+            showToast("Now running ${m.label}")
+        } else {
+            uploadPhase = UploadPhase.DONE_FAIL
+            uploadMessage = "$label could not be loaded. The note above says why."
+            showToast("$label could not be loaded")
+            Feel.event(Sfx.DENIED)
+        }
+    }
+
+    init {
+        viewModelScope.launch { state.collect { onModelState(it) } }
+    }
+
     /** Called by the Screen saver card after it changes one of its drafts. */
     fun screenSaverChanged() = arm(LOCK_SAVER, ::sendScreenSaver)
 
@@ -1131,6 +1314,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val LOCK_BUZZ_TEST = "buzzer_test"
         const val LOCK_CLEAN = "clean"
         const val LOCK_LABELS = "labels"
+        const val LOCK_MODEL = "model"
         const val LOCK_WAKE_ALERT = "wake_alert"
         const val LOCK_AUTO_SHUTDOWN = "auto_shutdown"
         const val LOCK_SCREEN = "screen"

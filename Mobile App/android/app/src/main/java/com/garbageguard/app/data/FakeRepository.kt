@@ -1,6 +1,7 @@
 package com.garbageguard.app.data
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -35,6 +37,10 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
             buzzer = Buzzer(),
             clean = CleanCopies(mode = "all", count = 19, bytes = 19L * 61_000),
             labels = BoxLabels(),
+            model = ModelInfo(
+                name = modelFolder("v9"), label = "v9", prev = modelFolder("v8"), prevLabel = "v8",
+                installed = listOf(ModelEntry(modelFolder("v8"), "v8"), ModelEntry(modelFolder("v9"), "v9")),
+            ),
             roi = listOf(
                 RoiPoint(0.10f, 0.18f), RoiPoint(0.82f, 0.12f), RoiPoint(0.94f, 0.78f),
                 RoiPoint(0.55f, 0.92f), RoiPoint(0.08f, 0.82f),
@@ -394,6 +400,61 @@ class FakeRepository(private val scope: CoroutineScope) : GgRepository {
 
     override suspend fun setLabels(labels: BoxLabels) {
         _state.update { it.copy(labels = labels) }
+    }
+
+    // A pretend Pi takes uploads too, so the Model card can be shown with no Pi.
+    override val canUploadModel: Boolean get() = true
+
+    override suspend fun setModel(name: String) {
+        if (_state.value.model?.installed?.any { it.name == name } != true) return commandFailed()
+        loadModel(name)
+    }
+
+    /** Loads for a few seconds like the Pi. A version with "broken" in its name fails and is removed. */
+    private fun loadModel(name: String) {
+        _state.update { s -> s.copy(model = s.model?.copy(loading = true, wanted = name, note = null)) }
+        scope.launch {
+            delay(3000)
+            _state.update { s ->
+                val m = s.model ?: return@update s
+                val label = modelLabel(name)
+                if ("broken" in name) {
+                    s.copy(model = m.copy(
+                        loading = false, wanted = null,
+                        note = "Could not load $label, still using ${m.label}: cannot open it. The uploaded $label was removed.",
+                        installed = m.installed.filter { it.name != name },
+                    ))
+                } else {
+                    s.copy(model = m.copy(
+                        name = name, label = label, loading = false, wanted = null, note = null,
+                        prev = m.name, prevLabel = m.label,
+                    ))
+                }
+            }
+        }
+    }
+
+    override suspend fun uploadModel(
+        version: String,
+        size: Long,
+        open: () -> java.io.InputStream,
+        progress: (Long, Long) -> Unit,
+    ): UploadReply {
+        val ver = modelVersion(version)
+            ?: return UploadReply(false, "The version name may use letters, digits, dot, dash and underscore, up to 24 characters, for example v12.")
+        val name = modelFolder(ver)
+        val m = _state.value.model ?: return UploadReply(false, "Model upload is not available.")
+        if (m.installed.any { it.name == name }) return UploadReply(false, "$ver is already on the Pi. Pick another version name.")
+        val head = withContext(Dispatchers.IO) { open().use { input -> ByteArray(4).also { input.read(it) } } }
+        if (!(head[0] == 'P'.code.toByte() && head[1] == 'K'.code.toByte())) return UploadReply(false, "That file is not a readable .zip.")
+        // Spread the "sending" over about three seconds so the bar can be seen.
+        for (i in 1..30) {
+            delay(100)
+            progress(size * i / 30, size)
+        }
+        _state.update { s -> s.copy(model = s.model?.let { mm -> mm.copy(installed = mm.installed + ModelEntry(name, ver)) }) }
+        loadModel(name)
+        return UploadReply(true, "Uploaded", name, ver)
     }
 
     override suspend fun restart() {

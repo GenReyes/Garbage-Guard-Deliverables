@@ -127,6 +127,29 @@ interface GgRepository {
 
     /** Where the clean copy of a snapshot can be loaded. Null where it cannot, as over Firebase. */
     fun cleanUrl(name: String): String? = null
+
+    /**
+     * True where POST /api/model/upload can be reached: the Pi's own network,
+     * or demo data. Firebase has no upload, a model is too big for it.
+     */
+    val canUploadModel: Boolean get() = false
+
+    /** POST /api/model {"model": name}: switch to a model already on the Pi, as "Go back" does. */
+    suspend fun setModel(name: String) {
+        commandFailed()
+    }
+
+    /**
+     * POST /api/model/upload?version=<version> with the raw zip as the body.
+     * [size] is the exact length of what [open] gives. [progress] hears the
+     * bytes sent so far and the total.
+     */
+    suspend fun uploadModel(
+        version: String,
+        size: Long,
+        open: () -> java.io.InputStream,
+        progress: (Long, Long) -> Unit,
+    ): UploadReply = UploadReply(false, "Connect to the Pi's Wi-Fi to upload a model.")
 }
 
 private val NO_TOTAL: StateFlow<Int?> = MutableStateFlow(null)

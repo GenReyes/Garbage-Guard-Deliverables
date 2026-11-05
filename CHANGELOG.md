@@ -5,6 +5,44 @@ in `Mobile App/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
 `pi/` that were in use at the time. Entries before version 7 are summarised from the commit history.
 
+## App version 15: upload a new model (2026-11-05)
+
+### Pi
+
+- A new model no longer has to be copied into `~/gg/` by hand. The Model card
+  takes a .zip of the NCNN export folder (`yolo export model=best.pt
+  format=ncnn`) and a version name such as v10. The Pi saves it as
+  `garbageguard_v10_best_ncnn_model`, keeping only the `.param`, the `.bin`
+  and `metadata.yaml`, and switches to it with the same load and test-run as
+  before.
+- On the Pi's own screen, "Choose folder" takes an unzipped export folder,
+  for example one copied over on a USB stick. The dashboard packs the three
+  files into a zip itself and sends it the same way.
+- The card shows the running version in large type, the upload percentage,
+  then "Loading..." and the result. A model that fails to load, or has the
+  wrong classes, is deleted again and the old one keeps running.
+- "Go back to v8" (or whichever model ran before) returns to the previous
+  model. The Pi remembers it as `model_prev` in `gg_settings.json`, and old
+  folders are never deleted.
+- New endpoint `POST /api/model/upload?version=<name>`, with a 64 MB limit
+  (200 MB unpacked), zip-slip protection and a work folder,
+  `.model_upload/`, that is cleaned at every start. New state fields
+  `model_prev` and `model_prev_label`, also synced to Firebase with
+  `model_label` and `model_loading`. Uploads work only on the same network;
+  there is no Firebase upload.
+- 23 new tests in `test_model.py` and `test_web.py`.
+
+### App
+
+- Settings has a Model card: the running version, the Pi's note, a version
+  name field, "Choose model .zip" (the system file picker), an Upload button
+  with a progress bar, then the loading and the result, and "Go back to v8".
+- Through Firebase the card stays visible but Upload is off, with "Connect
+  to the Pi's Wi-Fi to upload a model."
+- The demo takes an upload too: it pretends to send and load the model, and
+  a version with "broken" in its name shows the failed-load path.
+- `Garbage-Guard v15.apk` replaces v14.
+
 ## App version 13: draw the monitored area from fullscreen (2026-10-31)
 
 ### Pi

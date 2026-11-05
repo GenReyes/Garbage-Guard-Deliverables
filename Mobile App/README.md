@@ -8,7 +8,7 @@ the Raspberry Pi, the camera, or the model. App developer: Brian.
 | Item | What it is |
 |---|---|
 | `android/` | The Android Studio project (Kotlin, Jetpack Compose, package `com.garbageguard.app`). Open this folder in Android Studio. |
-| `Garbage-Guard v14.apk` | The latest build (version 14), ready to install on a phone. Only the newest version is kept here. |
+| `Garbage-Guard v15.apk` | The latest build (version 15), ready to install on a phone. Only the newest version is kept here. |
 | `gg_mock_server.py` | A stand-in for the Pi's server with the same API and invented data. Lets the whole app run with no hardware. |
 | `GarbageGuard_API.md` | The API reference: every endpoint, with request and response examples. |
 | `FIREBASE.md` | How the app reaches the Pi through Firebase when it is not on the Pi's Wi-Fi. The Pi side is built. |
@@ -32,8 +32,10 @@ few seconds.
   zoom. A row of symbols filters by kind and a calendar sets a date
   range; Mark read and Delete then act on exactly the records shown.
 - **Settings:** detection confidence, accumulation limit, the box labels
-  the Pi writes (track ID, class name, confidence, any mix), the monitored
-  area (drawn on the live picture), light and dark theme, network details,
+  the Pi writes (track ID, class name, confidence, any mix), the detection
+  model (upload a new one as a .zip on the Pi's Wi-Fi, or go back to the
+  previous one), the monitored area (drawn on the live picture), light and
+  dark theme, network details,
   connected phones, and restarting Garbage-Guard on the Pi.
 - **Pi battery:** the UPS HAT readout in the header, with full details on tap.
 - **Pi buzzer:** the buzzer's switch, volume, alarm repeat and quiet hours, and Test keys.
@@ -95,7 +97,7 @@ gg.fb.password=<phone account password>
 
 ## Installing the app on a phone
 
-Copy `Garbage-Guard v14.apk` to the phone, open it, and allow the install
+Copy `Garbage-Guard v15.apk` to the phone, open it, and allow the install
 when Android asks. Installing a newer version over an older one keeps the
 saved Pi address. Android 8.0 or newer is required.
 
