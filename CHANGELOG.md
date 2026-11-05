@@ -11,7 +11,8 @@ in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
 
 - A new model no longer has to be copied into `~/gg/` by hand. The Model card
   takes a .zip of the NCNN export folder (`yolo export model=best.pt
-  format=ncnn`) and a version name such as v10. The Pi saves it as
+  format=ncnn imgsz=960`, the size v8 and v9 use) and a version name such
+  as v10. The Pi saves it as
   `garbageguard_v10_best_ncnn_model`, keeping only the `.param`, the `.bin`
   and `metadata.yaml`, and switches to it with the same load and test-run as
   before.

@@ -104,7 +104,7 @@ fun ModelCard(vm: AppViewModel, state: LiveState) {
             Hint("Connect to the Pi's Wi-Fi to upload a model.", icon = GgIcons.Signal, wrap = true)
         } else {
             Hint(
-                "Export with yolo export format=ncnn, then zip the *_ncnn_model folder. Up to 64 MB. v8 and v9 were trained at 960 px.",
+                "Export with yolo export format=ncnn imgsz=960 (the size v8 and v9 use), then zip the *_ncnn_model folder. Up to 64 MB.",
                 icon = GgIcons.Ok, wrap = true,
             )
         }
