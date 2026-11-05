@@ -1158,6 +1158,12 @@ a.btn{text-decoration:none}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .c-mdl .well input#mdlVer{font-size:15px;padding:5px 0}
 .c-mdl .mdlbtns{display:flex;gap:6px;flex-wrap:wrap}
+.c-mdl .mdlrow{display:flex;gap:6px;align-items:stretch;min-width:0}
+.c-mdl .mdlrow .well{flex:1;min-width:0}
+.c-mdl .mdlrow .btn{flex:none}
+#settings .c-mdl .mdllbl{display:flex;align-items:center;gap:6px;margin:0;color:var(--muted);font-size:10px;
+  font-weight:900;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+#settings .c-mdl .mdllbl .ico{width:12px;height:12px;flex:none}
 .c-mdl .mdlbtns .btn{flex:1 1 0;min-width:0;white-space:nowrap;padding:5px 5px;gap:3px;font-size:11px}
 .c-mdl .mdlbar{height:8px;border:2px solid var(--edge);border-radius:6px;background:var(--sunk);
   overflow:hidden;box-shadow:var(--well)}
@@ -1170,6 +1176,26 @@ a.btn{text-decoration:none}
 #settings .setcol .c-qt .hint.gen{display:none}
 #settings .setcol .c-qt .pair2{grid-template-columns:1fr 1fr}
 #settings .c-qt .pfield.dim{opacity:.45;filter:grayscale(1);pointer-events:none}
+/* Short label forms, used only in the five-column layout below. */
+#settings .short{display:none}
+/* On the Pi's 1024x600 screen Settings runs in five columns so nothing
+   scrolls: Screen saver, Power over Quiet hours, Buzzer, Camera stream, Model.
+   The Quiet hours switch moves up beside the card title to save a row, the
+   - and + keys get narrower, and a few labels use a shorter form. */
+@media (min-width:980px) and (max-width:1279px){
+  /* Power is widest so the two quiet hour steppers fit side by side under it. */
+  #settings .setgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.05fr) minmax(0,.9fr) minmax(0,.9fr);gap:10px}
+  #settings .card-pow:not(.c-qt) .stp .step{width:28px}
+  #settings .setcol.splitwide{display:contents}
+  #settings .c-qt{position:relative}
+  #settings .c-qt .hd{padding-right:52px}
+  #settings .c-qt > .prow{position:absolute;top:6px;right:10px;min-height:0}
+  #settings .c-qt > .prow label{display:none}
+  /* While the card has news to show, the export tip steps aside for it. */
+  #settings #mdlNote:not([hidden]) ~ .hint.gen,#settings #mdlState:not([hidden]) ~ .hint.gen{display:none}
+  #settings .long{display:none}
+  #settings .short{display:inline}
+}
 #settings .setcol .c-qt .pair2{gap:5px}
 #settings .setcol .c-qt .stp .step{width:22px;font-size:16px}
 #settings .setcol .c-qt .stp input[data-time]{font-size:11px;letter-spacing:-.02em;padding:0}
@@ -1193,6 +1219,8 @@ a.btn{text-decoration:none}
   letter-spacing:.06em;color:var(--text)}
 .chip .ico{width:11px!important;height:11px!important;color:var(--ok)!important;animation:none!important}
 .chip.off{background:var(--bad-tint)}
+/* A chip marked off is not the video's "No camera signal" box, which shares the .off name. */
+.chip.off{position:static;top:auto;left:auto;transform:none;z-index:auto;line-height:normal}
 .chip[hidden]{display:none}
 
 #settings .pfield[hidden],#settings .prow[hidden]{display:none}
@@ -1792,7 +1820,7 @@ body .fbar.quick button{padding:0 9px}
         </div>
         <div class="prow"><label><svg class="ico"><use href="#i-bell"/></svg>Alerts</label>
           <button class="sw lt" id="bzAlerts" type="button" role="switch" aria-checked="true"><i></i></button></div>
-        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg>Low-battery beeps</label>
+        <div class="prow"><label><svg class="ico"><use href="#i-batt"/></svg><span class="long">Low-battery beeps</span><span class="short">Battery beeps</span></label>
           <button class="sw lt" id="bzCount" type="button" role="switch" aria-checked="true"><i></i></button></div>
         <div class="prow"><label><svg class="ico"><use href="#i-act"/></svg>Button sounds</label>
           <button class="sw lt" id="bzUi" type="button" role="switch" aria-checked="false"><i></i></button></div>
@@ -1811,9 +1839,9 @@ body .fbar.quick button{padding:0 9px}
         </div>
         <p class="hint bad" id="bzNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
       </section>
-      <div class="setcol">
+      <div class="setcol splitwide">
       <section class="card card-pow c-cam wait" id="camCard">
-        <div class="hd"><svg class="ico"><use href="#i-cam"/></svg><h2>Camera stream</h2>
+        <div class="hd"><svg class="ico"><use href="#i-cam"/></svg><h2><span class="long">Camera stream</span><span class="short">Camera</span></h2>
           <span class="chip" id="camChip"><span>–</span></span></div>
         <p class="hint waitnote"><svg class="ico"><use href="#i-nolink"/></svg>Waiting for the Pi to send its settings.</p>
         <div class="seg" id="camStream" role="group" aria-label="Camera stream">
@@ -1843,19 +1871,21 @@ body .fbar.quick button{padding:0 9px}
         <div class="mdlrun"><b id="mdlBig">–</b><span id="mdlNow">Now running</span></div>
         <p class="hint bad" id="mdlNote" hidden><svg class="ico"><use href="#i-warn"/></svg><span></span></p>
         <button class="btn sm" id="mdlBack" type="button" hidden><svg class="ico a-left"><use href="#i-undo"/></svg><span>Go back</span></button>
-        <div class="pfield"><label for="mdlVer"><svg class="ico"><use href="#i-tag"/></svg>New version name</label>
-          <div class="well"><input id="mdlVer" type="text" maxlength="24" placeholder="v10"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div></div>
         <input id="mdlZip" type="file" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden>
         <input id="mdlDir" type="file" webkitdirectory multiple hidden>
         <div class="mdlbtns">
-          <button class="btn sm" id="mdlZipBtn" type="button"><svg class="ico a-pop"><use href="#i-box"/></svg>Choose .zip</button>
-          <button class="btn sm" id="mdlDirBtn" type="button"><svg class="ico a-pop"><use href="#i-layers"/></svg>Choose folder</button>
+          <button class="btn sm" id="mdlZipBtn" type="button"><svg class="ico a-pop"><use href="#i-box"/></svg><span class="long">Choose .zip</span><span class="short">Zip file</span></button>
+          <button class="btn sm" id="mdlDirBtn" type="button"><svg class="ico a-pop"><use href="#i-layers"/></svg><span class="long">Choose folder</span><span class="short">Folder</span></button>
         </div>
         <p class="hint" id="mdlFile"><svg class="ico"><use href="#i-box"/></svg><span>No model chosen</span></p>
+        <label class="mdllbl" for="mdlVer"><svg class="ico"><use href="#i-tag"/></svg>New version name</label>
+        <div class="mdlrow">
+          <div class="well"><input id="mdlVer" type="text" maxlength="24" placeholder="v10"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <button class="btn sm teal" id="mdlUp" type="button" disabled><svg class="ico a-pop"><use href="#i-up"/></svg>Upload</button>
+        </div>
         <div class="mdlbar" id="mdlBar" hidden><i></i></div>
         <p class="hint" id="mdlState" hidden><svg class="ico"><use href="#i-up"/></svg><span></span></p>
-        <button class="btn sm teal" id="mdlUp" type="button" disabled><svg class="ico a-pop"><use href="#i-up"/></svg>Upload</button>
         <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>Export with yolo export format=ncnn imgsz=960, the size v8 and v9 use.</p>
       </section>
       </div>
