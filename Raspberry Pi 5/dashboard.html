@@ -1179,20 +1179,32 @@ a.btn{text-decoration:none}
 /* Short label forms, used only in the five-column layout below. */
 #settings .short{display:none}
 /* On the Pi's 1024x600 screen Settings runs in five columns so nothing
-   scrolls: Screen saver, Power over Quiet hours, Buzzer, Camera stream, Model.
+   scrolls: Screen saver, Power, Buzzer, Camera stream over Quiet hours, Model.
+   With the UPS HAT readout the Power card alone needs about 330 of the 362 px,
+   so Quiet hours sits under Camera stream here and under Power everywhere else.
    The Quiet hours switch moves up beside the card title to save a row, the
    - and + keys get narrower, and a few labels use a shorter form. */
 @media (min-width:980px) and (max-width:1279px){
-  /* Power is widest so the two quiet hour steppers fit side by side under it. */
-  #settings .setgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.05fr) minmax(0,.9fr) minmax(0,.9fr);gap:10px}
+  /* Camera stream and Quiet hours share the widest column, so the two quiet hour steppers fit side by side. */
+  #settings .setgrid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1.05fr) minmax(0,1.15fr) minmax(0,.75fr);
+    grid-template-rows:auto minmax(0,1fr);gap:10px;
+    grid-template-areas:"scr pow snd cam mdl" "scr pow snd qt mdl"}
+  #settings .setcol{display:contents}
+  #scrCard{grid-area:scr} #powCard{grid-area:pow} #sndCard{grid-area:snd}
+  #camCard{grid-area:cam} #quietCard{grid-area:qt} #mdlCard{grid-area:mdl}
   #settings .card-pow:not(.c-qt) .stp .step{width:28px}
-  #settings .setcol.splitwide{display:contents}
+  #settings .card-pow .hd{gap:4px}
+  /* The Model column is the narrowest, so the version field and Upload stack, and the export tip keeps only the command. */
+  #settings .c-mdl .mdlrow{flex-direction:column}
+  #settings .c-mdl .mdlrow .btn{width:100%}
   #settings .c-qt{position:relative}
   #settings .c-qt .hd{padding-right:52px}
   #settings .c-qt > .prow{position:absolute;top:6px;right:10px;min-height:0}
   #settings .c-qt > .prow label{display:none}
   /* While the card has news to show, the export tip steps aside for it. */
   #settings #mdlNote:not([hidden]) ~ .hint.gen,#settings #mdlState:not([hidden]) ~ .hint.gen{display:none}
+  /* A failed load is already explained by the note, so the red result line under it is not repeated. */
+  #settings #mdlNote:not([hidden]) ~ #mdlState.bad{display:none}
   #settings .long{display:none}
   #settings .short{display:inline}
 }
@@ -1878,7 +1890,7 @@ body .fbar.quick button{padding:0 9px}
           <button class="btn sm" id="mdlDirBtn" type="button"><svg class="ico a-pop"><use href="#i-layers"/></svg><span class="long">Choose folder</span><span class="short">Folder</span></button>
         </div>
         <p class="hint" id="mdlFile"><svg class="ico"><use href="#i-box"/></svg><span>No model chosen</span></p>
-        <label class="mdllbl" for="mdlVer"><svg class="ico"><use href="#i-tag"/></svg>New version name</label>
+        <label class="mdllbl" for="mdlVer"><svg class="ico"><use href="#i-tag"/></svg><span class="long">New version name</span><span class="short">Version name</span></label>
         <div class="mdlrow">
           <div class="well"><input id="mdlVer" type="text" maxlength="24" placeholder="v10"
             autocomplete="off" autocapitalize="off" spellcheck="false"></div>
@@ -1886,7 +1898,7 @@ body .fbar.quick button{padding:0 9px}
         </div>
         <div class="mdlbar" id="mdlBar" hidden><i></i></div>
         <p class="hint" id="mdlState" hidden><svg class="ico"><use href="#i-up"/></svg><span></span></p>
-        <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>Export with yolo export model=best.pt format=ncnn imgsz=960. v8 and v9 were trained at 960 px.</p>
+        <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg><span><span class="long">Export with yolo export model=best.pt format=ncnn imgsz=960. v8 and v9 were trained at 960 px.</span><span class="short">Export: yolo export model=best.pt format=ncnn imgsz=960</span></span></p>
       </section>
       </div>
     </div>
