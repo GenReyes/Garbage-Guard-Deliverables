@@ -15,6 +15,7 @@ import gg_net
 import gg_buzzer
 import gg_clean
 import gg_clock
+import gg_model
 import gg_power
 import gg_screen
 import gg_ups
@@ -345,8 +346,43 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
 
             return self._send(404, "text/plain", "not found")
 
+        def _refuse_upload(self, code, error, message):
+            # The body was not read, so this connection cannot carry another request.
+            self.close_connection = True
+            self._send(code, "application/json",
+                       json.dumps({"ok": False, "error": error, "message": message}),
+                       {"Connection": "close"})
+
+        def _model_upload(self):
+            if not hasattr(engine, "upload_model"):
+                return self._refuse_upload(404, "unavailable", "Model upload is not available.")
+            try:
+                n = int(self.headers.get("Content-Length") or -1)
+            except ValueError:
+                n = -1
+            if n <= 0 or n > gg_model.MAX_UPLOAD:
+                return self._refuse_upload(
+                    413, "too_large",
+                    f"Send the .zip with a Content-Length of at most {gg_model.MAX_UPLOAD // (1024 * 1024)} MB.")
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if ctype.startswith("multipart/") or ctype == "application/json":
+                return self._refuse_upload(415, "bad_type",
+                                           "Send the .zip itself as the request body, not a form.")
+            version = (parse_qs(urlparse(self.path).query).get("version") or [""])[0]
+            body = _Counted(self.rfile)
+            code, res = engine.upload_model(version, body, n)
+            if body.got < n and not body.ended:
+                # A refusal before the whole zip arrived (bad or taken version name):
+                # read the rest so the phone or browser gets the reply, not a reset.
+                body.drain(n - body.got)
+            if code == 200 and res.get("ok"):
+                buzzer.play("saved")
+            return self._json(res, code)
+
         def do_POST(self):
             path = urlparse(self.path).path
+            if path == "/api/model/upload":
+                return self._model_upload()
             data = self._body()
 
             if path == "/api/wifi/connect":
@@ -594,6 +630,24 @@ def make_handler(engine, net=None, ups=None, screen=None, power=None, clock=None
                 pass
 
     return Handler
+
+
+class _Counted:
+    """Wraps the request body so the handler knows how much of it was read."""
+
+    def __init__(self, stream):
+        self.stream, self.got, self.ended = stream, 0, False
+
+    def read(self, n):
+        chunk = self.stream.read(n)
+        if not chunk:
+            self.ended = True
+        self.got += len(chunk)
+        return chunk
+
+    def drain(self, left):
+        while left > 0 and not self.ended:
+            left -= len(self.read(min(gg_model.CHUNK, left)))
 
 
 class QuietServer(ThreadingHTTPServer):

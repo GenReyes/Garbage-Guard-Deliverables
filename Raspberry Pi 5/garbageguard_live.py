@@ -304,6 +304,8 @@ class Engine:
         self.model_loading = None
         self.model_flag = threading.Event()
         self._models = ([], 0.0)
+        self.fresh_models = set()
+        self._upload_lock = threading.Lock()
         self.settings = settings
         self.lock = threading.Lock()
         self.stop_flag = threading.Event()
@@ -385,6 +387,7 @@ class Engine:
                 "model_loading": self.model_request is not None or self.model_loading is not None,
                 "models": self._installed_models(),
                 "model_note": self.model_note,
+                **self._prev_fields(),
                 "reconnects": self.reconnects,
                 "uptime_s": int(time.time() - self.started_at),
             }
@@ -518,6 +521,35 @@ class Engine:
             self._models = (found, time.monotonic())
         return [dict(m) for m in found]
 
+    def _prev_fields(self):
+        prev = self.settings.get("model_prev")
+        if prev == self.model_name or not any(m["name"] == prev for m in self._installed_models()):
+            prev = None
+        return {"model_prev": prev, "model_prev_label": gg_model.label(prev) if prev else None}
+
+    def upload_model(self, version, stream, length):
+        """Installs a zipped model sent to POST /api/model/upload and switches to it."""
+        if not self._upload_lock.acquire(blocking=False):
+            return 409, {"ok": False, "error": "busy",
+                         "message": "Another model upload is still in progress."}
+        try:
+            name = gg_model.install(stream, length, version, BASE_DIR)
+        except gg_model.UploadError as e:
+            return e.status, {"ok": False, "error": e.code, "message": e.message}
+        except OSError as e:
+            return 500, {"ok": False, "error": "disk",
+                         "message": f"The Pi could not save the model: {_short(e)}"}
+        finally:
+            self._upload_lock.release()
+        print(f"[MODEL] Received {gg_model.label(name)} by upload.", flush=True)
+        with self.lock:
+            self.fresh_models.add(name)
+            self._models = ([], 0.0)
+        res = self.set_model(name)
+        res["installed"] = name
+        res["label"] = gg_model.label(name)
+        return 200, res
+
     def set_model(self, name):
         if not gg_model.valid(name, BASE_DIR):
             return {"ok": False, "error": "That model is not installed on the Pi.",
@@ -585,11 +617,19 @@ class Engine:
             print(f"[MODEL] Could not load {new_label}, still using {old_label}: {e}", flush=True)
             with self.lock:
                 self.model_note = f"Could not load {new_label}, still using {old_label}: {_short(e)}"
+                if name in self.fresh_models:
+                    self.fresh_models.discard(name)
+                    if gg_model.remove(name, BASE_DIR):
+                        self.model_note = self.model_note.rstrip(".") + f". The uploaded {new_label} was removed."
+                    self._models = ([], 0.0)
                 if self.model_request is None:
                     self.settings["model"] = self.model_name
                     save_settings(self.settings)
             return model
         with self.lock:
+            self.fresh_models.discard(name)
+            self.settings["model_prev"] = self.model_name
+            save_settings(self.settings)
             self.model_path = str(BASE_DIR / name)
             self.model_name = name
             self.names = new.names
@@ -1029,6 +1069,7 @@ def main():
     if args.no_crop:
         settings["crop"] = False
     gg_view.clean_settings(settings)
+    gg_model.clean_uploads(BASE_DIR)
     wanted = settings.get("model")
     gg_model.clean_settings(settings, BASE_DIR)
     model_path = args.model or str(BASE_DIR / settings["model"])

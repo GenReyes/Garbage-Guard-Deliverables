@@ -21,6 +21,8 @@ Thumbs.db
 
 # NCNN model folders — large binary files, keep out unless using Git LFS
 garbageguard_*_ncnn_model/
+# Work folders for model uploads in progress
+.model_upload/
 *.pt
 !models/garbageguard_v7_best.pt
 

@@ -1,10 +1,18 @@
+import http.client
+import io
 import json
+import shutil
+import subprocess
+import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+import zipfile
+from pathlib import Path
 
 import gg_buzzer
+import gg_model
 import gg_power
 import gg_screen
 import gg_web as w
@@ -94,6 +102,22 @@ class FakeEngine:
     def alerts_sig(self):
         return "s1"
 
+    def upload_model(self, version, stream, length):
+        try:
+            name = gg_model.install(stream, length, version, self.model_dir)
+        except gg_model.UploadError as e:
+            return e.status, {"ok": False, "error": e.code, "message": e.message}
+        return 200, {"ok": True, "pending": name}
+
+
+def model_zip(prefix=""):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for name, data in (("model.ncnn.param", b"p"), ("model.ncnn.bin", b"b" * 1000),
+                           ("metadata.yaml", b"names: {0: bottle, 1: bag, 2: food_container}")):
+            z.writestr(prefix + name, data)
+    return buf.getvalue()
+
 
 class FakeUps:
     def status(self):
@@ -103,6 +127,9 @@ class FakeUps:
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.engine = FakeEngine()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.engine.model_dir = Path(tmp.name)
         ups = FakeUps()
         self.screen = gg_screen.Screen(self.engine.settings, ups=ups, run=lambda c, e: (True, "HDMI-A-2 x\n  Enabled: yes\n" if c == ["wlr-randr"] else ""),
                                        have=lambda n: "/x")
@@ -292,6 +319,76 @@ class ApiTests(unittest.TestCase):
         self.assertEqual((res["ok"], res["auto_shutdown_pct"]), (True, 50))
         self.assertEqual(self.call("/api/auto_shutdown", {"cancel": True})[0], 200)
 
+
+    def raw(self, path, body=b"", headers=None, length=True):
+        port = self.server.server_address[1]
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        conn.putrequest("POST", path)
+        for k, v in (headers or {"Content-Type": "application/zip"}).items():
+            conn.putheader(k, v)
+        if length is True:
+            conn.putheader("Content-Length", str(len(body)))
+        elif length is not None:
+            conn.putheader("Content-Length", str(length))
+        conn.endheaders()
+        if body:
+            conn.send(body)
+        r = conn.getresponse()
+        out = r.status, json.loads(r.read() or b"{}")
+        conn.close()
+        return out
+
+    def test_model_upload_raw_zip(self):
+        code, res = self.raw("/api/model/upload?version=12", model_zip("best_ncnn_model/"))
+        self.assertEqual((code, res["pending"]), (200, "garbageguard_v12_best_ncnn_model"))
+        self.assertTrue((self.engine.model_dir / res["pending"] / "model.ncnn.bin").is_file())
+        code, res = self.raw("/api/model/upload?version=v13", model_zip(),
+                             {"Content-Type": "application/octet-stream"})
+        self.assertEqual(code, 200)
+
+    def test_model_upload_size_limits(self):
+        code, res = self.raw("/api/model/upload?version=v12", length=gg_model.MAX_UPLOAD + 1)
+        self.assertEqual((code, res["error"]), (413, "too_large"))
+        code, res = self.raw("/api/model/upload?version=v12", length=None)
+        self.assertEqual(code, 413)
+        self.assertFalse((self.engine.model_dir / "garbageguard_v12_best_ncnn_model").exists())
+
+    def test_model_upload_refusals_still_reply(self):
+        data = model_zip()
+        self.assertEqual(self.raw("/api/model/upload?version=v12", data)[0], 200)
+        code, res = self.raw("/api/model/upload?version=v12", data)
+        self.assertEqual((code, res["error"]), (409, "exists"))
+        code, res = self.raw("/api/model/upload?version=a/b", data)
+        self.assertEqual((code, res["error"]), (400, "bad_version"))
+        code, res = self.raw("/api/model/upload?version=v14", b"not a zip at all")
+        self.assertEqual((code, res["error"]), (400, "bad_zip"))
+        code, res = self.raw("/api/model/upload?version=v14", data,
+                             {"Content-Type": "multipart/form-data; boundary=x"})
+        self.assertEqual(code, 415)
+
+    def test_dashboard_folder_zip_is_read_by_python(self):
+        """The dashboard packs a picked folder with its own zip writer; Python must read it."""
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is needed to run the dashboard's zip writer")
+        html = (Path(w.BASE_DIR) / "dashboard.html").read_text(encoding="utf-8")
+        start, end = html.index("// zip-writer-start"), html.index("// zip-writer-end")
+        script = html[start:end] + """
+const enc = new TextEncoder();
+const files = [{name: 'best_ncnn_model/model.ncnn.param', data: enc.encode('7767517 param')},
+               {name: 'best_ncnn_model/model.ncnn.bin', data: new Uint8Array(70000).map((_, i) => i % 251)},
+               {name: 'best_ncnn_model/metadata.yaml', data: enc.encode('names:\\n  0: bottle\\n')}];
+process.stdout.write(Buffer.from(storeZip(files)).toString('base64'));
+"""
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        import base64
+        data = base64.b64decode(out.stdout)
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            self.assertIsNone(z.testzip())
+            self.assertEqual(z.read("best_ncnn_model/model.ncnn.bin"), bytes(i % 251 for i in range(70000)))
+        code, res = self.raw("/api/model/upload?version=v15", data)
+        self.assertEqual(code, 200, res)
 
 if __name__ == "__main__":
     unittest.main()

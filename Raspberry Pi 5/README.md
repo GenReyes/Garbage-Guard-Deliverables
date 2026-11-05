@@ -23,15 +23,15 @@ built against the mock server, so none of the Python here has to run for it.
 | `test_net.py` | Unit tests for `gg_net.py`. No Pi or NetworkManager needed. |
 | `gg_snapcard.py` | Draws the info card under each saved snapshot (event, time, items vs limit, per-class counts), so the photo itself is never covered. |
 | `test_snapcard.py` | Unit tests for `gg_snapcard.py`. |
-| `test_web.py` | Unit tests for the connected-phone tracking in `gg_web.py`. |
+| `test_web.py` | Unit tests for the connected-phone tracking and the HTTP endpoints in `gg_web.py`, including the model upload limits. |
 | `gg_cloud.py` | Firebase sync. Copies state, history, compressed snapshots and a preview still to a Firebase Realtime Database, and runs commands phones leave there. Uses only the Python standard library plus OpenCV, so nothing new to install. |
 | `test_cloud.py` | Unit tests for `gg_cloud.py`, against a fake Firebase. No internet needed. |
 | `gg_buzzer.py` | The passive buzzer: a different sound for each event, the repeating alarm, quiet hours, and the three ways to drive the pin (software PWM, hardware PWM, and a fake one for tests). |
 | `test_buzzer.py` | Unit tests for `gg_buzzer.py`. |
 | `gg_view.py` | Which camera stream is read and which part of each frame the model sees: the main stream, cropped to the box around the ROI and detected at 960 px, with a fall back to the sub-stream if the main stream gives no picture. |
 | `test_view.py` | Unit tests for `gg_view.py`. |
-| `gg_model.py` | Which detection model runs. Lists the installed `garbageguard_*_ncnn_model` folders for the Model card, checks a chosen name against that list, and checks the classes are bottle, bag, food_container. |
-| `test_model.py` | Unit tests for `gg_model.py`, plus the engine switching models and keeping the old one when a new one fails. |
+| `gg_model.py` | Which detection model runs. Lists the installed `garbageguard_*_ncnn_model` folders, checks a chosen name against that list, checks the classes are bottle, bag, food_container, and unpacks an uploaded model .zip into a new folder. |
+| `test_model.py` | Unit tests for `gg_model.py` and model uploads (good and bad zips, zip-slip entries, version names), plus the engine switching models, remembering the previous one, and deleting an upload that fails to load. |
 | `gg_clean.py` | Clean copies: the camera picture alone, saved in `snapshots/clean/` next to each snapshot for labelling. Off, Manual or All. |
 | `test_clean.py` | Unit tests for `gg_clean.py`, plus the engine saving and deleting clean copies. |
 | `gg_clock.py` | Reports whether the Pi's clock is synchronised, so the dashboard can warn when the time may be wrong. |
@@ -109,7 +109,7 @@ else. Expected results:
 | `test_net.py` | 27 |
 | `test_window.py` | 5 |
 | `test_snapcard.py` | 5 |
-| `test_web.py` | 23 |
+| `test_web.py` | 30 (1 skipped without Node.js, which runs the dashboard's zip writer) |
 | `test_cloud.py` | 28 |
 | `test_usage.py` | 11 |
 | `test_clock.py` | 5 |
@@ -118,7 +118,7 @@ else. Expected results:
 | `test_touch.py` | 7 |
 | `test_power.py` | 26 |
 | `test_view.py` | 18 |
-| `test_model.py` | 20 (7 skipped without `ultralytics`) |
+| `test_model.py` | 39 (13 skipped without numpy and OpenCV) |
 | `test_clean.py` | 8 (3 skipped without OpenCV) |
 
 Each should end in `OK`. `test_snapcard.py`, `test_cloud.py` and
@@ -391,19 +391,36 @@ rather than a guess.
   `yolo export model=garbageguard_v8_best.pt format=ncnn imgsz=960`, or copy
   it over directly). It is the fallback, so keep it even when another model
   is in use. The field unit also holds `garbageguard_v9_best_ncnn_model/`.
+  New models are uploaded from the Model card (see "Adding a new model").
   `--model <folder>` picks a model for one run
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.
 
-## Adding a new model (for example v9)
+## Adding a new model (for example v10)
 
-1. Export it to NCNN on the training PC or the Pi (`yolo export model=garbageguard_v9_best.pt format=ncnn imgsz=960`).
-2. Copy the folder into `~/gg/` with the name `garbageguard_v9_best_ncnn_model`.
-   It must hold the `.param` and `.bin` files, plus `metadata.yaml` with the
-   classes bottle, bag, food_container in that order.
-3. Open Settings → Model on the dashboard. v9 appears within a few seconds.
-   Pick it and press Save. The live view pauses for a few seconds while it loads.
-4. If it cannot load, or its classes are wrong, the Pi keeps the old model and
-   the card says why. `--model <folder>` on the command line still overrides
-   the saved choice for one run.
+1. Export it to NCNN on the training PC (`yolo export model=best.pt format=ncnn imgsz=960`).
+   This writes a folder such as `best_ncnn_model` with a `.param` file, a
+   `.bin` file and `metadata.yaml`, which must list the classes bottle, bag,
+   food_container in that order.
+2. Send it to the Pi in one of two ways:
+   - From a phone or a PC on the same Wi-Fi: zip that folder, open Settings,
+     Model, type the version name (for example `v10`), press "Choose .zip"
+     (in the app, "Choose model .zip") and then Upload.
+   - On the Pi's own screen: copy the folder over on a USB stick or into
+     Downloads, open Settings, Model, type the version name, press
+     "Choose folder", pick the folder and press Upload. The dashboard packs
+     the three files into a zip itself.
+3. The card shows the upload percentage, then "Loading v10..." while the Pi
+   test-runs it. The live view pauses for a few seconds.
+4. If it cannot load, or its classes are wrong, the Pi keeps the old model,
+   deletes the uploaded folder and the card says why. After a successful
+   switch, "Go back to v8" returns to the previous model; old folders are
+   never deleted.
+
+Uploads are limited to 64 MB, work only on the same network (there is no
+Firebase upload) and are described in `../Mobile App/GarbageGuard_API.md`
+under `POST /api/model/upload`. Copying a folder named
+`garbageguard_<version>_best_ncnn_model` into `~/gg/` by hand still works;
+it appears in `models` within a few seconds, and `--model <folder>` on the
+command line still overrides the saved choice for one run.

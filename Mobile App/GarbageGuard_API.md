@@ -781,6 +781,87 @@ The new model is loaded and test-run before it replaces the old one, and
 detection pauses for a few seconds meanwhile. If it fails to load, or its
 classes are not bottle, bag, food_container, the old one keeps running and
 `model_note` says why. State fields: `model`, `model_label` (for example
-`v8`), `model_wanted`, `model_loading`, `models` and `model_note`. There is
-no Firebase command for this; `models`, `model` and `model_note` are synced
-so a phone away from the Pi can show them.
+`v8`), `model_wanted`, `model_loading`, `models`, `model_note`,
+`model_prev` and `model_prev_label`. There is no Firebase command for this;
+the state fields are synced so a phone away from the Pi can show them.
+
+`model_prev` is the folder that was running before the last successful
+switch, saved in `gg_settings.json`, and `model_prev_label` its version.
+Both are `null` when that folder is no longer installed or is the one
+running now. The dashboard and the app use it for the "Go back to v8"
+button, which sends `{"model": model_prev}` to this endpoint. Old model
+folders stay on the Pi; switching never deletes one.
+
+### `POST /api/model/upload?version=<name>`
+
+Installs a new model and switches to it. This is the main way to change the
+model; `POST /api/model` above is kept for going back to one already on the
+Pi. The request body is the raw .zip file, not a form and not JSON, sent
+with `Content-Type: application/zip` or `application/octet-stream` and a
+`Content-Length`. The endpoint is open to any client on the same network,
+like `/api/model`, so a phone on the Pi's Wi-Fi can use it.
+
+How to make the zip. On the training PC, export the trained weights with
+`yolo export model=best.pt format=ncnn imgsz=960`. That writes a folder
+named `best_ncnn_model` (the name follows the .pt file). Zip that folder as
+it is. The Pi accepts the files at the root of the zip or inside one folder,
+and keeps only three of them: the single `.param` file, the single `.bin`
+file and `metadata.yaml`, which holds the class names. Anything else in the
+folder, such as `model_ncnn.py`, is ignored and never kept.
+
+Two ways to send it:
+
+- From a phone or a browser on the same Wi-Fi, choose the .zip in the Model
+  card (Android app: "Choose model .zip"; dashboard: "Choose .zip").
+- On the Pi's own screen, a model copied over on a USB stick or already in
+  Downloads can be picked as a folder with "Choose folder". The dashboard
+  takes the `.param`, `.bin` and `metadata.yaml` from that folder, packs
+  them into an uncompressed zip in the browser and sends it through this
+  same endpoint, so no zip tool is needed on the Pi.
+
+`version` is the name the new model goes by, for example `v10`. Spaces
+around it are dropped, it may use letters, digits, dot, dash and underscore
+up to 24 characters, and a name starting with a digit gets a `v` in front
+(`10` becomes `v10`). The folder is saved as
+`garbageguard_<version>_best_ncnn_model`.
+
+Limits: at most 64 MB sent, and at most 200 MB once unpacked. The zip is
+written to a work folder under `.model_upload/` next to the program while
+it arrives, a chunk at a time, and that folder is emptied after each upload
+and again at every start.
+
+Reply when the files are in place:
+`{"ok": true, "model": "garbageguard_v8_best_ncnn_model", "pending": "garbageguard_v10_best_ncnn_model", "installed": "garbageguard_v10_best_ncnn_model", "label": "v10"}`.
+From then on it behaves like `POST /api/model`: `model_loading` is true
+while the Pi loads and test-runs the new model, then `model` changes. If the
+load fails or the classes are wrong, the old model keeps running, the new
+folder is deleted so a broken upload does not stay in the list, and
+`model_note` reads, for example, "Could not load v10, still using v8:
+(reason). The uploaded v10 was removed."
+
+Refusals carry `{"ok": false, "error": <code>, "message": <text for people>}`:
+
+| HTTP | `error` | When |
+|---|---|---|
+| 400 | `bad_version` | The version name breaks the rules above. |
+| 409 | `exists` | A model with that version is already on the Pi. Pick another name. |
+| 409 | `busy` | Another upload is still being received. |
+| 413 | `too_large` | No `Content-Length`, more than 64 MB sent, or more than 200 MB unpacked. |
+| 415 | `bad_type` | The body was sent as a form or as JSON instead of the raw zip. |
+| 400 | `bad_zip` | The file is not a readable zip, or a file inside it is damaged. |
+| 400 | `not_a_model` | No `.param` and `.bin`, or more than one of either. |
+| 400 | `no_metadata` | `metadata.yaml` is missing. |
+| 400 | `not_one_model` | Model files sit in more than one folder of the zip. |
+| 400 | `cut_short` | The connection ended before the whole file arrived. |
+| 500 | `disk` | The Pi could not write the files, for example a full SD card. |
+
+There is no Firebase upload. A model is tens of megabytes, too much for the
+free Firebase plan, so uploading needs the phone or browser on the same
+network as the Pi. A phone that reaches the Pi only through Firebase still
+sees the running model and the note, but its upload button is off.
+
+Example with curl from a PC on the same Wi-Fi:
+
+```
+curl -X POST -H "Content-Type: application/zip" --data-binary @best_ncnn_model.zip "http://<pi-ip>:8080/api/model/upload?version=v10"
+```

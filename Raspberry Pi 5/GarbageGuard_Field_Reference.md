@@ -155,6 +155,17 @@ limitation, not a defect.
 
 Press **Save** after changing either. They persist across restarts.
 
+**Changing the model.** Settings, Model shows the version running now in
+large type. To install a new one, type its version name (for example v10),
+then either press **Choose .zip** for a zipped `*_ncnn_model` export folder
+(from a phone or laptop on the same Wi-Fi), or **Choose folder** on the Pi's
+own screen for an unzipped folder copied over by USB stick. Press
+**Upload**. The card shows the percentage, then "Loading" while the Pi
+test-runs the model; detection pauses for a few seconds. A model that fails
+to load is removed again and the old one keeps running, with the reason in
+red. **Go back to v8** (or whichever ran before) undoes a switch. Uploads
+need the same network as the Pi; they do not work through Firebase.
+
 **Test alert** writes a test row to the log without waiting for a real
 accumulation. Useful for demonstrating the alert path to the panel.
 

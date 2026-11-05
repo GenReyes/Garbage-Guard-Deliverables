@@ -1,5 +1,7 @@
+import io
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 import gg_model
@@ -111,6 +113,138 @@ class Classes(unittest.TestCase):
         self.assertIn("instead of", gg_model.class_problem({0: "person", 1: "car"}))
         self.assertIsNotNone(gg_model.class_problem(None))
 
+
+
+META = b"names:\n  0: bottle\n  1: bag\n  2: food_container\n"
+
+
+def zipped(entries):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for name, data in entries.items():
+            z.writestr(name, data)
+    return buf.getvalue()
+
+
+def export(prefix=""):
+    return {prefix + "model.ncnn.param": b"p", prefix + "model.ncnn.bin": b"b" * 10,
+            prefix + "metadata.yaml": META, prefix + "model_ncnn.py": b"print(1)"}
+
+
+class Upload(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def send(self, entries_or_bytes, version="v12", **kw):
+        data = entries_or_bytes if isinstance(entries_or_bytes, bytes) else zipped(entries_or_bytes)
+        return gg_model.install(io.BytesIO(data), kw.pop("length", len(data)), version, self.base, **kw)
+
+    def refused(self, code, *a, **kw):
+        with self.assertRaises(gg_model.UploadError) as cm:
+            self.send(*a, **kw)
+        self.assertEqual(cm.exception.code, code, cm.exception.message)
+        work = self.base / gg_model.UPLOAD_DIR
+        self.assertEqual(list(work.iterdir()) if work.exists() else [], [])
+        return cm.exception
+
+    def test_files_at_zip_root(self):
+        name = self.send(export())
+        self.assertEqual(name, "garbageguard_v12_best_ncnn_model")
+        kept = sorted(p.name for p in (self.base / name).iterdir())
+        self.assertEqual(kept, ["metadata.yaml", "model.ncnn.bin", "model.ncnn.param"])
+        self.assertEqual((self.base / name / "metadata.yaml").read_bytes(), META)
+        self.assertEqual(gg_model.names(self.base), [name])
+        self.assertEqual(list((self.base / gg_model.UPLOAD_DIR).iterdir()), [])
+
+    def test_zipped_export_folder_and_other_file_names(self):
+        entries = {"best_ncnn_model/": b"", "best_ncnn_model/best.ncnn.param": b"p",
+                   "best_ncnn_model/best.ncnn.bin": b"b", "best_ncnn_model/metadata.yaml": META,
+                   "best_ncnn_model/model_ncnn.py": b"x", "__MACOSX/best_ncnn_model/._best.ncnn.bin": b"junk"}
+        name = self.send(entries, version="12b")
+        self.assertEqual(name, "garbageguard_v12b_best_ncnn_model")
+        self.assertEqual(sorted(p.name for p in (self.base / name).iterdir()),
+                         ["metadata.yaml", "model.ncnn.bin", "model.ncnn.param"])
+
+    def test_missing_metadata(self):
+        entries = export()
+        del entries["metadata.yaml"]
+        self.assertIn("metadata.yaml", self.refused("no_metadata", entries).message)
+        self.assertFalse((self.base / "garbageguard_v12_best_ncnn_model").exists())
+
+    def test_two_bin_files(self):
+        entries = export()
+        entries["other.bin"] = b"b"
+        self.assertIn("exactly one .bin", self.refused("not_a_model", entries).message)
+
+    def test_files_in_two_folders(self):
+        entries = export("a/")
+        entries["b/metadata.yaml"] = META
+        self.refused("not_one_model", entries)
+
+    def test_zip_slip_entries_are_skipped(self):
+        entries = export()
+        entries["../evil.param"] = b"evil"
+        entries["/abs/evil.bin"] = b"evil"
+        entries["x/../../evil.yaml"] = b"evil"
+        name = self.send(entries)
+        self.assertEqual(sorted(p.name for p in (self.base / name).iterdir()),
+                         ["metadata.yaml", "model.ncnn.bin", "model.ncnn.param"])
+        self.assertFalse((self.base.parent / "evil.param").exists())
+        self.refused("not_a_model", {"../model.ncnn.param": b"p", "../model.ncnn.bin": b"b",
+                                     "metadata.yaml": META}, version="v13")
+
+    def test_unpacked_size_cap(self):
+        entries = export()
+        entries["model.ncnn.bin"] = b"b" * 5000
+        self.refused("too_large", entries, max_bytes=1000)
+
+    def test_not_a_zip_and_cut_short(self):
+        self.refused("bad_zip", b"this is not a zip")
+        data = zipped(export())
+        self.refused("cut_short", data, length=len(data) + 100)
+
+    def test_damaged_file_inside_the_zip(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
+            for name, data in export().items():
+                z.writestr(name, data)
+        data = bytearray(buf.getvalue())
+        at = data.index(b"b" * 10)
+        data[at] = ord("X")
+        self.refused("bad_zip", bytes(data))
+
+    def test_version_names(self):
+        for raw, want in ((" v12 ", "v12"), ("12", "v12"), ("2025.11-a_b", "v2025.11-a_b"), ("best", "best")):
+            self.assertEqual(gg_model.version_name(raw), want)
+        for bad in ("", "  ", "v 12", "a/b", "..", ".", "x" * 25, "v12?", None):
+            with self.assertRaises(gg_model.UploadError, msg=repr(bad)):
+                gg_model.version_name(bad)
+        self.refused("bad_version", export(), version="../v12")
+
+    def test_duplicate_version_is_refused(self):
+        make(self.base, "garbageguard_v12_best_ncnn_model")
+        e = self.refused("exists", export(), version="12")
+        self.assertEqual(e.status, 409)
+        self.assertEqual(sorted(p.name for p in (self.base / "garbageguard_v12_best_ncnn_model").iterdir()),
+                         ["model.bin", "model.param"])
+
+    def test_stale_work_folders_are_cleaned(self):
+        (self.base / gg_model.UPLOAD_DIR / "abc").mkdir(parents=True)
+        gg_model.clean_uploads(self.base)
+        self.assertFalse((self.base / gg_model.UPLOAD_DIR).exists())
+
+    def test_remove_only_touches_model_folders(self):
+        keep = self.base / "notes"
+        keep.mkdir()
+        self.assertFalse(gg_model.remove("notes", self.base))
+        self.assertFalse(gg_model.remove("../garbageguard_v1_best_ncnn_model", self.base))
+        self.assertTrue(keep.exists())
+        make(self.base, "garbageguard_v9_best_ncnn_model")
+        self.assertTrue(gg_model.remove("garbageguard_v9_best_ncnn_model", self.base))
 
 
 class FakeYOLO:
@@ -227,6 +361,72 @@ class EngineSwitch(unittest.TestCase):
         m = self.e._swap_model(self.model)
         self.assertIs(m, self.model)
         self.assertIn("instead of bottle, bag, food_container", self.e.model_note)
+
+    def upload(self, version, entries=None):
+        data = zipped(entries or export())
+        return self.e.upload_model(version, io.BytesIO(data), len(data))
+
+    def test_upload_switches_and_remembers_the_previous_model(self):
+        code, res = self.upload("v12")
+        self.assertEqual((code, res["ok"], res["pending"]), (200, True, "garbageguard_v12_best_ncnn_model"))
+        st = self.e.snapshot_state()
+        self.assertTrue(st["model_loading"])
+        self.assertIsNone(st["model_prev"])
+        m = self.e._swap_model(self.model)
+        self.assertEqual(m.path, "garbageguard_v12_best_ncnn_model")
+        st = self.e.snapshot_state()
+        self.assertEqual((st["model_label"], st["model_prev"], st["model_prev_label"]),
+                         ("v12", self.DEF, "v8"))
+        self.assertEqual(self.g.load_settings()["model_prev"], self.DEF)
+        self.e.set_model(st["model_prev"])
+        self.e._swap_model(m)
+        st = self.e.snapshot_state()
+        self.assertEqual((st["model"], st["model_prev_label"]), (self.DEF, "v12"))
+        self.assertTrue((self.dir / "garbageguard_v12_best_ncnn_model").is_dir())
+
+    def test_failed_swap_of_an_upload_deletes_it(self):
+        code, res = self.upload("v12broken")
+        self.assertEqual(code, 200)
+        m = self.e._swap_model(self.model)
+        self.assertIs(m, self.model)
+        self.assertFalse((self.dir / "garbageguard_v12broken_best_ncnn_model").exists())
+        st = self.e.snapshot_state()
+        self.assertIn("Could not load v12broken, still using v8", st["model_note"])
+        self.assertIn("The uploaded v12broken was removed.", st["model_note"])
+        self.assertNotIn("garbageguard_v12broken_best_ncnn_model", [x["name"] for x in st["models"]])
+        self.assertEqual(self.saved(), self.DEF)
+
+    def test_upload_with_wrong_classes_is_deleted_too(self):
+        self.upload("v12wrong")
+        self.e._swap_model(self.model)
+        self.assertFalse((self.dir / "garbageguard_v12wrong_best_ncnn_model").exists())
+        self.assertIn("instead of bottle, bag, food_container", self.e.model_note)
+
+    def test_broken_model_already_on_disk_is_kept(self):
+        broken = "garbageguard_v10broken_best_ncnn_model"
+        make(self.dir, broken)
+        self.e._models = ([], 0.0)
+        self.e.set_model(broken)
+        self.e._swap_model(self.model)
+        self.assertTrue((self.dir / broken).is_dir())
+
+    def test_refused_upload_changes_nothing(self):
+        code, res = self.upload("v9")
+        self.assertEqual((code, res["error"]), (409, "exists"))
+        code, res = self.upload("bad name")
+        self.assertEqual((code, res["error"]), (400, "bad_version"))
+        self.assertFalse(self.e.model_flag.is_set())
+        self.assertEqual(self.saved(), self.DEF)
+
+    def test_previous_model_hidden_when_gone(self):
+        self.e.set_model(self.OTHER)
+        self.e._swap_model(self.model)
+        self.assertEqual(self.e.snapshot_state()["model_prev"], self.DEF)
+        for f in (self.dir / self.DEF).iterdir():
+            f.unlink()
+        self.e._models = ([], 0.0)
+        st = self.e.snapshot_state()
+        self.assertEqual((st["model_prev"], st["model_prev_label"]), (None, None))
 
     def test_saved_model_that_fails_at_start_falls_back_to_v8(self):
         bad = "garbageguard_v10broken_best_ncnn_model"
