@@ -1830,7 +1830,7 @@ body .fbar.quick button{padding:0 9px}
         <div class="mdlbar" id="mdlBar" hidden><i></i></div>
         <p class="hint" id="mdlState" hidden><svg class="ico"><use href="#i-up"/></svg><span></span></p>
         <button class="btn sm teal" id="mdlUp" type="button" disabled><svg class="ico a-pop"><use href="#i-up"/></svg>Upload</button>
-        <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>Export with yolo export format=ncnn. v8 and v9 were trained at 960 px.</p>
+        <p class="hint gen"><svg class="ico"><use href="#i-target"/></svg>Export with yolo export model=best.pt format=ncnn imgsz=960. v8 and v9 were trained at 960 px.</p>
       </section>
       <section class="card card-pow c-qt wait" id="quietCard">
         <div class="hd"><svg class="ico"><use href="#i-clock"/></svg><h2>Quiet hours</h2></div>
@@ -2196,7 +2196,6 @@ $("clear").onclick = async () => {
 };
 $("apply").onclick = async () => {
   if(!editing) return toast("Use Draw first.","i-warn");
-  if(!draft.length) return $("clear").click();
   if(draft.length < 3) return toast("Place at least 3 points.","i-warn");
   await post("/api/roi", {points:draft});
   setEditing(false); toast("Area applied","i-check"); refresh();

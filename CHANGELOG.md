@@ -7,6 +7,18 @@ in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
 
 ## App version 15: upload a new model (2026-11-05)
 
+### Fixes after testing (2026-11-05)
+
+- The Model card note on the dashboard and in the app gives the full export
+  command, `yolo export model=best.pt format=ncnn imgsz=960`. The app text
+  changes in the next APK build.
+- Apply with no points placed no longer removes the saved monitored area; it
+  asks for at least 3 points again. Clear, pressed twice in fullscreen, is
+  the way to remove the area.
+- `gg_settings.json` is written to a temporary file and then swapped in, so
+  a power cut during a save cannot leave it half written and reset the
+  settings, the monitored area included.
+
 ### Pi
 
 - A new model no longer has to be copied into `~/gg/` by hand. The Model card
