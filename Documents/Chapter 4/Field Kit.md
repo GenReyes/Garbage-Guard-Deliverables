@@ -4,7 +4,7 @@ Print this, bring it to the creek, and fill it in by hand. Everything here feeds
 
 ## Before each field day
 
-- [ ] Charger, extension lead and Wi-Fi repeater packed
+- [ ] Charger, extension lead and USB Wi-Fi adapter packed
 - [ ] Camera clock set (camera settings, System, Time Settings, Sync with computer time)
 - [ ] Settings checked and written down: model ____, detection size ____, stream ____, threshold ____
 - [ ] Monitored area drawn tightly around the water, floating barrier and banks outside it
@@ -23,7 +23,7 @@ Do not use Delete in the History tab during the field week.
 
 ---
 
-## Sheet 1: Uptime Log (Table 14)
+## Sheet 1: Uptime Log (Table 16)
 
 | Date | Start time | Stop time | Hours | Model / size | Threshold | Weather and light | Crash, freeze or overheating? What happened? |
 |---|---|---|---|---|---|---|---|
@@ -35,7 +35,7 @@ Do not use Delete in the History tab during the field week.
 | | | | | | | | |
 | | | | | | | | |
 
-## Sheet 2: Threshold Calibration Record (Table 15)
+## Sheet 2: Threshold Calibration Record (Table 17)
 
 Count the items inside the monitored area by eye, then read the count on the dashboard at the same moment.
 
@@ -50,7 +50,7 @@ Count the items inside the monitored area by eye, then read the count on the das
 | | | | | | |
 | | | | | | |
 
-## Sheet 3: Test Case Trials (Tables 12, 13 and 16)
+## Sheet 3: Test Case Trials (Tables 14, 15 and 19)
 
 Do each test 10 times. Tick a box for a pass, cross it for a fail, and write what happened on a fail.
 
@@ -72,7 +72,7 @@ Do each test 10 times. Tick a box for a pass, cross it for a fail, and write wha
 | TC_ACC_02 | Count alerts raised against threshold crossings you saw | The target is 80% | Raised ____ / Crossings ____ | ____% | |
 | TC_ACC_03 | Read the latency records afterwards (done on the PC) | Average under 1.5 s, no crash | – | – | |
 
-## Sheet 4: Usability Survey (Table 17)
+## Sheet 4: Usability Survey (Table 20)
 
 For barangay personnel, after they have used the touchscreen and the phone app. One sheet per person.
 
