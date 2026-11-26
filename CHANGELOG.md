@@ -5,6 +5,15 @@ in `Mobile App/`; Pi entries refer to the detector, dashboard and Firebase sync
 in `Raspberry Pi 5/`. Older entries keep the folder names `mobile-app/` and
 `pi/` that were in use at the time. Entries before version 7 are summarised from the commit history.
 
+## Final state for the thesis (2026-11-26)
+
+No code changes after App version 15. Model v10 was added to the field
+unit and is the model reported in the manuscript
+(precision 0.846, recall 0.672, mAP@0.5 0.744 on the frozen test set). The
+field unit's internet now comes from a USB Wi-Fi adapter in place of the
+Wi-Fi repeater and USB-to-Ethernet adapter. The README files were updated to
+match the final manuscript, v87.
+
 ## App version 15: upload a new model (2026-11-05)
 
 ### Fixes after testing (2026-11-05)

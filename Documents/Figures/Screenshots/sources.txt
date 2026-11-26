@@ -1,0 +1,7 @@
+Images taken from the manuscript (Garbage-Guard v87.docx), where each appears with the caption below.
+
+filename | caption in the manuscript
+Dashboard_Accumulation_Alert.jpg | Dashboard During an Accumulation Alert (TC_SYS_02, TC_SYS_09)
+Dashboard_At_The_Creek.jpg | The Touchscreen Dashboard During the Field Session at the Creek
+App_Monitor_Alert.jpg | Monitor Tab of the Android Application During the Alert
+Deployment_Day_3.jpg | Third Day of Deployment Test (Appendix E)

@@ -1,4 +1,4 @@
-# Garbage-Guard — Field Reference
+# Garbage-Guard Field Reference
 
 Everything needed to run the system at the creek. Print this or keep it on your phone.
 
@@ -21,13 +21,17 @@ Everything needed to run the system at the creek. Print this or keep it on your 
 
 ## 1. Physical setup
 
-Everything except the camera and the Wi-Fi repeater sits inside the
-enclosure. Three cables leave it: the AC mains extension, the Ethernet cable
-to the Wi-Fi repeater, and the 2-in-1 Ethernet and power cable to the camera.
+Everything except the camera and the USB Wi-Fi adapter sits inside the
+enclosure. Three cables leave it through the right-side wall: the USB 3.0
+extension cable to the Wi-Fi adapter, the AC mains extension, and the 2-in-1
+Ethernet and power cable to the camera. The enclosure lost its weather rating
+when it was cut for the screen, fans and cables, so stand it under cover with
+only the camera outside.
 
 1. Plug the AC extension into mains. The official Raspberry Pi 27 W adapter
    inside the enclosure charges the Waveshare UPS HAT (E) through its
-   Type-C port, and the HAT powers the Pi.
+   Type-C port, and the HAT powers the Pi. The two case fans run from the
+   power extension's USB ports, so they stop when mains power fails.
 2. The camera takes its 12 V from the HAT's USB-A output: a small USB hub
    inside the case, then the 5 V to 12 V USB to DC barrel step-up cable, then
    the power half of the 2-in-1 cable. The hub is there only because the
@@ -36,10 +40,17 @@ to the Wi-Fi repeater, and the 2-in-1 Ethernet and power cable to the camera.
    power drops.
 3. The Ethernet half of the 2-in-1 cable goes straight to the Pi's Ethernet
    port and carries the RTSP video only. There is no PoE.
-4. Internet, for Firebase, comes from a USB-to-Ethernet adapter cabled to the
-   Wi-Fi repeater outside. The Pi's built-in Wi-Fi could not join a network
-   during testing.
-5. Switch the UPS HAT on and wait 60 seconds for the camera to boot before
+4. Internet, for Firebase, comes from the USB Wi-Fi adapter (Erlvsoiis
+   WF-ER1800M) on top of the enclosure, plugged into the Vention USB 3.0
+   extension cable. Join the site's Wi-Fi or a phone hotspot from the Pi's
+   Wi-Fi setup screen. The Pi's built-in Wi-Fi could not join a network
+   during testing, and the metal walls weaken any radio inside the box. An
+   earlier setup used a Wi-Fi repeater cabled through a USB-to-Ethernet
+   adapter.
+5. Mount the camera above the water, as low and as close to it as the site
+   allows. Live classification rose from 62.5% with the camera at about
+   13 ft to 85.0% at about 7 ft.
+6. Switch the UPS HAT on and wait 60 seconds for the camera to boot before
    expecting a picture.
 
 ---
@@ -128,8 +139,11 @@ it entirely, which means the whole frame is active again.
 
 ## 5. Threshold calibration (the field testing procedure)
 
-The v7 model's recall at the creek is about 0.53, so it detects roughly half of the items
-actually present. A displayed count of 20 does **not** mean 20 items are there.
+The model misses part of what is on the water, so a displayed count of 20
+does **not** mean 20 items are there. At the creek on November 6, with the
+camera about 13 ft above the water, the dashboard counted 21% to 31% of the
+items counted by eye. After the camera was lowered it counted 40% to 54%.
+The threshold ended at 20 after trying 15 and 25.
 
 Procedure, repeated across several sessions:
 
@@ -140,9 +154,8 @@ Procedure, repeated across several sessions:
 5. Set the **Accumulation Limit** so the alert fires at the real-world count
    you want, not the detected count.
 
-Record these in a table. This is the evidence for the thesis, and the
-undercount was declared in advance in the progress report as a known
-limitation, not a defect.
+Record these in a table (Table 17 of the manuscript is the record from the
+deployment). The undercount is a known limitation, not a defect.
 
 ---
 
@@ -156,14 +169,14 @@ limitation, not a defect.
 Press **Save** after changing either. They persist across restarts.
 
 **Changing the model.** Settings, Model shows the version running now in
-large type. To install a new one, type its version name (for example v10),
+large type. To install a new one, type its version name (for example v11),
 then either press **Choose .zip** for a zipped `*_ncnn_model` export folder
 (from a phone or laptop on the same Wi-Fi), or **Choose folder** on the Pi's
 own screen for an unzipped folder copied over by USB stick. Press
 **Upload**. The card shows the percentage, then "Loading" while the Pi
 test-runs the model; detection pauses for a few seconds. A model that fails
 to load is removed again and the old one keeps running, with the reason in
-red. **Go back to v8** (or whichever ran before) undoes a switch. Uploads
+red. **Go back to v10** (or whichever ran before) undoes a switch. Uploads
 need the same network as the Pi; they do not work through Firebase.
 
 **Test alert** writes a test row to the log without waiting for a real
@@ -291,13 +304,18 @@ Use `Ctrl+Shift+R` if the page loads blank.
 
 ## 10. Known limitations to state, not hide
 
-These were declared in advance in the progress report:
+These are the limits reported in Chapter V of the manuscript:
 
-- **Undercounting.** v7's recall is 0.685 on the full test set and 0.534 on
-  creek images, so the live count reads low. Handled by threshold
-  calibration, above.
+- **Undercounting.** v10's recall is 0.672 on the frozen test set against a
+  precision of 0.846, so the live count reads low and an alert tends to come
+  late rather than early. Handled by threshold calibration, above.
 - **`bag` is the weakest class.** Floating bags are rarely detected at the
-  creek (mAP50 0.179). See `models/README.md`.
+  creek (recall 0.152 on 46 creek boxes), so piles made mostly of plastic
+  bags are undercounted.
+- **Daylight only.** The camera covers one stretch of creek and does not
+  work at night.
+- **Count, not area.** The count says how many items there are, not how
+  much of the water they cover.
 - **Static false positives** persist across every frame with a stable track
   ID, so smoothing cannot remove them. Only the ROI does.
 - **Phones need a network.** The touchscreen works with no network at all.

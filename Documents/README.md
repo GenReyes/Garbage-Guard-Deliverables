@@ -1,36 +1,58 @@
 # Documents
 
-The home for every thesis document of the Garbage-Guard capstone. Anything
-written for the paper or the defense belongs here.
+Every thesis document of the Garbage-Guard capstone: the manuscript, the
+defense deck, the patent draft, the figures and the cited sources.
 
 ## The manuscript
 
-The manuscript is kept as numbered Word files, `Garbage-Guard v<n>.docx`.
-The highest number is the current version. Older versions stay in the
-repository's history. After opening one, right-click the table of contents
-and the lists of figures and tables and choose **Update Field**.
+The manuscript is kept as numbered Word files with a PDF beside each,
+`Garbage-Guard v<n>.docx` and `.pdf`. The highest number is the final
+version, **v87**. Earlier versions stay in the repository's history.
 
-The earlier shared Google Doc is still reachable through
-`Thesis Manuscript (Google Doc).url`, and the group's Drive folder through
-`THESIS FILES.url`.
+After opening the .docx, right-click the table of contents and the lists of
+figures and tables and choose **Update Field**.
 
 ## What is in this folder
 
 | Item | What it is |
 |---|---|
-| `Garbage-Guard v20.docx` and later | The manuscript, one file per version. The highest number is the newest |
-| [`Chapter 4/`](Chapter%204/) | Field week material for Chapter IV: the working draft, the printable Field Kit, and the photographs and model plots used as figures |
-| [`Figures/`](Figures/) | The diagrams in the manuscript (block diagram, architecture, flowchart, V-Model, enclosure drawing, training pipeline, Gantt chart, conceptual framework), each as an HTML source and a PNG, plus component photos (`Components/`), software logos (`Logos/`) and images taken from cited studies (`Sources/`), each folder with its credits in `sources.txt` |
-| [`References/`](References/) | A copy of every cited source, named `(Author, Year)`. `index.md` lists them |
-| `v21 build/` | The script and figure generators used to build v21, and the Chapter V draft |
-| `CIT Capstone Study Guidelines Official Template.pdf` | The college's official format and guidelines for the paper |
-| `HelmetGuard OCR Text.pdf`, `PICTRETION CH 1-3 SAMPLE.pdf` | Sample capstone papers from the department, used as a model for structure |
-| `Thesis Manuscript (Google Doc).url`, `THESIS FILES.url` | Shortcuts to the shared Google Doc and the Drive folder |
+| `Garbage-Guard v87.docx`, `Garbage-Guard v87.pdf` | The final manuscript, Chapters I to V with Appendices A to J |
+| `Garbage-Guard Final Defense v6.html`, `.pdf` | The final defense slide deck |
+| `Garbage-Guard Patent Draft v4.pdf` | The patent draft |
+| [`Figures/`](Figures/) | The diagrams in the manuscript, each as an HTML source and a PNG, plus the folders below |
+| [`Figures/Components/`](Figures/Components/) | Photos of the parts and of the finished prototype |
+| [`Figures/Screenshots/`](Figures/Screenshots/) | Dashboard, app and deployment images taken from the manuscript for the home README |
+| [`Figures/Logos/`](Figures/Logos/) | Software and school logos |
+| [`Figures/Sources/`](Figures/Sources/) | Images taken from cited studies |
+| [`References/`](References/) | A copy of every cited source, named `(Author, Year)`. [`index.md`](References/index.md) lists them |
+| `THESIS FILES.url` | Shortcut to the group's shared Drive folder |
+
+Each image folder has its credits in `sources.txt`.
+
+## The diagrams
+
+| Diagram | File |
+|---|---|
+| Conceptual framework | `GarbageGuard_Conceptual_Framework` |
+| Block diagram | `GarbageGuard_Block_Diagram` |
+| System architecture | `GarbageGuard_System_Architecture` |
+| System flowchart | `GarbageGuard_System_Flowchart` |
+| Enclosure drawing | `GarbageGuard_Enclosure_Drawing` |
+| Model training and deployment pipeline | `GarbageGuard_Training_Pipeline` |
+| V-Model | `GarbageGuard_V_Model` |
+| Gantt chart (Appendix A) | `GarbageGuard_Gantt_Chart` |
+
+Edit the `.html` file, open it in a browser, and take a fresh PNG of it to
+update a figure.
+
+![Block diagram of Garbage-Guard](Figures/GarbageGuard_Block_Diagram.png)
+
+![System flowchart](Figures/GarbageGuard_System_Flowchart.png)
 
 ## Technical documents kept beside the code
 
 These describe the system itself, so they stay next to the code they
-explain. They are listed here because the paper draws on them.
+explain. The paper draws on them.
 
 | Document | Covers |
 |---|---|
@@ -39,5 +61,4 @@ explain. They are listed here because the paper draws on them.
 | [`Mobile App/GarbageGuard_API.md`](../Mobile%20App/GarbageGuard_API.md) | Every API endpoint the dashboard and the app use |
 | [`Mobile App/FIREBASE.md`](../Mobile%20App/FIREBASE.md) | How the app reaches the Pi through Firebase |
 | [`Mobile App/README.md`](../Mobile%20App/README.md) | Building and installing the Android app |
-| [`models/README.md`](../models/README.md) | The trained model and its test results |
 | [`CHANGELOG.md`](../CHANGELOG.md) | What changed in each version |

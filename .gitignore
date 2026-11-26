@@ -24,7 +24,7 @@ garbageguard_*_ncnn_model/
 # Work folders for model uploads in progress
 .model_upload/
 *.pt
-!models/garbageguard_v7_best.pt
+
 
 # Screenshots and test artifacts taken while developing
 /tmp/

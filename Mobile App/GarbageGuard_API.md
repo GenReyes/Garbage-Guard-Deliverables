@@ -1,4 +1,4 @@
-# Garbage-Guard API — for the mobile app
+# Garbage-Guard API for the mobile app
 
 Everything the mobile app needs to talk to the Raspberry Pi. App developer: Brian.
 
@@ -41,7 +41,7 @@ When the real Pi is available, change one base URL and nothing else.
 | Real Pi | `http://192.168.1.101:8080` |
 
 The Pi and the phone must be on the same network. A router with **client
-isolation** enabled will block this even when both devices are connected —
+isolation** enabled will block this even when both devices are connected;
 that has already bitten this project once.
 
 ---
@@ -498,7 +498,7 @@ Returns:
 { "ok": true, "deleted": 3, "files_removed": 2 }
 ```
 
-`deleted` counts rows, `files_removed` counts images actually unlinked — the
+`deleted` counts rows, `files_removed` counts images actually unlinked; the
 two differ when some rows had no snapshot.
 
 An empty body deletes nothing and returns zeros, so a mistaken call is safe.
@@ -681,7 +681,7 @@ Class colours match the boxes drawn on the video:
 
 `dashboard.html` is the working touchscreen UI and calls every endpoint above.
 If any behaviour here is unclear, its JavaScript shows exactly how it is used.
-It is plain HTML with no build step — open it in an editor and read the script
+It is plain HTML with no build step. Open it in an editor and read the script
 at the bottom.
 
 ---

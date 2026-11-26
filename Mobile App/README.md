@@ -3,6 +3,8 @@
 The Garbage-Guard Android app and everything needed to work on it without
 the Raspberry Pi, the camera, or the model. App developer: Brian.
 
+<img src="../Documents/Figures/Screenshots/App_Monitor_Alert.jpg" alt="Monitor tab of the app during an accumulation alert" width="300">
+
 ## What is in this folder
 
 | Item | What it is |

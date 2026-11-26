@@ -1,4 +1,4 @@
-# Garbage-Guard and Firebase — guide for the mobile app
+# Garbage-Guard and Firebase: guide for the mobile app
 
 The Pi now copies its data to a Firebase **Realtime Database**, so the app
 keeps working when the phone is away from the Pi's Wi-Fi.
@@ -352,7 +352,7 @@ Rough download use per phone in Firebase mode:
 |---|---|---|
 | state every 3 s | ~1 KB | ~1.2 MB |
 | preview every 3 s (only on the live screen) | ~25–40 KB | ~30–50 MB |
-| one snapshot opened | up to 300 KB | — |
+| one snapshot opened | up to 300 KB | n/a |
 
 So the preview is the expensive part: about 250 hours a month for one phone.
 Fetch `/gg/preview` only while the live screen is open, and stop the

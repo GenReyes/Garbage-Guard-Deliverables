@@ -1,9 +1,11 @@
-# Raspberry Pi 5 — the system
+# Raspberry Pi 5: the system
 
 This is the actual system: the part that talks to the camera, runs the
 model, counts garbage, drives the buzzer, reads the UPS battery, syncs to
 Firebase and serves the touchscreen dashboard. On the Pi this folder is
 copied to `~/gg`.
+
+![Inside the enclosure: the Raspberry Pi 5 on the UPS HAT, the buzzer, the case fan and the back of the touchscreen](../Documents/Figures/Components/Prototype%20Internal.png)
 
 If you're working on the mobile app, you don't need anything in here except
 `dashboard.html`, and only as a reference. See
@@ -17,7 +19,7 @@ built against the mock server, so none of the Python here has to run for it.
 | `garbageguard_live.py` | The detection engine. Loads the NCNN model, reads the camera over RTSP, runs ByteTrack, applies the ROI, and serves the web API. This is what you run. |
 | `gg_counter.py` | The accumulation counting and ROI-filtering logic, pulled out on its own so it can be unit tested without a camera or a model. |
 | `gg_web.py` | The HTTP server behind the dashboard: serves `dashboard.html`, the live frame, and the `/api/*` endpoints. |
-| `dashboard.html` | The touchscreen UI. Single file, no build step, no dependencies — open it in any browser once the server is running. |
+| `dashboard.html` | The touchscreen UI. Single file, no build step, no dependencies. Open it in any browser once the server is running. |
 | `test_counter.py` | Unit tests for `gg_counter.py`. Run these any time the counting logic changes, with no camera needed. |
 | `gg_net.py` | Wi-Fi helper. Wraps `nmcli` to read network status, scan, connect and fix the camera-cable route. Has a fake mode for testing without a Pi. |
 | `test_net.py` | Unit tests for `gg_net.py`. No Pi or NetworkManager needed. |
@@ -60,14 +62,16 @@ built against the mock server, so none of the Python here has to run for it.
 Two files have to exist on the Pi but are never committed, because they
 hold secrets or change per device:
 
-- **`camera.txt`** — one line, the camera's RTSP URL including its
+- **`camera.txt`**: one line, the camera's RTSP URL including its
   password. Create it yourself on each Pi. Point it at the sub-stream
   (`/Streaming/Channels/102`); the main stream (`101`) is worked out from it.
-- **`gg_settings.json`** — detection confidence, accumulation threshold,
+- **`gg_settings.json`**: detection confidence, accumulation threshold,
   the ROI polygon, and the stream settings (`stream` main or sub,
   `detect_size` 640/960/1280, `crop` true or false). Also `model`, the
-  model folder picked in Settings (the field unit holds v8 and v9; v8 is the fallback). Generated automatically the first time the script
-  runs, then it persists across restarts.
+  model folder picked in Settings. The field unit holds v8, v9 and v10.
+  v10 is the model reported in the thesis and the one used on the
+  deployment days; v8 is the built-in fallback. Generated automatically the
+  first time the script runs, then it persists across restarts.
 
 Both are listed in the repo's `.gitignore`. If you clone this fresh, the
 script creates `gg_settings.json` on its own; you create `camera.txt`
@@ -295,9 +299,11 @@ endpoints only answer to the Pi's own screen, so a phone on the network cannot
 change the Wi-Fi.
 
 On the field unit the built-in Wi-Fi could not join a network, so internet
-comes from a USB-to-Ethernet adapter cabled to a Wi-Fi repeater instead (see
-`GarbageGuard_Field_Reference.md`, section 1). The Wi-Fi screen still shows
-that wired link and the camera cable.
+comes from a USB Wi-Fi adapter (Erlvsoiis WF-ER1800M) on a USB 3.0
+extension cable, mounted on top of the enclosure (see
+`GarbageGuard_Field_Reference.md`, section 1). It replaced an earlier setup
+of a Wi-Fi repeater cabled through a USB-to-Ethernet adapter. The Wi-Fi
+screen also shows the camera cable.
 
 To try the screens on any computer with no Pi, start the server with
 `GG_FAKE_NET=offline` (or `connected`, `conflict`, `nohw`). The fake network
@@ -378,7 +384,7 @@ start.sh
 ```
 
 `dashboard.html` only talks to the Python side over HTTP, the same way a
-phone would. That's deliberate — it's what makes the API in
+phone would. That is deliberate: it is what makes the API in
 `../Mobile App/GarbageGuard_API.md` an accurate description of this system
 rather than a guess.
 
@@ -390,14 +396,16 @@ rather than a guess.
   repo, it's a binary; make it on the Pi with
   `yolo export model=garbageguard_v8_best.pt format=ncnn imgsz=960`, or copy
   it over directly). It is the fallback, so keep it even when another model
-  is in use. The field unit also holds `garbageguard_v9_best_ncnn_model/`.
-  New models are uploaded from the Model card (see "Adding a new model").
+  is in use. The field unit also holds `garbageguard_v9_best_ncnn_model/`
+  and `garbageguard_v10_best_ncnn_model/`, the model reported in the thesis
+  (precision 0.846, recall 0.672, mAP@0.5 0.744 on the frozen test set of
+  807 images). New models are uploaded from the Model card (see "Adding a new model").
   `--model <folder>` picks a model for one run
 - A reachable camera and a `camera.txt` pointing at it
 
 Nothing here needs internet access to run, only to install.
 
-## Adding a new model (for example v10)
+## Adding a new model (for example v11)
 
 1. Export it to NCNN on the training PC (`yolo export model=best.pt format=ncnn imgsz=960`).
    This writes a folder such as `best_ncnn_model` with a `.param` file, a
@@ -405,17 +413,17 @@ Nothing here needs internet access to run, only to install.
    food_container in that order.
 2. Send it to the Pi in one of two ways:
    - From a phone or a PC on the same Wi-Fi: zip that folder, open Settings,
-     Model, type the version name (for example `v10`), press "Choose .zip"
+     Model, type the version name (for example `v11`), press "Choose .zip"
      (in the app, "Choose model .zip") and then Upload.
    - On the Pi's own screen: copy the folder over on a USB stick or into
      Downloads, open Settings, Model, type the version name, press
      "Choose folder", pick the folder and press Upload. The dashboard packs
      the three files into a zip itself.
-3. The card shows the upload percentage, then "Loading v10..." while the Pi
+3. The card shows the upload percentage, then "Loading v11..." while the Pi
    test-runs it. The live view pauses for a few seconds.
 4. If it cannot load, or its classes are wrong, the Pi keeps the old model,
    deletes the uploaded folder and the card says why. After a successful
-   switch, "Go back to v8" returns to the previous model; old folders are
+   switch, "Go back to v10" returns to the previous model; old folders are
    never deleted.
 
 Uploads are limited to 64 MB, work only on the same network (there is no
