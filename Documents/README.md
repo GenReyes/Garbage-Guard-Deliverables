@@ -1,7 +1,8 @@
 # Documents
 
 Every thesis document of the Garbage-Guard capstone: the manuscript, the
-defense deck, the patent draft, the figures and the cited sources.
+defense deck, the patent draft and the figures the team made. The cited
+sources are listed in the manuscript's References section.
 
 ## The manuscript
 
@@ -20,14 +21,11 @@ figures and tables and choose **Update Field**.
 | `Garbage-Guard Final Defense v6.html`, `.pdf` | The final defense slide deck |
 | `Garbage-Guard Patent Draft v4.pdf` | The patent draft |
 | [`Figures/`](Figures/) | The diagrams in the manuscript, each as an HTML source and a PNG, plus the folders below |
-| [`Figures/Components/`](Figures/Components/) | Photos of the parts and of the finished prototype |
+| [`Figures/Components/`](Figures/Components/) | Photos of the finished prototype |
 | [`Figures/Screenshots/`](Figures/Screenshots/) | Dashboard, app and deployment images taken from the manuscript for the home README |
-| [`Figures/Logos/`](Figures/Logos/) | Software and school logos |
-| [`Figures/Sources/`](Figures/Sources/) | Images taken from cited studies |
-| [`References/`](References/) | A copy of every cited source, named `(Author, Year)`. [`index.md`](References/index.md) lists them |
 | `THESIS FILES.url` | Shortcut to the group's shared Drive folder |
 
-Each image folder has its credits in `sources.txt`.
+Each image folder describes its images in `sources.txt`.
 
 ## The diagrams
 

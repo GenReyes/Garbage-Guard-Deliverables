@@ -93,7 +93,7 @@ site. Plastic bags at the creek are the weakest class.
 |---|---|
 | [`Raspberry Pi 5/`](Raspberry%20Pi%205/) | The system: detection engine, counter, web server and dashboard, Firebase sync, buzzer, UPS readout, power and screen handling, and their unit tests. Start with its [README](Raspberry%20Pi%205/README.md). |
 | [`Mobile App/`](Mobile%20App/) | The Android Studio project, the installable APK, a mock server with the same API as the Pi, the API reference and the Firebase guide. Start with its [README](Mobile%20App/README.md). |
-| [`Documents/`](Documents/) | The manuscript, the final defense deck, the patent draft, the figures, and a copy of every cited source. See its [README](Documents/README.md). |
+| [`Documents/`](Documents/) | The manuscript, the final defense deck, the patent draft, and the team's figures. See its [README](Documents/README.md). |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version of the Pi software and the app. |
 
 ## Quick links
